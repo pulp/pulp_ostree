@@ -1,9 +1,9 @@
 {"types": [
     {
-        "id": "ostree-brnach",
+        "id": "ostree-repository",
         "display_name": "OSTree Branch",
         "description": "An OSTree branch",
-        "unit_key": ["remote_id", "branch", "hash"],
+        "unit_key": ["remote_id", "digest"],
         "search_indexes": []
     }
 ]}
