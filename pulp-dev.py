@@ -8,7 +8,7 @@ import sys
 WARNING_COLOR = '\033[31m'
 WARNING_RESET = '\033[0m'
 
-DIRS = ('/var/lib/pulp/published/docker/web',)
+DIRS = ('/var/lib/pulp/published/ostree/web',)
 
 #
 # Str entry assumes same src and dst relative path.
@@ -20,10 +20,10 @@ DIRS = ('/var/lib/pulp/published/docker/web',)
 DIR_PLUGINS = '/usr/lib/pulp/plugins'
 
 LINKS = (
-    ('plugins/etc/httpd/conf.d/pulp_docker.conf', '/etc/httpd/conf.d/pulp_docker.conf'),
-    ('plugins/etc/pulp/server/plugins.conf.d/docker_distributor.json',
-     '/etc/pulp/server/plugins.conf.d/docker_distributor.json'),
-    ('plugins/types/docker.json', DIR_PLUGINS + '/types/docker.json'),
+    ('plugins/etc/httpd/conf.d/pulp_ostree.conf', '/etc/httpd/conf.d/pulp_ostree.conf'),
+    ('plugins/etc/pulp/server/plugins.conf.d/ostree_distributor.json',
+     '/etc/pulp/server/plugins.conf.d/ostree_distributor.json'),
+    ('plugins/types/ostree.json', DIR_PLUGINS + '/types/ostree.json'),
 )
 
 
@@ -94,7 +94,7 @@ def install(opts):
     warnings = []
     create_dirs(opts)
     # Ensure the directory is owned by apache
-    os.system('chown -R apache:apache /var/lib/pulp/published/docker')
+    os.system('chown -R apache:apache /var/lib/pulp/published/ostree')
 
     currdir = os.path.abspath(os.path.dirname(__file__))
     for src, dst in getlinks():
