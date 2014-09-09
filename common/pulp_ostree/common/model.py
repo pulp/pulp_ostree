@@ -1,3 +1,18 @@
+"""
+The content model:
+
+{ remote_id: <id>
+  digest: <hex-digest>
+  timestamp: <timestamp>
+  refs: {
+    heads [
+      path: <path>, commit_id: <commit>,
+      path: <path>, commit_id: <commit>,
+    ]
+  }
+}
+"""
+
 import os
 
 from hashlib import sha256
@@ -8,6 +23,16 @@ from pulp_ostree.common import constants
 class Head(object):
     """
     Branch (tree) head.
+
+    :cvar PATH: The path dictionary key.
+    :type PATH: str
+    :cvar COMMIT_ID: The commit_id dictionary key.
+    :type COMMIT_ID: str
+
+    :ivar path: The branch head file path.
+    :type path: str
+    :ivar commit_id: The unique identifier for the commit
+        object that is the branch head.
     """
 
     PATH = 'path'
@@ -17,6 +42,7 @@ class Head(object):
     def from_dict(d):
         """
         Construct using a dictionary representation.
+
         :param d: A dictionary representation.
         :type d: dict
         """
@@ -36,6 +62,7 @@ class Head(object):
     def digest(self):
         """
         Get the content-based digest.
+
         :return: The content-based digest.
         :rtype: str
         """
@@ -47,6 +74,7 @@ class Head(object):
     def to_dict(self):
         """
         Get a dictionary representation.
+
         :return: A dictionary representation.
         :rtype: dict
         """
@@ -58,7 +86,15 @@ class Head(object):
 
 class Refs(object):
     """
-    Repository references.
+    Repository *refs/* content.  Currently this only contains
+    the branch heads but will likely contain tags when they are
+    supported by ostree.
+
+    :cvar HEADS: The heads dictionary key.
+    :type HEADS: str
+
+    :ivar heads: The list of branch head objects.
+    :type heads: list
     """
 
     HEADS = 'heads'
@@ -67,6 +103,7 @@ class Refs(object):
     def from_dict(d):
         """
         Construct using a dictionary representation.
+
         :param d: A dictionary representation.
         :type d: dict
         """
@@ -84,6 +121,7 @@ class Refs(object):
     def digest(self):
         """
         Get the content-based digest.
+
         :return: The content-based digest.
         :rtype: str
         """
@@ -95,6 +133,7 @@ class Refs(object):
     def to_dict(self):
         """
         Get a dictionary representation.
+
         :return: A dictionary representation.
         :rtype: dict
         """
@@ -105,7 +144,28 @@ class Refs(object):
 
 class Repository(object):
     """
-    An ostree repository unit.
+    An ostree repository content unit.
+
+    :cvar TYPE_ID: The content type ID.
+    :type TYPE_ID: str
+    :cvar REMOTE_ID: The remote_id dictionary key.
+    :type REMOTE_ID: str
+    :cvar TIMESTAMP: The timestamp dictionary key.
+    :type TIMESTAMP: str
+    :cvar DIGEST: The digest dictionary key.
+    :type DIGEST: str
+    :cvar REFS: The refs dictionary key.
+    :type REFS: str
+
+    :ivar remote_id: The unique identifier for the remote ostree repository.
+        This is likely to be the sha256 digest of the remote URL until
+        something is supported by ostree.
+    :type remote_id: str
+    :ivar timestamp: The UTC timestamp of when the repository snapshot
+        was taken.
+    :type timestamp: datetime.datetime
+    :ivar refs: The repository references.
+    :type refs: Refs
     """
 
     TYPE_ID = constants.REPOSITORY_TYPE_ID
