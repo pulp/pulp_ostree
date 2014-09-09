@@ -179,6 +179,7 @@ class Repository(object):
     def from_dict(d):
         """
         Construct using a dictionary representation.
+
         :param d: A dictionary representation.
         :type d: dict
         """
@@ -204,6 +205,7 @@ class Repository(object):
     def digest(self):
         """
         Get the content-based digest.
+
         :return: The content-based digest.
         :rtype: str
         """
@@ -212,7 +214,8 @@ class Repository(object):
     @property
     def unit_key(self):
         """
-        Get the unit key
+        Get the unit key.
+
         :return: The unit key.
         :rtype: dict
         """
@@ -225,6 +228,7 @@ class Repository(object):
     def metadata(self):
         """
         Get the unit metadata
+
         :return: The unit metadata
         :rtype dict
         """
