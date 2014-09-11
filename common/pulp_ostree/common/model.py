@@ -20,6 +20,20 @@ from hashlib import sha256
 from pulp_ostree.common import constants
 
 
+def generate_remote_id(url):
+    """
+    Generate a remote_id based on the url.
+
+    :param url: The remote URL.
+    :type url: str
+    :return: The generated ID.
+    :rtype:str
+    """
+    h = sha256()
+    h.update(url)
+    return h.hexdigest()
+
+
 class Head(object):
     """
     Branch (tree) head.

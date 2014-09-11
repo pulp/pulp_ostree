@@ -1,8 +1,15 @@
+import os
+
 from gettext import gettext as _
 
+from pulp.common.util import encode_unicode
+from pulp.common.plugins import reporting_constants, importer_constants
 from pulp.plugins.importer import Importer
+from pulp.plugins.util.publish_step import PluginStep, PluginStepIterativeProcessingMixin
 
 from pulp_ostree.common import constants
+from pulp_ostree.common import model
+from pulp_ostree.plugins.importers import ostree
 
 
 def entry_point():
@@ -101,3 +108,66 @@ class WebImporter(Importer):
         :param config: plugin configuration
         :type  config: pulp.plugins.config.PluginCallConfiguration
         """
+
+
+class WebSync(PluginStep):
+
+    def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
+        super(WebSync, self).__init__(
+            step_type='main',
+            repo=repo,
+            conduit=conduit,
+            config=config,
+            working_dir=working_dir,
+            plugin_type=constants.WEB_IMPORTER_TYPE_ID
+        )
+        for branch in self.config.get('branches', []):
+            step = Pull(branch)
+            self.add_child(step)
+
+    @property
+    def remote_id(self):
+        remote_id = model.generate_remote_id(self.feed_url)
+        return remote_id
+
+    @property
+    def storage_path(self):
+        root_dir = '/var/lib/pulp/content/ostree/'
+        path = os.path.join(root_dir, self.remote_id)
+        return path
+
+    @property
+    def feed_url(self):
+        feed_url = self.config.get(importer_constants.KEY_FEED)
+        return encode_unicode(feed_url)
+
+    def initialize(self):
+        super(WebSync, self).initialize()
+        repository = ostree.Repository(self.storage_path)
+        repository.create()
+        repository.add_remote(self.remote_id, self.feed_url)
+
+
+class Pull(PluginStep, PluginStepIterativeProcessingMixin):
+
+    def __init__(self, branch_id):
+        super(Pull, self).__init__(step_type='pull')
+        self.branch_id = branch_id
+        self.pull_request = None
+
+    def _report_progress(self, report):
+        self.description = str(report)
+        self.report_progress()
+
+    def process_main(self):
+        path = self.parent.storage_path
+        remote_id = self.parent.remote_id
+        refs = [self.branch_id]
+        self.pull_request = ostree.PullRequest(path, remote_id, refs)
+        self.pull_request(self._report_progress)
+
+    def cancel(self):
+        if not self.pull_request:
+            return
+        self.pull_request.cancel()
+        self.pull_request = None
