@@ -8,6 +8,11 @@ from gi.repository.OSTree import Repo, RepoMode, RepoPullFlags, AsyncProgress
 log = getLogger(__name__)
 
 
+DEFAULT_REMOTE_OPTIONS = {
+    'gpg-verify': GLib.Variant('s', 'false')
+}
+
+
 class ProgressReport(object):
     """
     Pull progress report.
@@ -74,7 +79,7 @@ class Repository(object):
         :type url: str
         """
         fp = File.new_for_path(self.path)
-        options = GLib.Variant('a{sv}', {})
+        options = GLib.Variant('a{sv}', DEFAULT_REMOTE_OPTIONS)
         repository = Repo.new(fp)
         repository.open(None)
         repository.remote_add(remote_id, url, options, None)
@@ -120,7 +125,6 @@ class PullRequest(object):
         :param report: The progress report issued by libostree.
         """
         if not self.listener:
-            #  nobody listening
             return
         try:
             _report = ProgressReport(report)
@@ -144,28 +148,3 @@ class PullRequest(object):
         repository = Repo.new(fp)
         repository.open(None)
         repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
-
-
-# --- TESTING ** TESTING ** TESTING ------------------------------------------
-
-
-PATH = '/opt/content/ostree/jeff.cloned'
-REMOTE_NAME = 'jeff2'
-REMOTE_URL = 'http://rpm-ostree.cloud.fedoraproject.org/repo'
-TREE = 'fedora-atomic/f21/x86_64/docker-host'
-
-r = Repository(PATH)
-
-
-def report_progress(report):
-    print 'fetching objects %d/%d %d%%' % (report.fetched, report.requested, report.percent)
-
-
-def pull():
-    r.create()
-    r.add_remote(REMOTE_NAME, REMOTE_URL)
-    pull_request = PullRequest(PATH, REMOTE_NAME, [TREE])
-    pull_request(listener=report_progress)
-
-
-pull()

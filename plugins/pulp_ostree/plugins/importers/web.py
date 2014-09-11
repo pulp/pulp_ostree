@@ -1,15 +1,20 @@
 import os
+import shutil
 
 from gettext import gettext as _
+from tempfile import mkdtemp
 
 from pulp.common.util import encode_unicode
-from pulp.common.plugins import reporting_constants, importer_constants
+from pulp.common.plugins import importer_constants
 from pulp.plugins.importer import Importer
-from pulp.plugins.util.publish_step import PluginStep, PluginStepIterativeProcessingMixin
+from pulp.plugins.util.publish_step import PluginStep
 
 from pulp_ostree.common import constants
 from pulp_ostree.common import model
 from pulp_ostree.plugins.importers import ostree
+
+
+STORAGE_DIR = '/var/lib/pulp/content/ostree/'
 
 
 def entry_point():
@@ -22,6 +27,10 @@ def entry_point():
 
 
 class WebImporter(Importer):
+
+    def __init__(self):
+        super(WebImporter, self).__init__()
+        self.sync_step = None
 
     @classmethod
     def metadata(cls):
@@ -50,7 +59,7 @@ class WebImporter(Importer):
         """
         return True, ''
 
-    def sync_repo(self, repo, sync_conduit, config):
+    def sync_repo(self, repo, conduit, config):
         """
         Synchronizes content into the given repository. This call is responsible
         for adding new content units to Pulp as well as associating them to the
@@ -71,8 +80,8 @@ class WebImporter(Importer):
         :param repo: metadata describing the repository
         :type  repo: pulp.plugins.model.Repository
 
-        :param sync_conduit: provides access to relevant Pulp functionality
-        :type  sync_conduit: pulp.plugins.conduits.repo_sync.RepoSyncConduit
+        :param conduit: provides access to relevant Pulp functionality
+        :type  conduit: pulp.plugins.conduits.repo_sync.RepoSyncConduit
 
         :param config: plugin configuration
         :type  config: pulp.plugins.config.PluginCallConfiguration
@@ -80,6 +89,14 @@ class WebImporter(Importer):
         :return: report of the details of the sync
         :rtype:  pulp.plugins.model.SyncReport
         """
+        working_dir = mkdtemp(repo.working_dir)
+
+        try:
+            self.sync_step = Main(repo, conduit, config)
+            return self.sync_step.process_lifecycle()
+        finally:
+            shutil.rmtree(working_dir, ignore_errors=True)
+            self.sync_step = None
 
     def cancel_sync_repo(self):
         """
@@ -89,6 +106,8 @@ class WebImporter(Importer):
         in-progress downloads and performing any cleanup necessary to get the
         system back into a stable state.
         """
+        if self.sync_step:
+            self.sync_step.cancel()
 
     def remove_units(self, repo, units, config):
         """
@@ -110,20 +129,28 @@ class WebImporter(Importer):
         """
 
 
-class WebSync(PluginStep):
+# --- steps ------------------------------------------------------------------
+
+
+class Main(PluginStep):
 
     def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
-        super(WebSync, self).__init__(
-            step_type='main',
+        super(Main, self).__init__(
+            step_type=constants.WEB_SYNC_MAIN_STEP,
             repo=repo,
             conduit=conduit,
             config=config,
             working_dir=working_dir,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID
         )
-        for branch in self.config.get('branches', []):
+        self.add_child(Create())
+        for branch in self.branches:
             step = Pull(branch)
             self.add_child(step)
+
+    @property
+    def branches(self):
+        return self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
 
     @property
     def remote_id(self):
@@ -132,8 +159,7 @@ class WebSync(PluginStep):
 
     @property
     def storage_path(self):
-        root_dir = '/var/lib/pulp/content/ostree/'
-        path = os.path.join(root_dir, self.remote_id)
+        path = os.path.join(STORAGE_DIR, self.remote_id)
         return path
 
     @property
@@ -141,22 +167,35 @@ class WebSync(PluginStep):
         feed_url = self.config.get(importer_constants.KEY_FEED)
         return encode_unicode(feed_url)
 
-    def initialize(self):
-        super(WebSync, self).initialize()
-        repository = ostree.Repository(self.storage_path)
+
+class Create(PluginStep):
+
+    def __init__(self):
+        super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
+
+    def process_main(self):
+        path = self.parent.storage_path
+        remote_id = self.parent.remote_id
+        url = self.parent.feed_url
+        try:
+            os.makedirs(path)
+        except OSError:
+            pass
+        repository = ostree.Repository(path)
         repository.create()
-        repository.add_remote(self.remote_id, self.feed_url)
+        repository.add_remote(remote_id, url)
 
 
-class Pull(PluginStep, PluginStepIterativeProcessingMixin):
+class Pull(PluginStep):
 
     def __init__(self, branch_id):
-        super(Pull, self).__init__(step_type='pull')
+        super(Pull, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
         self.branch_id = branch_id
         self.pull_request = None
 
     def _report_progress(self, report):
-        self.description = str(report)
+        self.description = \
+            'fetching objects %d/%d [%d%%]' % (report.fetched, report.requested, report.percent)
         self.report_progress()
 
     def process_main(self):
@@ -167,7 +206,6 @@ class Pull(PluginStep, PluginStepIterativeProcessingMixin):
         self.pull_request(self._report_progress)
 
     def cancel(self):
-        if not self.pull_request:
-            return
-        self.pull_request.cancel()
-        self.pull_request = None
+        if self.pull_request:
+            self.pull_request.cancel()
+            self.pull_request = None
