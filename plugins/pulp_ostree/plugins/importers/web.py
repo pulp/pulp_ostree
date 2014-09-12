@@ -3,6 +3,7 @@ import shutil
 
 from gettext import gettext as _
 from tempfile import mkdtemp
+from datetime import datetime
 
 from pulp.common.util import encode_unicode
 from pulp.common.plugins import importer_constants
@@ -11,7 +12,7 @@ from pulp.plugins.util.publish_step import PluginStep
 
 from pulp_ostree.common import constants
 from pulp_ostree.common import model
-from pulp_ostree.plugins.importers import ostree
+from pulp_ostree.plugins.importers import lib
 
 
 STORAGE_DIR = '/var/lib/pulp/content/ostree/'
@@ -92,7 +93,7 @@ class WebImporter(Importer):
         working_dir = mkdtemp(repo.working_dir)
 
         try:
-            self.sync_step = Main(repo, conduit, config)
+            self.sync_step = MainStep(repo, conduit, config)
             return self.sync_step.process_lifecycle()
         finally:
             shutil.rmtree(working_dir, ignore_errors=True)
@@ -132,10 +133,10 @@ class WebImporter(Importer):
 # --- steps ------------------------------------------------------------------
 
 
-class Main(PluginStep):
+class MainStep(PluginStep):
 
     def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
-        super(Main, self).__init__(
+        super(MainStep, self).__init__(
             step_type=constants.WEB_SYNC_MAIN_STEP,
             repo=repo,
             conduit=conduit,
@@ -143,10 +144,13 @@ class Main(PluginStep):
             working_dir=working_dir,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID
         )
-        self.add_child(Create())
+        step = CreateStep()
+        self.add_child(step)
         for branch in self.branches:
-            step = Pull(branch)
+            step = PullStep(branch)
             self.add_child(step)
+        step = AddStep()
+        self.add_child(step)
 
     @property
     def branches(self):
@@ -168,10 +172,10 @@ class Main(PluginStep):
         return encode_unicode(feed_url)
 
 
-class Create(PluginStep):
+class CreateStep(PluginStep):
 
     def __init__(self):
-        super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
+        super(CreateStep, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
 
     def process_main(self):
         path = self.parent.storage_path
@@ -181,15 +185,15 @@ class Create(PluginStep):
             os.makedirs(path)
         except OSError:
             pass
-        repository = ostree.Repository(path)
+        repository = lib.Repository(path)
         repository.create()
         repository.add_remote(remote_id, url)
 
 
-class Pull(PluginStep):
+class PullStep(PluginStep):
 
     def __init__(self, branch_id):
-        super(Pull, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
+        super(PullStep, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
         self.branch_id = branch_id
         self.pull_request = None
 
@@ -202,10 +206,36 @@ class Pull(PluginStep):
         path = self.parent.storage_path
         remote_id = self.parent.remote_id
         refs = [self.branch_id]
-        self.pull_request = ostree.PullRequest(path, remote_id, refs)
+        self.pull_request = lib.PullRequest(path, remote_id, refs)
         self.pull_request(self._report_progress)
 
     def cancel(self):
         if self.pull_request:
             self.pull_request.cancel()
             self.pull_request = None
+
+
+class AddStep(PluginStep):
+
+    def __init__(self):
+        super(AddStep, self).__init__(step_type=constants.WEB_SYNC_ADD_STEP)
+
+    def process_main(self):
+        refs = model.Refs()
+        timestamp = datetime.utcnow()
+        for branch in self.find_branches():
+            refs.add_head(branch)
+        unit = model.Repository(self.parent.remote_id, refs, timestamp)
+        conduit = self.get_conduit()
+        unit = conduit.init_unit(unit.TYPE_ID, unit.unit_key, unit.metadata, unit.relative_path)
+        conduit.save_unit(unit)
+
+    def find_branches(self):
+        root_dir = os.path.join(self.parent.storage_path, 'refs', 'heads')
+        for root, dirs, files in os.walk(root_dir):
+            for name in files:
+                path = os.path.join(root, name)
+                branch_id = os.path.relpath(path, root_dir)
+                with open(path) as fp:
+                    commit_id = fp.read()
+                    yield model.Head(branch_id, commit_id)

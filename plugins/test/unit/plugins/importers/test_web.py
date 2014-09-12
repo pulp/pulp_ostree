@@ -19,7 +19,7 @@ cfg = {
 
 web.STORAGE_DIR = PATH
 
-step = web.Main(
+step = web.MainStep(
     repo=Mock(),
     conduit=Mock(),
     config=cfg,

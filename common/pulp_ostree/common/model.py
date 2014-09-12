@@ -144,6 +144,14 @@ class Refs(object):
             h.update(head.digest)
         return h.hexdigest()
 
+    def add_head(self, head):
+        """
+        Add the specified head.
+        :param head: The head to add.
+        :type head: Head
+        """
+        self.heads.append(head)
+
     def to_dict(self):
         """
         Get a dictionary representation.

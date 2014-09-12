@@ -73,6 +73,16 @@ class TestRefs(TestCase):
         refs = Refs(heads)
         self.assertEqual(refs.heads, heads)
 
+    def test_add_head(self):
+        refs = Refs()
+        heads = [
+            Mock(),
+            Mock(),
+        ]
+        for head in heads:
+            refs.add_head(head)
+        self.assertEqual(refs.heads, heads)
+
     def test_digest(self):
         heads = [
             Mock(),
