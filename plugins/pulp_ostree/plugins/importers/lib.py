@@ -8,11 +8,6 @@ from gi.repository.OSTree import Repo, RepoMode, RepoPullFlags, AsyncProgress
 log = getLogger(__name__)
 
 
-DEFAULT_REMOTE_OPTIONS = {
-    'gpg-verify': GLib.Variant('s', 'false')
-}
-
-
 class ProgressReport(object):
     """
     Pull progress report.
@@ -79,7 +74,7 @@ class Repository(object):
         :type url: str
         """
         fp = File.new_for_path(self.path)
-        options = GLib.Variant('a{sv}', DEFAULT_REMOTE_OPTIONS)
+        options = GLib.Variant('a{sv}', {'gpg-verify': GLib.Variant('s', 'false')})
         repository = Repo.new(fp)
         repository.open(None)
         repository.remote_add(remote_id, url, options, None)

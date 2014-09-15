@@ -1,11 +1,13 @@
 
+from threading import Thread
+
 from mock import Mock
 
 
 from pulp.common.plugins import importer_constants
 
 from pulp_ostree.common import constants
-from pulp_ostree.plugins.importers import web
+
 
 PATH = '/tmp/jeff'
 REMOTE_NAME = 'jeff'
@@ -17,14 +19,28 @@ cfg = {
     importer_constants.KEY_FEED: 'http://rpm-ostree.cloud.fedoraproject.org/repo',
 }
 
-web.STORAGE_DIR = PATH
 
-step = web.MainStep(
-    repo=Mock(),
-    conduit=Mock(),
-    config=cfg,
-    working_dir='/tmp/working')
+def test():
+    from pulp_ostree.plugins.importers import web
+    web.STORAGE_DIR = PATH
+    step = web.Main(
+        repo=Mock(),
+        conduit=Mock(),
+        config=cfg,
+        working_dir='/tmp/working')
+    step.process_lifecycle()
 
-step.process_lifecycle()
 
+thread = Thread(target=test)
+thread.setDaemon(True)
+thread.start()
+thread.join()
 
+print thread.getName()
+
+thread = Thread(target=test)
+thread.setDaemon(True)
+thread.start()
+thread.join()
+
+print thread.getName()

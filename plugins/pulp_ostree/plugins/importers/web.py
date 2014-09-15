@@ -8,7 +8,7 @@ from datetime import datetime
 from pulp.common.util import encode_unicode
 from pulp.common.plugins import importer_constants
 from pulp.plugins.importer import Importer
-from pulp.plugins.util.publish_step import PluginStep
+from pulp.plugins.util.publish_step import PluginStep, PluginStepIterativeProcessingMixin
 
 from pulp_ostree.common import constants
 from pulp_ostree.common import model
@@ -93,7 +93,7 @@ class WebImporter(Importer):
         working_dir = mkdtemp(repo.working_dir)
 
         try:
-            self.sync_step = MainStep(repo, conduit, config)
+            self.sync_step = Main(repo, conduit, config)
             return self.sync_step.process_lifecycle()
         finally:
             shutil.rmtree(working_dir, ignore_errors=True)
@@ -133,10 +133,10 @@ class WebImporter(Importer):
 # --- steps ------------------------------------------------------------------
 
 
-class MainStep(PluginStep):
+class Main(PluginStep):
 
     def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
-        super(MainStep, self).__init__(
+        super(Main, self).__init__(
             step_type=constants.WEB_SYNC_MAIN_STEP,
             repo=repo,
             conduit=conduit,
@@ -144,13 +144,9 @@ class MainStep(PluginStep):
             working_dir=working_dir,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID
         )
-        step = CreateStep()
-        self.add_child(step)
-        for branch in self.branches:
-            step = PullStep(branch)
-            self.add_child(step)
-        step = AddStep()
-        self.add_child(step)
+        self.add_child(Create())
+        self.add_child(Pull())
+        self.add_child(Add())
 
     @property
     def branches(self):
@@ -172,10 +168,10 @@ class MainStep(PluginStep):
         return encode_unicode(feed_url)
 
 
-class CreateStep(PluginStep):
+class Create(PluginStep):
 
     def __init__(self):
-        super(CreateStep, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
+        super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
 
     def process_main(self):
         path = self.parent.storage_path
@@ -190,11 +186,10 @@ class CreateStep(PluginStep):
         repository.add_remote(remote_id, url)
 
 
-class PullStep(PluginStep):
+class Pull(PluginStep):
 
-    def __init__(self, branch_id):
-        super(PullStep, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
-        self.branch_id = branch_id
+    def __init__(self):
+        super(Pull, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
         self.pull_request = None
 
     def _report_progress(self, report):
@@ -202,23 +197,29 @@ class PullStep(PluginStep):
             'fetching objects %d/%d [%d%%]' % (report.fetched, report.requested, report.percent)
         self.report_progress()
 
-    def process_main(self):
+    def get_iterator(self):
+        return iter(self.parent.branches)
+
+    def process_item(self, branch_id):
         path = self.parent.storage_path
         remote_id = self.parent.remote_id
-        refs = [self.branch_id]
-        self.pull_request = lib.PullRequest(path, remote_id, refs)
+        self.pull_request = lib.PullRequest(path, remote_id, [branch_id])
         self.pull_request(self._report_progress)
 
     def cancel(self):
+        super(Pull, self).cancel()
         if self.pull_request:
             self.pull_request.cancel()
             self.pull_request = None
 
+    def _get_total(self):
+        return len(self.parent.branches)
 
-class AddStep(PluginStep):
+
+class Add(PluginStep):
 
     def __init__(self):
-        super(AddStep, self).__init__(step_type=constants.WEB_SYNC_ADD_STEP)
+        super(Add, self).__init__(step_type=constants.WEB_SYNC_ADD_STEP)
 
     def process_main(self):
         refs = model.Refs()
