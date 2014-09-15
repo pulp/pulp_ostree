@@ -1,7 +1,7 @@
 
 from threading import Thread
 
-from mock import Mock
+from mock import patch, Mock
 
 
 from pulp.common.plugins import importer_constants
@@ -20,9 +20,9 @@ cfg = {
 }
 
 
+@patch('pulp_ostree.plugins.importers.steps.STORAGE_DIR', PATH)
 def test():
     from pulp_ostree.plugins.importers import web
-    web.STORAGE_DIR = PATH
     step = web.Main(
         repo=Mock(),
         conduit=Mock(),
