@@ -19,9 +19,9 @@ OPT_AUTO_PUBLISH = PulpCliOption('--auto-publish', d, required=False,
 
 DESC_FEED = _('URL for the upstream ostree repo')
 
-d = _("a comma delineated list of branches to sync from the upstream repository")
-OPT_BRANCHES = PulpCliOption('--branches', d, required=False,
-                             parse_func=parsers.parse_csv_string)
+d = _("a branch to sync from the upstream repository.  This option may be specified multiple times")
+OPT_BRANCH = PulpCliOption('--branch', d, required=False,
+                           allow_multiple=True)
 
 IMPORTER_CONFIGURATION_FLAGS = dict(
     include_ssl=False,
@@ -40,7 +40,7 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         CreateAndConfigureRepositoryCommand.__init__(self, context)
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
-        self.add_option(OPT_BRANCHES)
+        self.add_option(OPT_BRANCH)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def _describe_distributors(self, user_input):
@@ -67,6 +67,23 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
 
         return data
 
+    def _parse_importer_config(self, user_input):
+        """
+        Subclasses should override this to provide whatever option parsing
+        is needed to create an importer config.
+
+        :param user_input:  dictionary of data passed in by okaara
+        :type  user_inpus:  dict
+
+        :return:    importer config
+        :rtype:     dict
+        """
+        config = self.parse_user_input(user_input)
+        value = user_input.pop(OPT_BRANCH.keyword, None)
+        if value:
+            config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = value
+        return config
+
 
 class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin):
 
@@ -74,7 +91,7 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
         UpdateRepositoryCommand.__init__(self, context)
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
-        self.add_option(OPT_BRANCHES)
+        self.add_option(OPT_BRANCH)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def run(self, **kwargs):
@@ -82,7 +99,7 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
         importer_config = self.parse_user_input(kwargs)
 
-        value = kwargs.pop(OPT_BRANCHES.keyword, None)
+        value = kwargs.pop(OPT_BRANCH.keyword, None)
         if value:
             importer_config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = value
 
