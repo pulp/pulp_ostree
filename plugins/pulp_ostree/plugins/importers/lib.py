@@ -1,8 +1,8 @@
 from logging import getLogger
 
 from gi.repository import GLib
-from gi.repository.Gio import File,Cancellable
-from gi.repository.OSTree import Repo, RepoMode, RepoPullFlags, AsyncProgress
+from gi.repository import Gio
+from gi.repository import OSTree
 
 
 log = getLogger(__name__)
@@ -57,12 +57,12 @@ class Repository(object):
         """
         Create the repository as needed.
         """
-        fp = File.new_for_path(self.path)
-        repository = Repo.new(fp)
+        fp = Gio.File.new_for_path(self.path)
+        repository = OSTree.Repo.new(fp)
         try:
             repository.open(None)
         except GLib.GError:
-            repository.create(RepoMode.ARCHIVE_Z2, None)
+            repository.create(OSTree.RepoMode.ARCHIVE_Z2, None)
 
     def add_remote(self, remote_id, url):
         """
@@ -73,9 +73,9 @@ class Repository(object):
         :param url: The URL for the remote.
         :type url: str
         """
-        fp = File.new_for_path(self.path)
+        fp = Gio.File.new_for_path(self.path)
         options = GLib.Variant('a{sv}', {'gpg-verify': GLib.Variant('s', 'false')})
-        repository = Repo.new(fp)
+        repository = OSTree.Repo.new(fp)
         repository.open(None)
         repository.remote_add(remote_id, url, options, None)
 
@@ -104,7 +104,7 @@ class PullRequest(object):
         self.path = path
         self.remote_id = remote_id
         self.refs = refs
-        self.canceled = Cancellable.new()
+        self.canceled = Gio.Cancellable.new()
         self.listener = None
 
     def cancel(self):
@@ -135,11 +135,11 @@ class PullRequest(object):
         :type listener: callable
         """
         self.listener = listener
-        flags = RepoPullFlags.MIRROR
-        fp = File.new_for_path(self.path)
-        progress = AsyncProgress.new()
+        flags = OSTree.RepoPullFlags.MIRROR
+        fp = Gio.File.new_for_path(self.path)
+        progress = OSTree.AsyncProgress.new()
         if listener:
             progress.connect('changed', self._report_progress)
-        repository = Repo.new(fp)
+        repository = OSTree.Repo.new(fp)
         repository.open(None)
         repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
