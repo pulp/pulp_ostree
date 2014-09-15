@@ -1,4 +1,5 @@
 import os
+import errno
 
 from gettext import gettext as _
 from datetime import datetime
@@ -84,6 +85,14 @@ class Create(PluginStep):
     and the configured.
     """
 
+    @staticmethod
+    def mkdir(path):
+        try:
+            os.makedirs(path)
+        except OSError, e:
+            if e.errno != errno.EEXIST:
+                raise e
+
     def __init__(self):
         super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
 
@@ -95,10 +104,7 @@ class Create(PluginStep):
         path = self.parent.storage_path
         remote_id = self.parent.remote_id
         url = self.parent.feed_url
-        try:
-            os.makedirs(path)
-        except OSError:
-            pass
+        Create.mkdir(path)
         repository = lib.Repository(path)
         repository.create()
         repository.add_remote(remote_id, url)
