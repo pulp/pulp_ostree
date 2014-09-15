@@ -91,7 +91,7 @@ class Create(PluginStep):
             os.makedirs(path)
         except OSError, e:
             if e.errno != errno.EEXIST:
-                raise e
+                raise
 
     def __init__(self):
         super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
