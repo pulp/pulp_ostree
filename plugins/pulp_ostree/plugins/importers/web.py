@@ -8,7 +8,7 @@ from datetime import datetime
 from pulp.common.util import encode_unicode
 from pulp.common.plugins import importer_constants
 from pulp.plugins.importer import Importer
-from pulp.plugins.util.publish_step import PluginStep, PluginStepIterativeProcessingMixin
+from pulp.plugins.util.publish_step import PluginStep
 
 from pulp_ostree.common import constants
 from pulp_ostree.common import model
@@ -56,7 +56,13 @@ class WebImporter(Importer):
 
     def validate_config(self, repo, config):
         """
-        We don't have a config yet, so it's always valid
+        Validate the configuration.
+
+        :param repo: metadata describing the repository
+        :type  repo: pulp.plugins.model.Repository
+
+        :param config: plugin configuration
+        :type  config: pulp.plugins.config.PluginCallConfiguration
         """
         return True, ''
 
@@ -90,7 +96,7 @@ class WebImporter(Importer):
         :return: report of the details of the sync
         :rtype:  pulp.plugins.model.SyncReport
         """
-        working_dir = mkdtemp(repo.working_dir)
+        working_dir = mkdtemp(dir=repo.working_dir)
 
         try:
             self.sync_step = Main(repo, conduit, config)
@@ -134,6 +140,9 @@ class WebImporter(Importer):
 
 
 class Main(PluginStep):
+    """
+    The main synchronization step.
+    """
 
     def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
         super(Main, self).__init__(
@@ -142,7 +151,7 @@ class Main(PluginStep):
             conduit=conduit,
             config=config,
             working_dir=working_dir,
-            plugin_type=constants.WEB_IMPORTER_TYPE_ID
+            plugin_type=constants.WEB_IMPORTER_TYPE_ID,
         )
         self.add_child(Create())
         self.add_child(Pull())
@@ -150,30 +159,63 @@ class Main(PluginStep):
 
     @property
     def branches(self):
+        """
+        The list of branches to pull.
+
+        :return: The branches to pull.
+        :rtype list
+        """
         return self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
 
     @property
     def remote_id(self):
+        """
+        The remote ID to be pulled.
+
+        :return: The remote ID.
+        :rtype: str
+        """
         remote_id = model.generate_remote_id(self.feed_url)
         return remote_id
 
     @property
     def storage_path(self):
+        """
+        The absolute path to the local ostree repository
+        used to store the content units.
+
+        :return: The storage path.
+        :rtype: str
+        """
         path = os.path.join(STORAGE_DIR, self.remote_id)
         return path
 
     @property
     def feed_url(self):
+        """
+        The feel URL to the remote repository.
+
+        :return: The feed URL.
+        :rtype: unicode
+        """
         feed_url = self.config.get(importer_constants.KEY_FEED)
         return encode_unicode(feed_url)
 
 
 class Create(PluginStep):
+    """
+    Ensure the local ostree repository has been created
+    and the configured.
+    """
 
     def __init__(self):
         super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
 
     def process_main(self):
+        """
+        Ensure the local ostree repository has been created
+        and the configured.
+        """
         path = self.parent.storage_path
         remote_id = self.parent.remote_id
         url = self.parent.feed_url
@@ -187,41 +229,65 @@ class Create(PluginStep):
 
 
 class Pull(PluginStep):
+    """
+    Pull each of the specified branches.
+
+    :ivar pull_request: An active pull request.
+    :type pull_request: PullRequest
+    """
 
     def __init__(self):
         super(Pull, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
+        self.description = _('pull')
         self.pull_request = None
 
     def _report_progress(self, report):
+        """
+        Callback used to report progress from the ostree lib.
+
+        :param report: The progress report.
+        :type report: pulp_ostree.plugins.importers.lib.ProgressReport
+        """
         self.description = \
             'fetching objects %d/%d [%d%%]' % (report.fetched, report.requested, report.percent)
-        self.report_progress()
+        self.report_progress(force=True)
 
-    def get_iterator(self):
-        return iter(self.parent.branches)
-
-    def process_item(self, branch_id):
+    def process_main(self):
+        """
+        Pull each of the specified branches.
+        """
         path = self.parent.storage_path
         remote_id = self.parent.remote_id
-        self.pull_request = lib.PullRequest(path, remote_id, [branch_id])
-        self.pull_request(self._report_progress)
+        for branch_id in self.parent.branches:
+            self.description = branch_id
+            self.pull_request = lib.PullRequest(path, remote_id, [branch_id])
+            self.pull_request(self._report_progress)
+            if self.canceled:
+                break
 
     def cancel(self):
+        """
+        Cancel the pull request.
+        """
         super(Pull, self).cancel()
         if self.pull_request:
             self.pull_request.cancel()
             self.pull_request = None
 
-    def _get_total(self):
-        return len(self.parent.branches)
-
 
 class Add(PluginStep):
+    """
+    Add content units.
+    """
 
     def __init__(self):
         super(Add, self).__init__(step_type=constants.WEB_SYNC_ADD_STEP)
 
     def process_main(self):
+        """
+        Find all branch (heads) in the local repository and
+        create content units for them.
+        """
         refs = model.Refs()
         timestamp = datetime.utcnow()
         for branch in self.find_branches():
@@ -232,6 +298,12 @@ class Add(PluginStep):
         conduit.save_unit(unit)
 
     def find_branches(self):
+        """
+        Find and return all of the branch heads in the local repository.
+
+        :return: List of: model.Head
+        :rtype: generator
+        """
         root_dir = os.path.join(self.parent.storage_path, 'refs', 'heads')
         for root, dirs, files in os.walk(root_dir):
             for name in files:
@@ -239,4 +311,4 @@ class Add(PluginStep):
                 branch_id = os.path.relpath(path, root_dir)
                 with open(path) as fp:
                     commit_id = fp.read()
-                    yield model.Head(branch_id, commit_id)
+                    yield model.Head(branch_id, commit_id.strip())

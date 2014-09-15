@@ -36,3 +36,6 @@ class WebDistributor(Distributor):
             'display_name': _('OSTree Web Distributor'),
             'types': [constants.REPOSITORY_TYPE_ID]
         }
+
+    def validate_config(self, repo, config, config_conduit):
+        return True, ''

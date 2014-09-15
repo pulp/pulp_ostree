@@ -2,16 +2,25 @@ from logging import getLogger
 
 log = getLogger(__name__)
 
-
+# Libs
 GLib = None
 Gio = None
 OSTree = None
 
 
 class Lib(object):
+    """
+    Control C library loading.
+    This approach is used instead of static import statements because
+    glib libraries cannot be loaded in one process then used in another.
+    They cannot be loaded within mod_wsgi.
+    """
 
     @staticmethod
     def load():
+        """
+        Load the C libraries.
+        """
         global GLib
         global Gio
         global OSTree
@@ -21,6 +30,12 @@ class Lib(object):
 
     @staticmethod
     def _load(lib):
+        """
+        Load a particular library using gnome object inspection.
+
+        :param lib: The name of a lib.
+        :type lib: str
+        """
         return getattr(__import__('gi.repository', fromlist=[lib]), lib)
 
 
