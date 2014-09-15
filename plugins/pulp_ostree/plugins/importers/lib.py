@@ -1,11 +1,27 @@
 from logging import getLogger
 
-from gi.repository import GLib
-from gi.repository import Gio
-from gi.repository import OSTree
-
-
 log = getLogger(__name__)
+
+
+GLib = None
+Gio = None
+OSTree = None
+
+
+class Lib(object):
+
+    @staticmethod
+    def load():
+        global GLib
+        global Gio
+        global OSTree
+        GLib = Lib._load('GLib')
+        Gio = Lib._load('Gio')
+        OSTree = Lib._load('OSTree')
+
+    @staticmethod
+    def _load(lib):
+        return getattr(__import__('gi.repository', fromlist=[lib]), lib)
 
 
 class ProgressReport(object):
@@ -28,6 +44,7 @@ class ProgressReport(object):
         """
         :param report: The progress reported by libostree.
         """
+        Lib.load()
         self.status = report.get_status()
         self.bytes_transferred = GLib.format_size_full(report.get_uint64('bytes-transferred'), 0)
         self.fetched = report.get_uint('fetched')
@@ -51,6 +68,7 @@ class Repository(object):
         :param path: The absolute path to an ostree repository.
         :type path: str
         """
+        Lib.load()
         self.path = path
 
     def create(self):
@@ -101,6 +119,7 @@ class PullRequest(object):
         :param refs: A list of references to pull.
         :type refs: list
         """
+        Lib.load()
         self.path = path
         self.remote_id = remote_id
         self.refs = refs
