@@ -87,6 +87,13 @@ class Create(PluginStep):
 
     @staticmethod
     def mkdir(path):
+        """
+        Create the specified directory.
+        Tolerant of race conditions.
+
+        :param path: The absolute path to the directory.
+        :type path: str
+        """
         try:
             os.makedirs(path)
         except OSError, e:
