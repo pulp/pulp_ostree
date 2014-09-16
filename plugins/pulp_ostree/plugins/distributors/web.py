@@ -156,5 +156,7 @@ class WebDistributor(Distributor):
 
         :return: tuple of (bool, str) to describe the result
         :rtype:  tuple
+
+        :raises: PulpCodedValidationException if any validations failed
         """
         return configuration.validate_config(config)

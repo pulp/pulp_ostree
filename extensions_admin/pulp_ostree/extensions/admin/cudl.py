@@ -99,8 +99,11 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
         importer_config = self.parse_user_input(kwargs)
 
-        value = kwargs.pop(OPT_BRANCH.keyword, None)
-        if value:
+        if OPT_BRANCH.keyword in kwargs:
+            value = kwargs.pop(OPT_BRANCH.keyword, None)
+            if value == ['']:
+                # clear out the specified branches
+                value = None
             importer_config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = value
 
         # Remove importer specific keys

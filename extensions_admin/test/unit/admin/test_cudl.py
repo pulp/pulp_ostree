@@ -82,6 +82,18 @@ class TestUpdateOSTreeRepositoryCommand(unittest.TestCase):
         self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
                                                                 None, dist_config)
 
+    def test_repo_update_importer_remove_branches(self):
+        user_input = {
+            'branch': [''],
+            'repo-id': 'foo-repo'
+        }
+        self.command.run(**user_input)
+
+        repo_config = {}
+        importer_config = {'branches': None}
+        self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
+                                                                importer_config, None)
+
 
 class TestListOSTreeRepositoriesCommand(unittest.TestCase):
     def setUp(self):
