@@ -149,7 +149,7 @@ class Pull(PluginStep):
         remote_id = self.parent.remote_id
         for branch_id in self.parent.branches:
             self.description = branch_id
-            self.pull_request = lib.PullRequest(path, remote_id, [branch_id])
+            self.pull_request = lib.Pull(path, remote_id, [branch_id])
             self.pull_request(self._report_progress)
             if self.canceled:
                 break

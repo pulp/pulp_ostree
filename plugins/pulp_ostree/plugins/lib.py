@@ -113,7 +113,7 @@ class Repository(object):
         repository.remote_add(remote_id, url, options, None)
 
 
-class PullRequest(object):
+class Pull(object):
     """
     Request to pull remote refs into a local repository.
 
@@ -177,3 +177,43 @@ class PullRequest(object):
         repository = OSTree.Repo.new(fp)
         repository.open(None)
         repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
+
+
+# --- TEST HARNESS -----------------------------------------------------------
+
+
+PATH = '/opt/content/ostree/jeff2'
+URL = 'http://localhost/content/ostree/jeff/'
+TREE = 'fedora-atomic/f21/x86_64/docker-host'
+REMOTE = 'jeff2'
+
+import os
+
+from datetime import datetime as dt
+
+
+def _on_progress(report):
+    print report.__dict__
+
+
+def clean(path):
+    command = 'rm -rf %s' % path
+    os.system(command)
+    print command
+
+
+def test(n):
+    print '%d started: %s' % (n, dt.now())
+    r = Repository(PATH)
+    r.create()
+    r.add_remote(REMOTE, URL)
+    pull = Pull(PATH, REMOTE, [TREE])
+    pull(listener=_on_progress)
+    print '%d finished: %s' % (n, dt.now())
+
+
+if __name__ == '__main__':
+    for n in range(1000):
+        clean(PATH)
+        test(n)
+        test(n)
