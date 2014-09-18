@@ -43,7 +43,7 @@ class WebImporter(Importer):
         return {
             'id': constants.WEB_IMPORTER_TYPE_ID,
             'display_name': _('OSTree Web Importer'),
-            'types': [constants.REPOSITORY_TYPE_ID]
+            'types': [constants.OSTREE_TYPE_ID]
         }
 
     def validate_config(self, repo, config):

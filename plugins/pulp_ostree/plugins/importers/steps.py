@@ -13,7 +13,7 @@ from pulp_ostree.common import model
 from pulp_ostree.plugins import lib
 
 
-STORAGE_DIR = '/var/lib/pulp/content/ostree/'
+STORAGE_DIR = '/var/lib/pulp/content/%s/' % constants.OSTREE_TYPE_ID
 
 
 class Main(PluginStep):

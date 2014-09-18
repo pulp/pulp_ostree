@@ -34,7 +34,7 @@ class WebDistributor(Distributor):
         return {
             'id': constants.WEB_DISTRIBUTOR_TYPE_ID,
             'display_name': _('OSTree Web Distributor'),
-            'types': [constants.REPOSITORY_TYPE_ID]
+            'types': [constants.OSTREE_TYPE_ID]
         }
 
     def validate_config(self, repo, config, config_conduit):

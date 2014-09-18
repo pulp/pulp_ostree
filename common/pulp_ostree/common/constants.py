@@ -1,5 +1,5 @@
 
-REPOSITORY_TYPE_ID = 'ostree_repository'
+OSTREE_TYPE_ID = 'ostree'
 
 REPO_NOTE_OSTREE = 'OSTREE'
 

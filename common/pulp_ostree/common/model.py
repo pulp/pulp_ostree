@@ -190,7 +190,7 @@ class Repository(object):
     :type refs: Refs
     """
 
-    TYPE_ID = constants.REPOSITORY_TYPE_ID
+    TYPE_ID = constants.OSTREE_TYPE_ID
 
     REMOTE_ID = 'remote_id'
     TIMESTAMP = 'timestamp'
