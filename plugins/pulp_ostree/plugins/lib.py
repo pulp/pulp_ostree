@@ -23,6 +23,7 @@ class Lib(object):
         self.GLib = None
         self.Gio = None
         self.OSTree = None
+        self.load()
 
 
 class ProgressReport(object):
@@ -45,10 +46,8 @@ class ProgressReport(object):
         """
         :param report: The progress reported by libostree.
         """
-        lib = Lib()
-        lib.load()
         self.status = report.get_status()
-        self.bytes_transferred = lib.GLib.format_size_full(report.get_uint64('bytes-transferred'), 0)
+        self.bytes_transferred = report.get_uint64('bytes-transferred')
         self.fetched = report.get_uint('fetched')
         self.requested = report.get_uint('requested')
         if self.requested == 0:
@@ -77,7 +76,6 @@ class Repository():
         Create the repository as needed.
         """
         lib = Lib()
-        lib.load()
         fp = lib.Gio.File.new_for_path(self.path)
         repository = lib.OSTree.Repo.new(fp)
         try:
@@ -95,7 +93,6 @@ class Repository():
         :type url: str
         """
         lib = Lib()
-        lib.load()
         fp = lib.Gio.File.new_for_path(self.path)
         options = lib.GLib.Variant('a{sv}', {'gpg-verify': lib.GLib.Variant('s', 'false')})
         repository = lib.OSTree.Repo.new(fp)
@@ -125,7 +122,6 @@ class Pull(object):
         :type refs: list
         """
         lib = Lib()
-        lib.load()
         self.path = path
         self.remote_id = remote_id
         self.refs = refs
@@ -160,7 +156,6 @@ class Pull(object):
         :type listener: callable
         """
         lib = Lib()
-        lib.load()
         self.listener = listener
         flags = lib.OSTree.RepoPullFlags.MIRROR
         fp = lib.Gio.File.new_for_path(self.path)
