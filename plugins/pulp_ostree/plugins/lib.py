@@ -161,7 +161,7 @@ class Pull(object):
         except Exception:
             log.exception('progress reporting failed')
 
-    def __call__(self, listener=None):
+    def __call__(self, listener):
         """
         Run the pull request.
 
@@ -172,48 +172,11 @@ class Pull(object):
         flags = OSTree.RepoPullFlags.MIRROR
         fp = Gio.File.new_for_path(self.path)
         progress = OSTree.AsyncProgress.new()
-        if listener:
+        try:
             progress.connect('changed', self._report_progress)
-        repository = OSTree.Repo.new(fp)
-        repository.open(None)
-        repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
+            repository = OSTree.Repo.new(fp)
+            repository.open(None)
+            repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
+        finally:
+            progress.finish()
 
-
-# --- TEST HARNESS -----------------------------------------------------------
-
-
-PATH = '/opt/content/ostree/jeff2'
-URL = 'http://localhost/content/ostree/jeff/'
-TREE = 'fedora-atomic/f21/x86_64/docker-host'
-REMOTE = 'jeff2'
-
-import os
-
-from datetime import datetime as dt
-
-
-def _on_progress(report):
-    print report.__dict__
-
-
-def clean(path):
-    command = 'rm -rf %s' % path
-    os.system(command)
-    print command
-
-
-def test(n):
-    print '%d started: %s' % (n, dt.now())
-    r = Repository(PATH)
-    r.create()
-    r.add_remote(REMOTE, URL)
-    pull = Pull(PATH, REMOTE, [TREE])
-    pull(listener=_on_progress)
-    print '%d finished: %s' % (n, dt.now())
-
-
-if __name__ == '__main__':
-    for n in range(1000):
-        clean(PATH)
-        test(n)
-        test(n)
