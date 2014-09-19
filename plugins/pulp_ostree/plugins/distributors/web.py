@@ -11,7 +11,8 @@ from pulp_ostree.plugins.distributors import configuration
 from pulp_ostree.plugins.distributors.steps import WebPublisher
 
 PLUGIN_DEFAULT_CONFIG = {
-    constants.CONFIG_KEY_OSTREE_PUBLISH_DIRECTORY: constants.CONFIG_VALUE_OSTREE_PUBLISH_DIRECTORY
+    constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY:
+    constants.DISTRIBUTOR_CONFIG_VALUE_OSTREE_PUBLISH_DIRECTORY
 }
 
 _logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ def entry_point():
     :rtype:  Distributor, dict
     """
     plugin_config = copy.deepcopy(PLUGIN_DEFAULT_CONFIG)
-    edited_config = read_json_config(constants.DISTRIBUTOR_CONFIG_FILE_NAME)
+    edited_config = read_json_config(constants.DISTRIBUTOR_CONFIG_KEY_FILE_PATH)
 
     plugin_config.update(edited_config)
 

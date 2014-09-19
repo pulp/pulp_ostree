@@ -4,6 +4,10 @@ from pulp.common.plugins import importer_constants
 
 from pulp_ostree.common import constants
 
+#
+# TODO: REWRITE BEFORE FINAL MERGE
+#
+
 
 PATH = '/opt/content/ostree/jeff2'
 REMOTE_NAME = 'jeff2'
@@ -27,4 +31,5 @@ def test():
     step.process_lifecycle()
 
 
-test()
+if __name__ == '__main__':
+    test()

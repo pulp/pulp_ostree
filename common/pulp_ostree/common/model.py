@@ -13,8 +13,6 @@ The content model:
 }
 """
 
-import os
-
 from hashlib import sha256
 
 from pulp_ostree.common import constants

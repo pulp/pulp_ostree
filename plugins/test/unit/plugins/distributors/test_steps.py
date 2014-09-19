@@ -21,7 +21,7 @@ class TestWebPublisher(unittest.TestCase):
         self.repo_working = os.path.join(self.working_directory, 'work')
 
         self.repo = Mock(id='foo', working_dir=self.repo_working)
-        self.config = PluginCallConfiguration({constants.CONFIG_KEY_OSTREE_PUBLISH_DIRECTORY:
+        self.config = PluginCallConfiguration({constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY:
                                               self.publish_dir}, {})
 
     def tearDown(self):
@@ -33,7 +33,7 @@ class TestWebPublisher(unittest.TestCase):
     def test_init(self, mock_metadata, mock_content, mock_atomic):
         mock_conduit = Mock()
         mock_config = {
-            constants.CONFIG_KEY_OSTREE_PUBLISH_DIRECTORY: self.publish_dir
+            constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY: self.publish_dir
         }
         publisher = steps.WebPublisher(self.repo, mock_conduit, mock_config)
         self.assertEquals(publisher.children, [mock_metadata.return_value,

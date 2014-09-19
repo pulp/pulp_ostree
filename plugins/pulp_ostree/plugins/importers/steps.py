@@ -23,7 +23,7 @@ class Main(PluginStep):
 
     def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
         super(Main, self).__init__(
-            step_type=constants.WEB_SYNC_MAIN_STEP,
+            step_type=constants.IMPORT_STEP_MAIN,
             repo=repo,
             conduit=conduit,
             config=config,
@@ -101,7 +101,7 @@ class Create(PluginStep):
                 raise
 
     def __init__(self):
-        super(Create, self).__init__(step_type=constants.WEB_SYNC_CREATE_STEP)
+        super(Create, self).__init__(step_type=constants.IMPORT_STEP_CREATE_REPOSITORY)
 
     def process_main(self):
         """
@@ -126,7 +126,7 @@ class Pull(PluginStep):
     """
 
     def __init__(self):
-        super(Pull, self).__init__(step_type=constants.WEB_SYNC_PULL_STEP)
+        super(Pull, self).__init__(step_type=constants.IMPORT_STEP_PULL)
         self.description = _('pull')
         self.pull_request = None
 
@@ -170,7 +170,7 @@ class Add(PluginStep):
     """
 
     def __init__(self):
-        super(Add, self).__init__(step_type=constants.WEB_SYNC_ADD_STEP)
+        super(Add, self).__init__(step_type=constants.IMPORT_STEP_ADD_UNITS)
 
     def process_main(self):
         """

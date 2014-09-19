@@ -4,6 +4,7 @@ import shutil
 from gettext import gettext as _
 from tempfile import mkdtemp
 
+from pulp.common.config import read_json_config
 from pulp.plugins.importer import Importer
 
 from pulp_ostree.common import constants
@@ -16,7 +17,8 @@ def entry_point():
     :return: importer class and its config
     :rtype:  Importer, dict
     """
-    return WebImporter, {}
+    config = read_json_config(constants.IMPORTER_CONFIG_KEY_FILE_PATH)
+    return WebImporter, config
 
 
 class WebImporter(Importer):
