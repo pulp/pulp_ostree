@@ -158,5 +158,4 @@ class TestRepository(TestCase):
         remote_id = 'remote-1'
         refs = Refs()
         repository = Repository(remote_id, refs, None)
-        path = os.path.join(Repository.TYPE_ID, remote_id)
-        self.assertEqual(repository.relative_path, path)
+        self.assertEqual(repository.relative_path, remote_id)

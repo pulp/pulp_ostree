@@ -262,7 +262,8 @@ class Repository(object):
     @property
     def relative_path(self):
         """
-        :return: The relative path to where the unit is stored.
+        :return: The path to where the unit is stored relative
+            to the content root_dir/TYPE_ID
         :rtype: str
         """
-        return os.path.join(self.TYPE_ID, self.remote_id)
+        return self.remote_id
