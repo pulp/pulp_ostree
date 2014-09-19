@@ -2,41 +2,27 @@ from logging import getLogger
 
 log = getLogger(__name__)
 
-# Libs
-GLib = None
-Gio = None
-OSTree = None
-
 
 class Lib(object):
     """
-    Control C library loading.
+    Provides a C library container.
     This approach is used instead of static import statements because
     glib libraries cannot be loaded in one process then used in another.
     They cannot be loaded within mod_wsgi.
     """
 
-    @staticmethod
-    def load():
+    def load(self):
         """
-        Load the C libraries.
+        Load libraries using gnome object inspection API.
         """
-        global GLib
-        global Gio
-        global OSTree
-        GLib = Lib._load('GLib')
-        Gio = Lib._load('Gio')
-        OSTree = Lib._load('OSTree')
+        for name in self.__dict__.keys():
+            lib = getattr(__import__('gi.repository', fromlist=[name]), name)
+            setattr(self, name, lib)
 
-    @staticmethod
-    def _load(lib):
-        """
-        Load a particular library using gnome object inspection.
-
-        :param lib: The name of a lib.
-        :type lib: str
-        """
-        return getattr(__import__('gi.repository', fromlist=[lib]), lib)
+    def __init__(self):
+        self.GLib = None
+        self.Gio = None
+        self.OSTree = None
 
 
 class ProgressReport(object):
@@ -59,9 +45,10 @@ class ProgressReport(object):
         """
         :param report: The progress reported by libostree.
         """
-        Lib.load()
+        lib = Lib()
+        lib.load()
         self.status = report.get_status()
-        self.bytes_transferred = GLib.format_size_full(report.get_uint64('bytes-transferred'), 0)
+        self.bytes_transferred = lib.GLib.format_size_full(report.get_uint64('bytes-transferred'), 0)
         self.fetched = report.get_uint('fetched')
         self.requested = report.get_uint('requested')
         if self.requested == 0:
@@ -70,7 +57,7 @@ class ProgressReport(object):
             self.percent = int((self.fetched * 1.0 / self.requested) * 100)
 
 
-class Repository(object):
+class Repository():
     """
     An ostree repository.
 
@@ -83,19 +70,20 @@ class Repository(object):
         :param path: The absolute path to an ostree repository.
         :type path: str
         """
-        Lib.load()
         self.path = path
 
     def create(self):
         """
         Create the repository as needed.
         """
-        fp = Gio.File.new_for_path(self.path)
-        repository = OSTree.Repo.new(fp)
+        lib = Lib()
+        lib.load()
+        fp = lib.Gio.File.new_for_path(self.path)
+        repository = lib.OSTree.Repo.new(fp)
         try:
             repository.open(None)
-        except GLib.GError:
-            repository.create(OSTree.RepoMode.ARCHIVE_Z2, None)
+        except lib.GLib.GError:
+            repository.create(lib.OSTree.RepoMode.ARCHIVE_Z2, None)
 
     def add_remote(self, remote_id, url):
         """
@@ -106,9 +94,11 @@ class Repository(object):
         :param url: The URL for the remote.
         :type url: str
         """
-        fp = Gio.File.new_for_path(self.path)
-        options = GLib.Variant('a{sv}', {'gpg-verify': GLib.Variant('s', 'false')})
-        repository = OSTree.Repo.new(fp)
+        lib = Lib()
+        lib.load()
+        fp = lib.Gio.File.new_for_path(self.path)
+        options = lib.GLib.Variant('a{sv}', {'gpg-verify': lib.GLib.Variant('s', 'false')})
+        repository = lib.OSTree.Repo.new(fp)
         repository.open(None)
         repository.remote_add(remote_id, url, options, None)
 
@@ -134,11 +124,12 @@ class Pull(object):
         :param refs: A list of references to pull.
         :type refs: list
         """
-        Lib.load()
+        lib = Lib()
+        lib.load()
         self.path = path
         self.remote_id = remote_id
         self.refs = refs
-        self.canceled = Gio.Cancellable.new()
+        self.canceled = lib.Gio.Cancellable.new()
         self.listener = None
 
     def cancel(self):
@@ -168,13 +159,15 @@ class Pull(object):
         :param listener: A progress listener.
         :type listener: callable
         """
+        lib = Lib()
+        lib.load()
         self.listener = listener
-        flags = OSTree.RepoPullFlags.MIRROR
-        fp = Gio.File.new_for_path(self.path)
-        progress = OSTree.AsyncProgress.new()
+        flags = lib.OSTree.RepoPullFlags.MIRROR
+        fp = lib.Gio.File.new_for_path(self.path)
+        progress = lib.OSTree.AsyncProgress.new()
         try:
             progress.connect('changed', self._report_progress)
-            repository = OSTree.Repo.new(fp)
+            repository = lib.OSTree.Repo.new(fp)
             repository.open(None)
             repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
         finally:
