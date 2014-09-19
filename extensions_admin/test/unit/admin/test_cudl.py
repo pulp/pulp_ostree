@@ -38,6 +38,13 @@ class TestCreateOSTreerRepositoryCommand(unittest.TestCase):
         result = command._describe_distributors(user_input)
         self.assertEquals(result[0]["auto_publish"], False)
 
+    def test_describe_importers(self):
+        command = cudl.CreateOSTreeRepositoryCommand(Mock())
+        user_input = {'branch': ['apple']}
+        result = command._parse_importer_config(user_input)
+        target_result = {constants.IMPORTER_CONFIG_KEY_BRANCHES: ['apple']}
+        compare_dict(result, target_result)
+
 
 class TestUpdateOSTreeRepositoryCommand(unittest.TestCase):
 
@@ -53,7 +60,7 @@ class TestUpdateOSTreeRepositoryCommand(unittest.TestCase):
         user_input = {
             'repo-id': 'foo-repo',
             KEY_FEED: 'blah',
-            constants.IMPORTER_CONFIG_KEY_BRANCHES: ['apple', 'peach']
+            'branch': ['apple', 'peach']
         }
         self.command.run(**user_input)
 
@@ -74,6 +81,18 @@ class TestUpdateOSTreeRepositoryCommand(unittest.TestCase):
         dist_config = {constants.CLI_WEB_DISTRIBUTOR_ID: {'auto_publish': False}}
         self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
                                                                 None, dist_config)
+
+    def test_repo_update_importer_remove_branches(self):
+        user_input = {
+            'branch': [''],
+            'repo-id': 'foo-repo'
+        }
+        self.command.run(**user_input)
+
+        repo_config = {}
+        importer_config = {'branches': None}
+        self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
+                                                                importer_config, None)
 
 
 class TestListOSTreeRepositoriesCommand(unittest.TestCase):
