@@ -179,4 +179,3 @@ class Pull(object):
             repository.pull(self.remote_id, self.refs, flags, progress, self.canceled)
         finally:
             progress.finish()
-
