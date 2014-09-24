@@ -1,5 +1,3 @@
-import os
-
 from hashlib import sha256
 from unittest import TestCase
 
@@ -71,6 +69,16 @@ class TestRefs(TestCase):
         self.assertEqual(refs.heads, [])
         heads = [1, 2]
         refs = Refs(heads)
+        self.assertEqual(refs.heads, heads)
+
+    def test_add_head(self):
+        refs = Refs()
+        heads = [
+            Mock(),
+            Mock(),
+        ]
+        for head in heads:
+            refs.add_head(head)
         self.assertEqual(refs.heads, heads)
 
     def test_digest(self):
@@ -148,5 +156,4 @@ class TestRepository(TestCase):
         remote_id = 'remote-1'
         refs = Refs()
         repository = Repository(remote_id, refs, None)
-        path = os.path.join(Repository.TYPE_ID, remote_id)
-        self.assertEqual(repository.relative_path, path)
+        self.assertEqual(repository.relative_path, remote_id)

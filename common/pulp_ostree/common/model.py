@@ -13,11 +13,23 @@ The content model:
 }
 """
 
-import os
-
 from hashlib import sha256
 
 from pulp_ostree.common import constants
+
+
+def generate_remote_id(url):
+    """
+    Generate a remote_id based on the url.
+
+    :param url: The remote URL.
+    :type url: str
+    :return: The generated ID.
+    :rtype:str
+    """
+    h = sha256()
+    h.update(url)
+    return h.hexdigest()
 
 
 class Head(object):
@@ -130,6 +142,14 @@ class Refs(object):
             h.update(head.digest)
         return h.hexdigest()
 
+    def add_head(self, head):
+        """
+        Add the specified head.
+        :param head: The head to add.
+        :type head: Head
+        """
+        self.heads.append(head)
+
     def to_dict(self):
         """
         Get a dictionary representation.
@@ -168,7 +188,7 @@ class Repository(object):
     :type refs: Refs
     """
 
-    TYPE_ID = constants.REPOSITORY_TYPE_ID
+    TYPE_ID = constants.OSTREE_TYPE_ID
 
     REMOTE_ID = 'remote_id'
     TIMESTAMP = 'timestamp'
@@ -240,7 +260,8 @@ class Repository(object):
     @property
     def relative_path(self):
         """
-        :return: The relative path to where the unit is stored.
+        :return: The path to where the unit is stored relative
+            to the content root_dir/TYPE_ID
         :rtype: str
         """
-        return os.path.join(self.TYPE_ID, self.remote_id)
+        return self.remote_id
