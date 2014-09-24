@@ -91,7 +91,6 @@ class TestRepository(TestCase):
         fake_repo.open.assert_called_once_with(None)
         self.assertFalse(fake_repo.create.called)
 
-
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_create(self, lib):
         fp = Mock()

@@ -27,6 +27,7 @@ IMPORT_STEP_PULL = 'import_pull'
 IMPORT_STEP_ADD_UNITS = 'import_add_unit'
 
 PUBLISH_STEP_WEB_PUBLISHER = 'ostree_publish_step_web'
+PUBLISH_STEP_EMPTY = 'ostree_empty'
 PUBLISH_STEP_CONTENT = 'ostree_publish_content'
 PUBLISH_STEP_METADATA = 'ostree_publish_metadata'
 PUBLISH_STEP_OVER_HTTP = 'ostree_publish_over_http'
