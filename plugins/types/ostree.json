@@ -1,6 +1,6 @@
 {"types": [
     {
-        "id": "ostree_repository",
+        "id": "ostree",
         "display_name": "OSTree Branch",
         "description": "An OSTree branch",
         "unit_key": ["remote_id", "digest"],
