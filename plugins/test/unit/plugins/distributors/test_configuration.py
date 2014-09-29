@@ -19,7 +19,7 @@ class TestConfigurationGetters(unittest.TestCase):
         self.repo_working = os.path.join(self.working_directory, 'work')
 
         self.repo = Mock(id='foo', working_dir=self.repo_working)
-        self.config = PluginCallConfiguration({constants.CONFIG_KEY_OSTREE_PUBLISH_DIRECTORY:
+        self.config = PluginCallConfiguration({constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY:
                                               self.publish_dir}, {})
 
     def tearDown(self):

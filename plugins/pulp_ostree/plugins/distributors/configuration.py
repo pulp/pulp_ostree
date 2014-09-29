@@ -27,7 +27,7 @@ def get_root_publish_directory(config):
     :return: The publish directory for the ostree plugin
     :rtype: str
     """
-    return config.get(constants.CONFIG_KEY_OSTREE_PUBLISH_DIRECTORY)
+    return config.get(constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY)
 
 
 def get_master_publish_dir(repo, config):

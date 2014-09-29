@@ -5,7 +5,8 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
-from pulp_ostree.common.model import Refs, Head, Repository
+from pulp_ostree.common.model import Refs, Head, Repository, generate_remote_id
+from pulp_ostree.common import constants
 
 
 HEADS = [
@@ -22,6 +23,16 @@ REPOSITORY = {
     Repository.TIMESTAMP: 'today',
     Repository.REFS: REFS
 }
+
+
+class TestUtils(TestCase):
+
+    def test_generate_remote_id(self):
+        url = 'url-test'
+        remote_id = generate_remote_id(url)
+        h = sha256()
+        h.update(url)
+        self.assertEqual(remote_id, h.hexdigest())
 
 
 class TestHeads(TestCase):
@@ -71,6 +82,16 @@ class TestRefs(TestCase):
         self.assertEqual(refs.heads, [])
         heads = [1, 2]
         refs = Refs(heads)
+        self.assertEqual(refs.heads, heads)
+
+    def test_add_head(self):
+        refs = Refs()
+        heads = [
+            Mock(),
+            Mock(),
+        ]
+        for head in heads:
+            refs.add_head(head)
         self.assertEqual(refs.heads, heads)
 
     def test_digest(self):
@@ -144,9 +165,10 @@ class TestRepository(TestCase):
         }
         self.assertEqual(expected, repository.metadata)
 
-    def test_relative_path(self):
+    def test_storage_path(self):
         remote_id = 'remote-1'
         refs = Refs()
         repository = Repository(remote_id, refs, None)
-        path = os.path.join(Repository.TYPE_ID, remote_id)
-        self.assertEqual(repository.relative_path, path)
+        expected = os.path.join(
+            constants.SHARED_STORAGE, repository.remote_id, constants.LINKS_DIR, repository.digest)
+        self.assertEqual(repository.storage_path, expected)
