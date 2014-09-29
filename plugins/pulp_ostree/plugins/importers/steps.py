@@ -8,6 +8,7 @@ from logging import getLogger
 from pulp.common.plugins import importer_constants
 from pulp.plugins.util.publish_step import PluginStep
 from pulp.plugins.model import Unit
+from pulp.plugins.util.misc import mkdir
 from pulp.server.exceptions import PulpCodedException
 
 from pulp_ostree.common import constants, errors
@@ -23,17 +24,14 @@ class Main(PluginStep):
     The main synchronization step.
     """
 
-    def __init__(self, repo=None, conduit=None, config=None, working_dir=None):
+    def __init__(self, **kwargs):
         super(Main, self).__init__(
             step_type=constants.IMPORT_STEP_MAIN,
-            repo=repo,
-            conduit=conduit,
-            config=config,
-            working_dir=working_dir,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID,
+            **kwargs
         )
-        self.feed_url = config.get(importer_constants.KEY_FEED)
-        self.branches = config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
+        self.feed_url = self.config.get(importer_constants.KEY_FEED)
+        self.branches = self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
         self.remote_id = model.generate_remote_id(self.feed_url)
         self.storage_path = os.path.join(
             constants.SHARED_STORAGE, self.remote_id, constants.CONTENT_DIR)
@@ -47,21 +45,6 @@ class Create(PluginStep):
     Ensure the local ostree repository has been created
     and the configured.
     """
-
-    @staticmethod
-    def mkdir(path):
-        """
-        Create the specified directory.
-        Tolerant of race conditions.
-
-        :param path: The absolute path to the directory.
-        :type path: str
-        """
-        try:
-            os.makedirs(path)
-        except OSError, e:
-            if e.errno != errno.EEXIST:
-                raise
 
     @staticmethod
     def _init_repository(path, remote_id, url):
@@ -99,8 +82,8 @@ class Create(PluginStep):
         path = self.parent.storage_path
         remote_id = self.parent.remote_id
         url = self.parent.feed_url
-        self.mkdir(path)
-        self.mkdir(os.path.join(os.path.dirname(path), constants.LINKS_DIR))
+        mkdir(path)
+        mkdir(os.path.join(os.path.dirname(path), constants.LINKS_DIR))
         self._init_repository(path, remote_id, url)
 
 

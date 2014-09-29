@@ -30,7 +30,7 @@ class TestMainStep(TestCase):
         }
 
         # test
-        step = Main(repo, conduit, config, working_dir)
+        step = Main(repo=repo, conduit=conduit, config=config, working_dir=working_dir)
 
         # validation
         self.assertEqual(step.step_id, constants.IMPORT_STEP_MAIN)
@@ -52,20 +52,6 @@ class TestMainStep(TestCase):
 
 
 class TestCreate(TestCase):
-
-    @patch('os.makedirs')
-    def test_mkdir(self, fake_mkdir):
-        path = 'path-123'
-        Create.mkdir(path)
-
-        # already existing
-        fake_mkdir.assert_called_once_with(path)
-        fake_mkdir.side_effect = OSError(errno.EEXIST, path)
-
-        # other error
-        Create.mkdir(path)
-        fake_mkdir.side_effect = OSError(errno.EPERM, path)
-        self.assertRaises(OSError, Create.mkdir, path)
 
     @patch('pulp_ostree.plugins.importers.steps.lib')
     def test_init_repository(self, fake_lib):
@@ -96,7 +82,7 @@ class TestCreate(TestCase):
         self.assertEqual(step.step_id, constants.IMPORT_STEP_CREATE_REPOSITORY)
         self.assertTrue(step.description is not None)
 
-    @patch('pulp_ostree.plugins.importers.steps.Create.mkdir')
+    @patch('pulp_ostree.plugins.importers.steps.mkdir')
     def test_process_main(self, fake_mkdir):
         url = 'url-123'
         remote_id = 'remote-123'
