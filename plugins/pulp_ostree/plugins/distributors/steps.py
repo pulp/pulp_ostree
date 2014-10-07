@@ -158,6 +158,5 @@ class PublishRefsStep(PluginStep):
         for section in parser.sections():
             if section.startswith('remote'):
                 parser.remove_section(section)
-                _LOG.error(section)
         with open(os.path.join(self.get_working_dir(), 'config'), 'w') as new_config:
             parser.write(new_config)
