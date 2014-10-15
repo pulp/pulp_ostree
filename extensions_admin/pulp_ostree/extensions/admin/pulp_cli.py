@@ -1,6 +1,7 @@
 from gettext import gettext as _
 
 from pulp.client.commands.repo import cudl, sync_publish, status
+from pulp.client.commands.unit import UnitCopyCommand, UnitRemoveCommand
 from pulp.client.extensions.decorator import priority
 
 from pulp_ostree.common import constants
@@ -50,6 +51,8 @@ def add_repo_section(context, parent_section):
     repo_section.add_command(UpdateOSTreeRepositoryCommand(context))
     repo_section.add_command(cudl.DeleteRepositoryCommand(context))
     repo_section.add_command(ListOSTreeRepositoriesCommand(context))
+    repo_section.add_command(UnitCopyCommand(context))
+    repo_section.add_command(UnitRemoveCommand(context))
 
     return repo_section
 
