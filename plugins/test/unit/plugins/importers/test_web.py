@@ -37,7 +37,7 @@ class TestImporter(TestCase):
         report = importer.sync_repo(repo, conduit, config)
 
         # validation
-        main.assert_called_once_with(repo, conduit, config)
+        main.assert_called_once_with(repo=repo, conduit=conduit, config=config)
         main.return_value.process_lifecycle.assert_called_once_with()
         self.assertEqual(report, main.return_value.process_lifecycle.return_value)
 

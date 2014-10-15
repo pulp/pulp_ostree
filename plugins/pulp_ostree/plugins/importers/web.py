@@ -87,7 +87,7 @@ class WebImporter(Importer):
         :return: report of the details of the sync
         :rtype:  pulp.plugins.model.SyncReport
         """
-        step = Main(repo, conduit, config)
+        step = Main(repo=repo, conduit=conduit, config=config)
         report = step.process_lifecycle()
         return report
 
