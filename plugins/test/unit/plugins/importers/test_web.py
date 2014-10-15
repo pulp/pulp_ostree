@@ -41,6 +41,24 @@ class TestImporter(TestCase):
         main.return_value.process_lifecycle.assert_called_once_with()
         self.assertEqual(report, main.return_value.process_lifecycle.return_value)
 
+    def test_import(self):
+        units = [
+            Mock(),
+            Mock(),
+            Mock()
+        ]
+        conduit = Mock()
+        conduit.get_source_units.return_value = units
+
+        # test
+        importer = WebImporter()
+        report = importer.import_units(None, None, conduit, None)
+
+        # validation
+        conduit.get_source_units.assert_called_once_with()
+        self.assertEqual(conduit.associate_unit.call_args_list, [((u,), {}) for u in units])
+        self.assertEqual(report, units)
+
     @patch('sys.exit')
     def test_cancel(self, _exit):
         importer = WebImporter()
