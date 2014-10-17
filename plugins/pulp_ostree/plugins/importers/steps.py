@@ -118,7 +118,13 @@ class Pull(PluginStep):
         :raises PulpCodedException:
         """
         def report_progress(report):
-            # TODO: waiting on support for reporting step progress details
+            data = dict(
+                b=branch_id,
+                f=report.fetched,
+                r=report.requested,
+                p=report.percent
+            )
+            self.progress_details = 'branch: %(b)s fetching %(f)d/%(r)d %(p)d%%' % data
             self.report_progress(force=True)
 
         try:

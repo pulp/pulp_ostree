@@ -137,7 +137,7 @@ class TestPull(TestCase):
         branch = 'branch-1'
         repo = Mock()
         fake_lib.Repository.return_value = repo
-        report = Mock()
+        report = Mock(fetched=1, requested=2, percent=50)
 
         def fake_pull(remote_id, branch, listener):
             listener(report)
@@ -153,6 +153,7 @@ class TestPull(TestCase):
         fake_lib.Repository.assert_called_once_with(path)
         repo.pull.assert_called_once_with(remote_id, [branch], ANY)
         step.report_progress.assert_called_with(force=True)
+        self.assertEqual(step.progress_details, 'branch: branch-1 fetching 1/2 50%')
 
     @patch('pulp_ostree.plugins.importers.steps.lib')
     def test_pull_raising_exception(self, fake_lib):
