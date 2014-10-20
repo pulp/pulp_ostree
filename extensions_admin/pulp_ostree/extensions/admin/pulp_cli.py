@@ -7,6 +7,8 @@ from pulp_ostree.common import constants
 from pulp_ostree.extensions.admin.cudl import CreateOSTreeRepositoryCommand
 from pulp_ostree.extensions.admin.cudl import UpdateOSTreeRepositoryCommand
 from pulp_ostree.extensions.admin.cudl import ListOSTreeRepositoriesCommand
+from pulp_ostree.extensions.admin.unit import CopyCommand, RemoveCommand
+
 
 SECTION_ROOT = 'ostree'
 DESC_ROOT = _('manage ostree repositories')
@@ -50,6 +52,8 @@ def add_repo_section(context, parent_section):
     repo_section.add_command(UpdateOSTreeRepositoryCommand(context))
     repo_section.add_command(cudl.DeleteRepositoryCommand(context))
     repo_section.add_command(ListOSTreeRepositoriesCommand(context))
+    repo_section.add_command(CopyCommand(context))
+    repo_section.add_command(RemoveCommand(context))
 
     return repo_section
 
