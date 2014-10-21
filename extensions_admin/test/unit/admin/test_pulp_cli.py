@@ -2,7 +2,8 @@ import unittest
 
 import mock
 
-from pulp.client.commands.unit import UnitCopyCommand, UnitRemoveCommand
+from pulp.client.commands.unit import (
+    UnitCopyCommand, UnitRemoveCommand, UnitAssociationCriteriaCommand)
 from pulp.client.commands.repo.cudl import CreateRepositoryCommand, DeleteRepositoryCommand
 from pulp.client.commands.repo.cudl import UpdateRepositoryCommand
 from pulp.client.commands.repo.cudl import ListRepositoriesCommand
@@ -35,6 +36,7 @@ class TestInitialize(unittest.TestCase):
         self.assertTrue(isinstance(repo_section.commands['list'], ListRepositoriesCommand))
         self.assertTrue(isinstance(repo_section.commands['copy'], UnitCopyCommand))
         self.assertTrue(isinstance(repo_section.commands['remove'], UnitRemoveCommand))
+        self.assertTrue(isinstance(repo_section.commands['search'], UnitAssociationCriteriaCommand))
 
         section = repo_section.subsections['sync']
         self.assertTrue(isinstance(section.commands['run'], RunSyncRepositoryCommand))
