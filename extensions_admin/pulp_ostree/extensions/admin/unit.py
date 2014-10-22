@@ -1,4 +1,8 @@
+from gettext import gettext as _
+
+from pulp.client.commands import options
 from pulp.client.commands.unit import UnitCopyCommand, UnitRemoveCommand
+from pulp.client.commands.criteria import DisplayUnitAssociationsCommand
 
 
 def format_unit(unit_key):
@@ -43,3 +47,57 @@ class RemoveCommand(UnitRemoveCommand):
         :rtype: callable
         """
         return format_unit
+
+
+class SearchCommand(DisplayUnitAssociationsCommand):
+
+    TITLE = _('Content Units')
+
+    ORDER = [
+        'id',
+        'created',
+        'updated',
+        'remote_id',
+        'digest',
+        'refs'
+    ]
+
+    @staticmethod
+    def transform(unit):
+        """
+        Transform the specified unit into document to be displayed.
+        :param unit: A content unit to be transformed.
+        :type unit: dict
+        :return: A document.
+        :rtype: dict
+        """
+        metadata = unit['metadata']
+        document = {
+            'id': unit['id'],
+            'created': unit['created'],
+            'updated': unit['updated'],
+            'remote_id': metadata['remote_id'],
+            'digest': metadata['digest'],
+            'refs': metadata['refs']
+        }
+        return document
+
+    def __init__(self, context):
+        """
+        :param context: A command context.
+        :type context: pulp.client.extensions.core.ClientContext
+        """
+        super(SearchCommand, self).__init__(self.run)
+        self.context = context
+
+    def run(self, **kwargs):
+        """
+        Run the command
+        :param kwargs: Keyword arguments.
+        :type kwargs: dict
+        """
+        self.context.prompt.render_title(self.TITLE)
+        repo_id = kwargs.pop(options.OPTION_REPO_ID.keyword)
+        units = self.context.server.repo_unit.search(repo_id, **kwargs).response_body
+        documents = [self.transform(u) for u in units]
+        self.context.prompt.render_document_list(documents, order=self.ORDER)
