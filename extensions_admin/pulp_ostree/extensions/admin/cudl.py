@@ -20,8 +20,7 @@ OPT_AUTO_PUBLISH = PulpCliOption('--auto-publish', d, required=False,
 DESC_FEED = _('URL for the upstream ostree repo')
 
 d = _("a branch to sync from the upstream repository.  This option may be specified multiple times")
-OPT_BRANCH = PulpCliOption('--branch', d, required=False,
-                           allow_multiple=True)
+OPT_BRANCH = PulpCliOption('--branch', d, aliases=['-b'], required=False, allow_multiple=True)
 
 IMPORTER_CONFIGURATION_FLAGS = dict(
     include_ssl=False,

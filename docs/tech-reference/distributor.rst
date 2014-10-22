@@ -11,8 +11,8 @@ can be found in ``/etc/pulp/server/plugin.conf.d/ostree_distributor.json``.
 
 All values from the global configuration can be overridden on the local config.
 
-Supported keys
-^^^^^^^^^^^^^^
+Properties
+^^^^^^^^^^
 
 ``auto_publish``
  Whether or not this distributor should automatically be published when the importer completes.
