@@ -63,27 +63,24 @@ class SearchCommand(DisplayUnitAssociationsCommand):
     ]
 
     @staticmethod
-    def filter(units):
+    def transform(unit):
         """
-        Get a list of documents to be displayed.
-        :param units: A list of units returned by a search request.
-        :type units: list of dict
-        :return: A list of documents.
-        :rtype: list
+        Transform the specified unit into document to be displayed.
+        :param unit: A content unit to be transformed.
+        :type unit: dict
+        :return: A document.
+        :rtype: dict
         """
-        filtered = []
-        for unit in units:
-            metadata = unit['metadata']
-            document = {
-                'id': unit['id'],
-                'created': unit['created'],
-                'updated': unit['updated'],
-                'remote_id': metadata['remote_id'],
-                'digest': metadata['digest'],
-                'refs': metadata['refs']
-            }
-            filtered.append(document)
-        return filtered
+        metadata = unit['metadata']
+        document = {
+            'id': unit['id'],
+            'created': unit['created'],
+            'updated': unit['updated'],
+            'remote_id': metadata['remote_id'],
+            'digest': metadata['digest'],
+            'refs': metadata['refs']
+        }
+        return document
 
     def __init__(self, context):
         """
@@ -102,5 +99,5 @@ class SearchCommand(DisplayUnitAssociationsCommand):
         self.context.prompt.render_title(self.TITLE)
         repo_id = kwargs.pop(options.OPTION_REPO_ID.keyword)
         units = self.context.server.repo_unit.search(repo_id, **kwargs).response_body
-        documents = self.filter(units)
+        documents = [self.transform(u) for u in units]
         self.context.prompt.render_document_list(documents, order=self.ORDER)

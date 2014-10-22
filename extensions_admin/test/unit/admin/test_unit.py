@@ -40,60 +40,40 @@ class TestRemoveCommand(TestCase):
 
 class TestSearchCommand(TestCase):
 
-    def test_filtering(self):
-        units = [
+    def test_transform(self):
+        unit = {
+            'id': 0,
+            'created': 1,
+            'updated': 2,
+            'metadata': {
+                'remote_id': 3,
+                'digest': 4,
+                'refs': 5
+            }
+        }
+
+        # test
+        document = SearchCommand.transform(unit)
+
+        # validation
+        self.assertEqual(
+            document,
             {
                 'id': 0,
                 'created': 1,
                 'updated': 2,
-                'metadata': {
-                    'remote_id': 3,
-                    'digest': 4,
-                    'refs': 5
-                }
-            },
-            {
-                'id': 10,
-                'created': 11,
-                'updated': 12,
-                'metadata': {
-                    'remote_id': 13,
-                    'digest': 14,
-                    'refs': 15
-                }
-            }
-        ]
+                'remote_id': 3,
+                'digest': 4,
+                'refs': 5
+            })
 
-        # test
-        documents = SearchCommand.filter(units)
-
-        # validation
-        self.assertEqual(
-            documents,
-            [
-                {
-                    'id': 0,
-                    'created': 1,
-                    'updated': 2,
-                    'remote_id': 3,
-                    'digest': 4,
-                    'refs': 5
-                },
-                {
-                    'id': 10,
-                    'created': 11,
-                    'updated': 12,
-                    'remote_id': 13,
-                    'digest': 14,
-                    'refs': 15
-                }
-            ])
-
-    @patch('pulp_ostree.extensions.admin.unit.SearchCommand.filter')
-    def test_run(self, fake_filter):
+    @patch('pulp_ostree.extensions.admin.unit.SearchCommand.transform')
+    def test_run(self, transform):
         repo_id = 'test-repo'
-        units = Mock()
+        units = [1, 2, 3]
+        documents = [str(u) for u in units]
         context = Mock()
+        transform.side_effect = documents
         context.server.repo_unit.search.return_value = Mock(response_body=units)
         keywords = {'repo-id': repo_id, 'kw-1': 'v-1'}
         context.config = {
@@ -109,4 +89,4 @@ class TestSearchCommand(TestCase):
         context.server.repo_unit.search.assert_called_once_with(repo_id, **keywords)
         context.prompt.render_title.assert_called_once_with(SearchCommand.TITLE)
         context.prompt.render_document_list.assert_called_once_with(
-            fake_filter.return_value, order=SearchCommand.ORDER)
+            documents, order=SearchCommand.ORDER)
