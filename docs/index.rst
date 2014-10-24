@@ -11,6 +11,8 @@ This project adds support to Pulp for managing OSTree images.
 .. toctree::
    :maxdepth: 2
 
+   glossary
+   concepts
    user-guide/index
    tech-reference/index
 
