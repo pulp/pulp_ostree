@@ -34,3 +34,7 @@ Glossary
 
   branch
     A specific version of a filesystem tree.
+
+  snapshot
+    After all branches have been pulled during repository synchronization
+    with a remote, a unit is created containing the :term:`refs`.
