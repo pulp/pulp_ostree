@@ -57,6 +57,7 @@ class SearchCommand(DisplayUnitAssociationsCommand):
         'id',
         'created',
         'updated',
+        'timestamp',
         'remote_id',
         'digest',
         'refs'
@@ -76,6 +77,7 @@ class SearchCommand(DisplayUnitAssociationsCommand):
             'id': unit['id'],
             'created': unit['created'],
             'updated': unit['updated'],
+            'timestamp': metadata['timestamp'],
             'remote_id': metadata['remote_id'],
             'digest': metadata['digest'],
             'refs': metadata['refs']

@@ -46,9 +46,10 @@ class TestSearchCommand(TestCase):
             'created': 1,
             'updated': 2,
             'metadata': {
-                'remote_id': 3,
-                'digest': 4,
-                'refs': 5
+                'timestamp': 3,
+                'remote_id': 4,
+                'digest': 5,
+                'refs': 6
             }
         }
 
@@ -62,9 +63,10 @@ class TestSearchCommand(TestCase):
                 'id': 0,
                 'created': 1,
                 'updated': 2,
-                'remote_id': 3,
-                'digest': 4,
-                'refs': 5
+                'timestamp': 3,
+                'remote_id': 4,
+                'digest': 5,
+                'refs': 6
             })
 
     @patch('pulp_ostree.extensions.admin.unit.SearchCommand.transform')
