@@ -1,15 +1,16 @@
-Importer
-========
+Importer Configuration
+======================
 
-ID: ``ostree_importer``
+Web Importer
+------------
 
-Configuration
--------------
+TYPE ID: ``ostree_web_importer``
 
-The following options are available to the ostree importer configuration.
+Properties
+^^^^^^^^^^
 
 ``feed``
  The URL for the upstream ostree repository to sync.
 
- ``branches``
+``branches``
  A list of branches from the upstream repo that should be pulled during a sync.
