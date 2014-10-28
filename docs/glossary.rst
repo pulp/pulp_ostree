@@ -9,7 +9,7 @@ Glossary
     A ``local`` ostree repository is stored in Pulp's content storage location.
 
   remote
-    A ``remote`` repository is external to pulp and is identified by its URL.
+    A ``remote`` repository is external to Pulp and is identified by its URL.
 
   remote_id
     Uniquely identifies an external ostree repository.  It is the :term:`digest`
