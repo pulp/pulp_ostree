@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from mock import patch, Mock, ANY
 
-from pulp_ostree.plugins.lib import Lib, ProgressReport, Repository, LibError, wrapped
+from pulp_ostree.plugins.lib import Lib, ProgressReport, Ref, Repository, LibError, wrapped
 
 
 G_OBJECT = 'gi.repository'
@@ -21,6 +21,22 @@ class Import(object):
 
 class GError(Exception):
     pass
+
+
+def variant(encoding, value):
+    """
+    Fake Variant constructor.
+    """
+    return encoding, value
+
+
+class TestRef(TestCase):
+
+    def test_init(self):
+        ref = Ref(1, 2, 3)
+        self.assertEqual(ref.path, 1)
+        self.assertEqual(ref.commit, 2)
+        self.assertEqual(ref.metadata, 3)
 
 
 class TestLoad(TestCase):
@@ -91,7 +107,7 @@ class TestRepository(TestCase):
 
         # test
         repo = Repository(path)
-        repo.create()
+        repo.open()
 
         # validation
         lib.assert_called_with()
@@ -105,7 +121,6 @@ class TestRepository(TestCase):
         fp = Mock()
         path = '/tmp/path-1'
         lib_repo = Mock()
-        lib_repo.open.side_effect = GError
         _lib = Mock()
         _lib.GLib.GError = GError
         _lib.Gio.File.new_for_path.return_value = fp
@@ -120,7 +135,6 @@ class TestRepository(TestCase):
         lib.assert_called_with()
         _lib.Gio.File.new_for_path.assert_called_once_with(path)
         _lib.OSTree.Repo.new.assert_called_once_with(fp)
-        lib_repo.open.assert_called_once_with(None)
         lib_repo.create.assert_called_once_with(_lib.OSTree.RepoMode.ARCHIVE_Z2, None)
 
     @patch('pulp_ostree.plugins.lib.Lib')
@@ -152,6 +166,59 @@ class TestRepository(TestCase):
                 (('a{sv}', {'gpg-verify': 'v1'}), {})
             ])
 
+    @patch('pulp_ostree.plugins.lib.Ref')
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_list_refs(self, lib, ref):
+        fp = Mock()
+        path = '/tmp/path-1'
+
+        commits = [
+            (1, [{'version': 1}]),
+            (2, [{'version': 2}])
+        ]
+        refs = (
+            2,
+            {
+                'branch:1': 'commit:1',
+                'branch:2': 'commit:2'
+            }
+        )
+
+        _lib = Mock()
+        lib_repo = Mock()
+        lib_repo.list_refs.return_value = refs
+        lib_repo.load_variant.side_effect = commits
+        _lib.Gio.File.new_for_path.return_value = fp
+        _lib.OSTree.ObjectType.COMMIT = 'COMMIT'
+        _lib.OSTree.Repo.new.return_value = lib_repo
+        lib.return_value = _lib
+
+        ref_objects = [Mock(), Mock()]
+        ref.side_effect = ref_objects
+
+        # test
+        repo = Repository(path)
+        listed = repo.list_refs()
+
+        # validation
+        lib.assert_called_with()
+        _lib.OSTree.Repo.new.assert_called_once_with(fp)
+        lib_repo.open.assert_called_once_with(None)
+        lib_repo.list_refs.assert_called_once_with(None, None)
+        self.assertEqual(
+            ref.call_args_list,
+            [
+                (('branch:1', 'commit:1', {'version': 1}), {}),
+                (('branch:2', 'commit:2', {'version': 2}), {}),
+            ])
+        self.assertEqual(
+            lib_repo.load_variant.call_args_list,
+            [
+                (('COMMIT', 'commit:1'), {}),
+                (('COMMIT', 'commit:2'), {}),
+            ])
+        self.assertEqual(listed, ref_objects)
+
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_pull(self, lib):
         fp = Mock()
@@ -180,6 +247,37 @@ class TestRepository(TestCase):
         progress.connect.assert_called_once_with('changed', ANY)
         lib_repo.pull.assert_called_once_with(remote_id, refs, mirror, progress, None)
         progress.finish.assert_called_once_with()
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_pull_local(self, lib):
+        fp = Mock()
+        path = '/tmp/path-2'
+        path_in = '/tmp/path-1'
+        url = 'file://%s' % path_in
+        refs = ['branch-1']
+        mirror = 'MIRROR'
+        _lib = Mock()
+        lib_repo = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        _lib.Gio.File.new_for_path.return_value = fp
+        _lib.OSTree.Repo.new.return_value = lib_repo
+        _lib.OSTree.RepoPullFlags.MIRROR = mirror
+        lib.return_value = _lib
+
+        # test
+        repo = Repository(path)
+        repo.pull_local(path_in, refs)
+
+        # validation
+        options = (
+            'a{sv}', {
+                'refs': ('as', ('branch-1',)),
+                'flags': ('u', 'MIRROR')
+            })
+        lib.assert_called_with()
+        _lib.OSTree.Repo.new.assert_called_once_with(fp)
+        lib_repo.open.assert_called_once_with(None)
+        lib_repo.pull_with_options.assert_called_once_with(url, options, None, None)
 
     @patch('pulp_ostree.plugins.lib.ProgressReport')
     @patch('pulp_ostree.plugins.lib.Lib')

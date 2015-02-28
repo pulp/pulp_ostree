@@ -5,24 +5,7 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
-from pulp_ostree.common.model import Refs, Head, Repository, generate_remote_id
-from pulp_ostree.common import constants
-
-
-HEADS = [
-    {Head.PATH: 'path-1', Head.COMMIT_ID: 'commit-A'},
-    {Head.PATH: 'path-2', Head.COMMIT_ID: 'commit-B'}
-]
-
-REFS = {
-    Refs.HEADS: HEADS
-}
-
-REPOSITORY = {
-    Repository.REMOTE_ID: 'remote-1',
-    Repository.TIMESTAMP: 'today',
-    Repository.REFS: REFS
-}
+from pulp_ostree.common.model import Head, Commit, Unit, generate_remote_id
 
 
 class TestUtils(TestCase):
@@ -35,140 +18,67 @@ class TestUtils(TestCase):
         self.assertEqual(remote_id, h.hexdigest())
 
 
+class TestCommit(TestCase):
+
+    def test_init(self):
+        digest = '123'
+        metadata = {'A': 1}
+        commit = Commit(digest, metadata)
+        self.assertEqual(commit.digest, digest)
+        self.assertEqual(commit.metadata, metadata)
+
+
 class TestHeads(TestCase):
 
-    def test_from_dict(self):
-        d = HEADS[0]
-        head = Head.from_dict(d)
-        self.assertEqual(head.path, d[Head.PATH])
-        self.assertEqual(head.commit_id, d[Head.COMMIT_ID])
-
     def test_init(self):
-        path = 'path-1'
-        commit_id = 'commit-1'
-        head = Head(path, commit_id)
-        self.assertEqual(head.path, path)
-        self.assertEqual(head.commit_id, commit_id)
-
-    def test_to_dict(self):
-        path = HEADS[0][Head.PATH]
-        commit_id = HEADS[0][Head.COMMIT_ID]
-        head = Head(path, commit_id)
-        self.assertEqual(head.to_dict(), HEADS[0])
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock()
+        head = Head(remote_id, branch, commit)
+        self.assertEqual(head.remote_id, remote_id)
+        self.assertEqual(head.branch, branch)
+        self.assertEqual(head.commit, commit)
 
     def test_digest(self):
-        path = 'path-1'
-        commit_id = 'commit-1'
-        head = Head(path, commit_id)
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock(digest='1234')
+        head = Head(remote_id, branch, commit)
         h = sha256()
-        h.update(head.path)
-        h.update(head.commit_id)
+        h.update(head.remote_id)
+        h.update(head.branch)
+        h.update(head.commit.digest)
         self.assertEqual(h.hexdigest(), head.digest)
 
-
-class TestRefs(TestCase):
-
-    @patch('pulp_ostree.common.model.Head.from_dict')
-    def test_from_dict(self, fake_from_dict):
-        heads = [Mock(), Mock()]
-        fake_from_dict.side_effect = heads
-        refs = Refs.from_dict(REFS)
-        self.assertEqual(len(refs.heads), len(HEADS))
-        self.assertEqual(refs.heads[0], heads[0])
-        self.assertEqual(refs.heads[1], heads[1])
-
-    def test_init(self):
-        refs = Refs()
-        self.assertEqual(refs.heads, [])
-        heads = [1, 2]
-        refs = Refs(heads)
-        self.assertEqual(refs.heads, heads)
-
-    def test_add_head(self):
-        refs = Refs()
-        heads = [
-            Mock(),
-            Mock(),
-        ]
-        for head in heads:
-            refs.add_head(head)
-        self.assertEqual(refs.heads, heads)
-
-    def test_digest(self):
-        heads = [
-            Mock(),
-            Mock()
-        ]
-        heads[0].digest = 'A'
-        heads[1].digest = 'B'
-        refs = Refs(heads)
-        h = sha256()
-        h.update('A')
-        h.update('B')
-        self.assertEqual(h.hexdigest(), refs.digest)
-
-    def test_digest_ordering(self):
-        heads = [
-            Head('A', 'XX'),
-            Head('B', 'XX')
-        ]
-        digest_1 = Refs(heads).digest
-        digest_2 = Refs(reversed(heads)).digest
-        self.assertEqual(digest_1, digest_2)
-
-    def test_to_dict(self):
-        heads = [
-            Head.from_dict(HEADS[0]),
-            Head.from_dict(HEADS[1])
-        ]
-        refs = Refs(heads)
-        self.assertEqual(refs.to_dict(), REFS)
+    @patch('pulp_ostree.common.model.constants.LINKS_DIR', 'links')
+    @patch('pulp_ostree.common.model.constants.SHARED_STORAGE', '/shared')
+    @patch('pulp_ostree.common.model.Head.digest', 'digest')
+    def test_storage_path(self):
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock(digest='1234')
+        head = Head(remote_id, branch, commit)
+        self.assertEqual(head.storage_path, os.path.join('/shared/1234/links/digest'))
 
 
-class TestRepository(TestCase):
-
-    @patch('pulp_ostree.common.model.Refs.from_dict')
-    def test_from_dict(self, fake_from_dict):
-        fake_from_dict.return_value = Mock()
-        repository = Repository.from_dict(REPOSITORY)
-        self.assertEqual(repository.remote_id, REPOSITORY[Repository.REMOTE_ID])
-        self.assertEqual(repository.timestamp, REPOSITORY[Repository.TIMESTAMP])
-        self.assertEqual(repository.refs, fake_from_dict())
-
-    def test_init(self):
-        remote_id = 'remote-1'
-        refs = Refs()
-        timestamp = 'today'
-        repository = Repository(remote_id, refs, timestamp)
-        self.assertEqual(repository.remote_id, remote_id)
-        self.assertEqual(repository.refs, refs)
-        self.assertEqual(repository.timestamp, timestamp)
+class TestUnit(TestCase):
 
     def test_unit_key(self):
-        remote_id = 'remote-1'
-        refs = Refs()
-        repository = Repository(remote_id, refs, None)
-        expected = {
-            Repository.REMOTE_ID: remote_id,
-            Repository.DIGEST: refs.digest
-        }
-        self.assertEqual(repository.unit_key, expected)
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock(digest='1234')
+        unit = Unit(remote_id, branch, commit)
+        self.assertEqual(
+            unit.key,
+            {
+                Head.BRANCH: unit.branch,
+                Head.COMMIT: unit.commit.digest,
+                Unit.REMOTE_ID: unit.remote_id
+            })
 
-    def test_metadata(self):
-        timestamp = 'today'
-        remote_id = 'remote-1'
-        refs = Refs()
-        repository = Repository(remote_id, refs, timestamp)
-        expected = {
-            Repository.TIMESTAMP: timestamp,
-            Repository.REFS: refs.to_dict()
-        }
-        self.assertEqual(expected, repository.metadata)
-
-    def test_storage_path(self):
-        remote_id = 'remote-1'
-        refs = Refs()
-        repository = Repository(remote_id, refs, None)
-        expected = os.path.join(
-            constants.SHARED_STORAGE, repository.remote_id, constants.LINKS_DIR, repository.digest)
-        self.assertEqual(repository.storage_path, expected)
+    def test_unit_md(self):
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock()
+        unit = Unit(remote_id, branch, commit)
+        self.assertEqual(unit.metadata, unit.commit.metadata)

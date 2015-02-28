@@ -84,6 +84,17 @@ class ProgressReport(object):
             self.percent = int((self.fetched * 1.0 / self.requested) * 100)
 
 
+class Ref(object):
+    """
+    Repository reference.
+    """
+
+    def __init__(self, path, commit, metadata):
+        self.path = path
+        self.commit = commit
+        self.metadata = metadata
+
+
 class Repository():
     """
     An ostree repository.
@@ -100,6 +111,17 @@ class Repository():
         self.path = path
 
     @wrapped
+    def open(self):
+        """
+        Open an existing repository.
+        :raises LibError:
+        """
+        lib = Lib()
+        fp = lib.Gio.File.new_for_path(self.path)
+        repository = lib.OSTree.Repo.new(fp)
+        repository.open(None)
+
+    @wrapped
     def create(self):
         """
         Create the repository as needed.
@@ -108,10 +130,29 @@ class Repository():
         lib = Lib()
         fp = lib.Gio.File.new_for_path(self.path)
         repository = lib.OSTree.Repo.new(fp)
-        try:
-            repository.open(None)
-        except lib.GLib.GError:
-            repository.create(lib.OSTree.RepoMode.ARCHIVE_Z2, None)
+        repository.create(lib.OSTree.RepoMode.ARCHIVE_Z2, None)
+
+    @wrapped
+    def list_refs(self):
+        """
+        Get repository references.
+
+        :return: list of: Ref
+        :rtype: list
+        :raises LibError:
+        """
+        _list = []
+        lib = Lib()
+        fp = lib.Gio.File.new_for_path(self.path)
+        repository = lib.OSTree.Repo.new(fp)
+        repository.open(None)
+        _, refs = repository.list_refs(None, None)
+        for path, commit_id in sorted(refs.items()):
+            _, commit = repository.load_variant(lib.OSTree.ObjectType.COMMIT, commit_id)
+            metadata = commit[0]
+            ref = Ref(path, commit_id, metadata)
+            _list.append(ref)
+        return _list
 
     @wrapped
     def add_remote(self, remote_id, url):
@@ -163,3 +204,31 @@ class Repository():
             repository.pull(remote_id, refs, flags, progress, None)
         finally:
             progress.finish()
+
+    @wrapped
+    def pull_local(self, path, refs):
+        """
+        Run the pull (local) request.
+        Fast pull from another repository using hard links.
+
+        :param path: The path to another repository.
+        :type path: str:
+        :param refs: A list of references to pull.
+        :type refs: list
+        :raises LibError:
+        """
+        lib = Lib()
+        url = 'file://' + path
+        flags = lib.OSTree.RepoPullFlags.MIRROR
+        fp = lib.Gio.File.new_for_path(self.path)
+
+        options = lib.GLib.Variant(
+            'a{sv}',
+            {
+                'flags': lib.GLib.Variant('u', flags),
+                'refs': lib.GLib.Variant('as', tuple(refs))
+            })
+
+        repository = lib.OSTree.Repo.new(fp)
+        repository.open(None)
+        repository.pull_with_options(url, options, None, None)

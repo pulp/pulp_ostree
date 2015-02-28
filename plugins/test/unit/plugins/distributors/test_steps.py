@@ -1,16 +1,10 @@
-import ConfigParser
 import os
-import shutil
-import tempfile
+
 import unittest
 
 from mock import Mock, patch
 
-from pulp.devel.unit.util import touch
 from pulp.common import constants as pulp_constants
-from pulp.plugins.model import Repository, Unit
-from pulp.plugins.config import PluginCallConfiguration
-from pulp.plugins.conduits.repo_publish import RepoPublishConduit
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.distributors import steps
@@ -18,194 +12,112 @@ from pulp_ostree.plugins.distributors import steps
 
 class TestWebPublisher(unittest.TestCase):
 
-    def setUp(self):
-        self.working_directory = tempfile.mkdtemp()
-        self.publish_dir = os.path.join(self.working_directory, 'publish')
-        self.repo_working = os.path.join(self.working_directory, 'work')
-
-        self.repo = Mock(id='foo', working_dir=self.repo_working)
-        self.config = PluginCallConfiguration({constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY:
-                                              self.publish_dir}, {})
-
-    def tearDown(self):
-        shutil.rmtree(self.working_directory)
-
+    @patch('pulp_ostree.plugins.distributors.steps.mkdir')
+    @patch('pulp_ostree.plugins.distributors.steps.configuration')
     @patch('pulp_ostree.plugins.distributors.steps.AtomicDirectoryPublishStep')
-    @patch('pulp_ostree.plugins.distributors.steps.CreateEmptyOSTreeStep')
-    def test_init_empty(self, mock_empty, mock_atomic):
-        mock_conduit = Mock()
-        mock_config = {
-            constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY: self.publish_dir
-        }
-        self.repo.content_unit_counts = {}
-        publisher = steps.WebPublisher(self.repo, mock_conduit, mock_config)
-        self.assertEquals(publisher.children, [mock_empty.return_value,
-                                               mock_atomic.return_value])
+    @patch('pulp_ostree.plugins.distributors.steps.MainStep')
+    def test_init(self, mock_main, mock_atomic, mock_configuration, mock_mkdir):
+        repo = Mock(id='test', working_dir='/tmp/working')
+        conduit = Mock()
+        publish_dir = '/tmp/pub'
+        master_pub_dir = '/tmp/master/pub'
+        config = Mock()
+        mock_configuration.get_web_publish_dir.return_value = publish_dir
+        mock_configuration.get_master_publish_dir.return_value = master_pub_dir
 
-    @patch('pulp_ostree.plugins.distributors.steps.AtomicDirectoryPublishStep')
-    @patch('pulp_ostree.plugins.distributors.steps.PublishContentStep')
-    @patch('pulp_ostree.plugins.distributors.steps.PublishRefsStep')
-    def test_init_populated(self, mock_refs, mock_content, mock_atomic):
-        mock_conduit = Mock()
-        mock_config = {
-            constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY: self.publish_dir
-        }
-        self.repo.content_unit_counts = {'ostree': 1}
-        publisher = steps.WebPublisher(self.repo, mock_conduit, mock_config)
-        self.assertEquals(publisher.children, [mock_content.return_value,
-                                               mock_refs.return_value,
-                                               mock_atomic.return_value])
+        # test
+        publisher = steps.WebPublisher(repo, conduit, config)
 
-
-class TestPublishContentStep(unittest.TestCase):
-
-    def setUp(self):
-        self.working_directory = tempfile.mkdtemp()
-        self.source_dir = os.path.join(self.working_directory, 'src')
-        self.target_dir = os.path.join(self.working_directory, 'target')
-
-        os.makedirs(self.source_dir)
-        os.makedirs(self.target_dir)
-        self.repo = Repository(id='foo', working_dir=self.target_dir)
-        config = PluginCallConfiguration(None, None)
-        conduit = RepoPublishConduit(self.repo.id, 'foo_repo')
-        conduit.get_repo_scratchpad = Mock(return_value={u'tags': {}})
-        self.parent = steps.PluginStep('test-step', self.repo, conduit, config)
-
-    def tearDown(self):
-        shutil.rmtree(self.working_directory)
-
-    @patch('pulp_ostree.plugins.distributors.steps.PublishContentStep._get_ostree_unit')
-    def test_process_main(self, mock_get_unit):
-        mock_get_unit.return_value.storage_path = self.source_dir
-        content_dirs = ['objects', 'remote-cache', 'tmp', 'uncompressed-objects-cache']
-        for dir_name in content_dirs:
-            touch(os.path.join(self.source_dir, dir_name, 'foo'))
-
-        touch(os.path.join(self.source_dir, 'refs', 'foo'))
-        step = steps.PublishContentStep()
-        self.parent.add_child(step)
-        step.process_main()
-
-        for dir_name in content_dirs:
-            target_dir = os.path.join(self.target_dir, dir_name)
-            src_dir = os.path.join(self.source_dir, dir_name)
-            self.assertEquals(os.path.realpath(target_dir), src_dir)
-
-        self.assertFalse(os.path.exists(os.path.join(self.target_dir, 'refs')))
-
-    @patch('pulp_ostree.plugins.distributors.steps.PublishContentStep.get_conduit')
-    def test_get_ostree_unit(self, mock_get_conduit):
-        get_units = mock_get_conduit.return_value.get_units
-        get_units.return_value = ['foo', 'bar']
-        step = steps.PublishContentStep()
-        unit = step._get_ostree_unit()
-
-        self.assertEquals('foo', unit)
-        criteria = get_units.mock_calls[0][1][0]
-        self.assertEquals(criteria.type_ids, [constants.OSTREE_TYPE_ID])
-        sort_order = pulp_constants.SORT_DIRECTION[pulp_constants.SORT_DESCENDING]
-        self.assertEquals(criteria.unit_sort, [('created', sort_order)])
-
-    @patch('pulp_ostree.plugins.distributors.steps.PublishContentStep.get_conduit')
-    def test_get_ostree_no_unit(self, mock_get_conduit):
-        get_units = mock_get_conduit.return_value.get_units
-        get_units.return_value = []
-        step = steps.PublishContentStep()
-        self.assertRaises(Exception, step._get_ostree_unit)
+        # validation
+        mock_atomic.assert_called_once_with(
+            '/tmp/working',
+            [('test', '/tmp/pub')],
+            '/tmp/master/pub',
+            step_type=constants.PUBLISH_STEP_OVER_HTTP)
+        mock_main.assert_called_once_with()
+        self.assertEquals(
+            publisher.children,
+            [mock_main.return_value, mock_atomic.return_value])
+        mock_mkdir.assert_called_once_with(publisher.web_working_dir)
 
 
-class TestCreateEmptyOSTreeStep(unittest.TestCase):
-    def setUp(self):
-        self.working_directory = tempfile.mkdtemp()
-        self.publish_dir = os.path.join(self.working_directory, 'publish')
-        self.working_temp = os.path.join(self.working_directory, 'work')
-        os.makedirs(self.working_temp)
-        self.repo = Repository(id='foo', working_dir=self.working_temp)
-        config = PluginCallConfiguration(None, None)
-        conduit = RepoPublishConduit(self.repo.id, 'foo_repo')
-        conduit.get_repo_scratchpad = Mock(return_value={u'tags': {}})
-        self.parent = steps.PluginStep('test-step', self.repo, conduit, config)
+class TestMainStep(unittest.TestCase):
 
-    def tearDown(self):
-        shutil.rmtree(self.working_directory)
+    def test_init(self):
+        main = steps.MainStep()
+        self.assertEqual(main.step_id, constants.PUBLISH_STEP_MAIN)
 
-    @patch('pulp_ostree.plugins.distributors.steps.lib.Repository')
-    def test_process_main(self, mock_ostree_repo):
-        step = steps.CreateEmptyOSTreeStep()
-        self.parent.add_child(step)
-        step.process_main()
-        target_repo = os.path.join(self.working_temp, self.repo.id)
-        mock_ostree_repo.assert_called_once_with(target_repo)
-        mock_ostree_repo.return_value.create.assert_called_once_with()
+    @patch('pulp_ostree.plugins.distributors.steps.MainStep._add_ref')
+    @patch('pulp_ostree.plugins.distributors.steps.lib')
+    @patch('pulp_ostree.plugins.distributors.steps.UnitAssociationCriteria')
+    def test_process_main(self, criteria, lib, add_ref):
+        working_dir = '/tmp/working'
+        units = [
+            Mock(
+                storage_path='/tmp/path:1',
+                unit_key={'branch': 'branch:1', 'commit': 'commit:1'},
+                metadata='md:1'),
+            Mock(
+                storage_path='/tmp/path:2',
+                unit_key={'branch': 'branch:2', 'commit': 'commit:2'},
+                metadata='md:2'),
+        ]
+        repo = Mock(id='test', working_dir=working_dir)
+        conduit = Mock()
+        conduit.get_units.return_value = units
+        parent = Mock()
+        parent.get_repo.return_value = repo
+        parent.working_dir = working_dir
+        parent.get_conduit.return_value = conduit
 
+        ostree_repo = Mock()
+        lib.Repository.return_value = ostree_repo
 
-class TestPublishRefsStep(unittest.TestCase):
+        # test
+        main = steps.MainStep()
+        main.parent = parent
+        main.process_main()
 
-    def setUp(self):
-        self.working_directory = tempfile.mkdtemp()
-        self.content_dir = os.path.join(self.working_directory, 'content')
-        self.working_dir = os.path.join(self.working_directory, 'work')
-        os.makedirs(self.working_dir)
-        self.repo = Repository(id='foo', working_dir=self.working_dir)
-        config = PluginCallConfiguration(None, None)
-        conduit = RepoPublishConduit(self.repo.id, 'foo_repo')
-        conduit.get_repo_scratchpad = Mock(return_value={u'tags': {}})
-        self.parent = steps.PluginStep('test-step', self.repo, conduit, config)
+        # validation
+        path = os.path.join(working_dir, repo.id)
+        lib.Repository.assert_called_once_with(path)
+        ostree_repo.create.assert_called_once_with()
+        criteria.assert_called_once_with(
+            unit_sort=[('created', pulp_constants.SORT_DIRECTION[pulp_constants.SORT_ASCENDING])],
+            type_ids=[constants.OSTREE_TYPE_ID])
+        self.assertEqual(
+            ostree_repo.pull_local.call_args_list,
+            [
+                ((units[0].storage_path, [units[0].unit_key['commit']]), {}),
+                ((units[1].storage_path, [units[1].unit_key['commit']]), {}),
+            ])
+        self.assertEqual(
+            add_ref.call_args_list,
+            [
+                ((path, units[0].unit_key['branch'], units[0].unit_key['commit']), {}),
+                ((path, units[1].unit_key['branch'], units[1].unit_key['commit']), {}),
+            ])
 
-    def tearDown(self):
-        shutil.rmtree(self.working_directory)
+    @patch('__builtin__.open')
+    @patch('pulp_ostree.plugins.distributors.steps.mkdir')
+    def test_add_ref(self, mkdir, _open):
+        path = '/tmp/path'
+        branch = 'fedora/x86/core'
+        commit = 'test_commit'
 
-    def test_process_main_refs(self):
-        touch(os.path.join(self.content_dir, 'config'))
-        metadata = {
-            'refs': {
-                'heads': [{
-                    'path': 'foo/bar/baz',
-                    'commit_id': 'foo_hash'
-                }]
-            }
-        }
+        fp = Mock()
+        fp.__enter__ = Mock(return_value=fp)
+        fp.__exit__ = Mock()
+        _open.return_value = fp
 
-        content_step = Mock(unit=Unit(constants.OSTREE_TYPE_ID,
-                                      {'foo': 'bar'},
-                                      metadata,
-                                      self.content_dir))
-        step = steps.PublishRefsStep(content_step)
-        self.parent.add_child(step)
-        step.process_main()
-        head_file = os.path.join(self.working_dir, 'refs', 'foo/bar/baz')
-        self.assertTrue(os.path.exists(head_file))
-        with open(head_file) as test_fp:
-            content = test_fp.read()
-            self.assertEquals('foo_hash', content)
+        # test
+        steps.MainStep._add_ref(path, branch, commit)
 
-    def test_process_main_config_file(self):
-        # build the source config file
-        parser = ConfigParser.SafeConfigParser()
-        parser.add_section('core')
-        parser.set('core', 'foo', 'bar')
-        parser.add_section('remote apple')
-        parser.set('remote apple', 'foo', 'bar')
-        os.makedirs(self.content_dir)
-        with open(os.path.join(self.content_dir, 'config'), 'w') as config_file:
-            parser.write(config_file)
-
-        metadata = {
-            'refs': {
-                'heads': []
-            }
-        }
-
-        content_step = Mock(unit=Unit(constants.OSTREE_TYPE_ID,
-                                      {'foo': 'bar'},
-                                      metadata,
-                                      self.content_dir))
-        step = steps.PublishRefsStep(content_step)
-        self.parent.add_child(step)
-        step.process_main()
-
-        parser = ConfigParser.SafeConfigParser()
-        parser.read(os.path.join(self.working_dir, 'config'))
-        self.assertEquals(len(parser.sections()), 1)
-        self.assertTrue(parser.get('core', 'foo'), 'bar')
+        # validation
+        path = os.path.join(path, 'refs', 'heads', os.path.dirname(branch))
+        mkdir.assert_called_once_with(path)
+        path = os.path.join(path, os.path.basename(branch))
+        _open.assert_called_once_with(path, 'w+')
+        fp.write.assert_called_once_with(commit)
+        self.assertTrue(fp.__enter__.called)
+        self.assertTrue(fp.__exit__.called)

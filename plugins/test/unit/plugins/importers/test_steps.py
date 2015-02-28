@@ -10,6 +10,7 @@ from pulp.server.exceptions import PulpCodedException
 
 from pulp_ostree.plugins.lib import LibError
 from pulp_ostree.plugins.importers.steps import Main, Create, Pull, Add
+from pulp_ostree.common.model import Unit
 from pulp_ostree.common import constants, errors
 
 
@@ -59,13 +60,30 @@ class TestCreate(TestCase):
         remote_id = 'remote-123'
         path = 'root/path-123'
 
+        fake_lib.LibError = LibError
+        fake_lib.Repository.return_value.open.side_effect = LibError
+
         # test
         Create._init_repository(path, remote_id, url)
 
         # validation
         fake_lib.Repository.assert_called_once_with(path)
-        fake_lib.Repository().create.assert_called_once_with()
-        fake_lib.Repository().add_remote.assert_called_once_with(remote_id, url)
+        fake_lib.Repository.return_value.create.assert_called_once_with()
+        fake_lib.Repository.return_value.add_remote.assert_called_once_with(remote_id, url)
+
+    @patch('pulp_ostree.plugins.importers.steps.lib')
+    def test_init_repository_exists(self, fake_lib):
+        url = 'url-123'
+        remote_id = 'remote-123'
+        path = 'root/path-123'
+
+        # test
+        Create._init_repository(path, remote_id, url)
+
+        # validation
+        fake_lib.Repository.assert_called_once_with(path)
+        fake_lib.Repository.return_value.open.assert_called_once_with()
+        self.assertFalse(fake_lib.Repository.return_value.add_remote.called)
 
     @patch('pulp_ostree.plugins.importers.steps.lib')
     def test_init_repository_exception(self, fake_lib):
@@ -174,49 +192,78 @@ class TestAdd(TestCase):
         self.assertEqual(step.step_id, constants.IMPORT_STEP_ADD_UNITS)
         self.assertTrue(step.description is not None)
 
+    @patch('pulp_ostree.plugins.importers.steps.lib')
+    @patch('pulp_ostree.plugins.importers.steps.model')
+    @patch('pulp_ostree.plugins.importers.steps.Add.link')
     @patch('pulp_ostree.plugins.importers.steps.Unit')
-    @patch('pulp_ostree.plugins.importers.steps.datetime')
-    @patch('pulp_ostree.common.model.Repository')
-    @patch('pulp_ostree.common.model.Refs')
-    def test_process_main(self, fake_refs, fake_repo, dt, fake_unit):
-        utc_now = 'utc-now'
-        dt.utcnow.return_value = utc_now
-        refs = Mock()
-        fake_refs.return_value = refs
-        heads = [Mock(), Mock()]
+    def test_process_main(self, fake_unit, fake_link, fake_model, fake_lib):
         remote_id = 'remote-1'
-        repo = Mock(TYPE_ID='type-id',
-                    unit_key='unit-key',
-                    metadata='md',
-                    storage_path='storage-path')
-        fake_repo.return_value = repo
-        unit = Mock()
-        fake_unit.return_value = unit
+        commits = [
+            Mock(),
+            Mock()
+        ]
+        refs = [
+            Mock(path='branch:1', commit='commit:1', metadata='md:1'),
+            Mock(path='branch:2', commit='commit:2', metadata='md:2')
+        ]
+        units = [
+            Mock(key='key:1', metadata=refs[0].metadata, storage_path='path:1'),
+            Mock(key='key:2', metadata=refs[1].metadata, storage_path='path:2')
+        ]
+        pulp_units = [
+            Mock(),
+            Mock()
+        ]
+
+        repository = Mock()
+        repository.list_refs.return_value = refs
+        fake_lib.Repository.return_value = repository
+
+        fake_model.Commit.side_effect = commits
+        fake_model.Unit.side_effect = units
+
+        fake_unit.side_effect = pulp_units
+
         fake_conduit = Mock()
 
         # test
         step = Add()
-        step.find_branches = Mock(return_value=heads)
-        step.parent = Mock(remote_id=remote_id)
-        step.link = Mock()
+        step.parent = Mock(remote_id=remote_id, storage_path='/tmp/xyz')
         step.get_conduit = Mock(return_value=fake_conduit)
         step.process_main()
 
         # validation
-        dt.utcnow.assert_called_once_with()
-        fake_refs.assert_called_once_with()
-        step.find_branches.assert_called_once_with()
+        fake_lib.Repository.assert_called_once_with(step.parent.storage_path)
         self.assertEqual(
-            refs.add_head.call_args_list,
+            fake_model.Commit.call_args_list,
             [
-                ((heads[0],), {}),
-                ((heads[1],), {}),
+                (('commit:1', 'md:1'), {}),
+                (('commit:2', 'md:2'), {}),
             ])
-        fake_repo.assert_called_once_with(remote_id, fake_refs.return_value, utc_now)
-        step.link.assert_called_once_with(repo)
-        fake_unit.assert_called_once_with(
-            repo.TYPE_ID, repo.unit_key, repo.metadata, repo.storage_path)
-        fake_conduit.save_unit.assert_called_once_with(unit)
+        self.assertEqual(
+            fake_model.Unit.call_args_list,
+            [
+                ((remote_id, 'branch:1', commits[0]), {}),
+                ((remote_id, 'branch:2', commits[1]), {}),
+            ])
+        self.assertEqual(
+            fake_link.call_args_list,
+            [
+                ((units[0],), {}),
+                ((units[1],), {}),
+            ])
+        self.assertEqual(
+            fake_unit.call_args_list,
+            [
+                ((Unit.TYPE_ID, units[0].key, units[0].metadata, units[0].storage_path), {}),
+                ((Unit.TYPE_ID, units[1].key, units[1].metadata, units[1].storage_path), {}),
+            ])
+        self.assertEqual(
+            fake_conduit.save_unit.call_args_list,
+            [
+                ((pulp_units[0],), {}),
+                ((pulp_units[1],), {}),
+            ])
 
     @patch('os.symlink')
     def test_link(self, fake_link):
@@ -305,46 +352,3 @@ class TestAdd(TestCase):
         # validation
         self.assertFalse(fake_islink.called)
         self.assertFalse(fake_readlink.called)
-
-    @patch('pulp_ostree.common.model.Head')
-    @patch('__builtin__.open')
-    @patch('os.walk')
-    def test_find_branches(self, fake_walk, fake_open, fake_head):
-        fp = Mock()
-        fp.__enter__ = Mock(return_value=fp)
-        fp.__exit__ = Mock()
-        fp.read.side_effect = ['hash-1', 'hash-2']
-        fake_open.return_value = fp
-        path = '/path-1'
-        step = Add()
-        step.parent = Mock(storage_path=path)
-        heads = [Mock(), Mock()]
-        fake_head.side_effect = heads
-        tree = [
-            ('/path-1/refs/heads', ['fedora'], []),
-            ('/path-1/refs/heads/fedora', ['f21'], []),
-            ('/path-1/refs/heads/fedora/f21', ['i386', 'x86_64'], []),
-            ('/path-1/refs/heads/fedora/f21/i386', [], ['os']),
-            ('/path-1/refs/heads/fedora/f21/x86_64', [], ['os']),
-        ]
-        fake_walk.return_value = tree
-
-        # test
-        branches = list(step.find_branches())
-
-        # validation
-        self.assertEqual(
-            fake_open.call_args_list,
-            [
-                (('/path-1/refs/heads/fedora/f21/i386/os',), {}),
-                (('/path-1/refs/heads/fedora/f21/x86_64/os',), {})
-            ])
-        fake_walk.assert_called_once_with(os.path.join(path, 'refs', 'heads'))
-        self.assertEqual(
-            fake_head.call_args_list,
-            [
-                (('fedora/f21/i386/os', 'hash-1'), {}),
-                (('fedora/f21/x86_64/os', 'hash-2'), {})
-            ])
-        self.assertEqual(len(branches), 2)
-        self.assertEqual(branches, heads)

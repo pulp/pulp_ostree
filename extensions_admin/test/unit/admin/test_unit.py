@@ -9,9 +9,13 @@ from pulp_ostree.extensions.admin.unit import format_unit, CopyCommand, RemoveCo
 class TestFunctions(TestCase):
 
     def test_format(self):
-        unit = dict(remote_id='test-id', digest='test-digest')
+        unit = dict(
+            remote_id='test-id',
+            branch='test-branch',
+            commit='test-commit'
+        )
         formatted = format_unit(unit)
-        self.assertEqual(formatted, 'remote_id: test-id digest: test-digest')
+        self.assertEqual(formatted, 'remote_id:test-id branch:test-branch commit:test-commit')
 
 
 class TestCopyCommand(TestCase):
@@ -46,10 +50,10 @@ class TestSearchCommand(TestCase):
             'created': 1,
             'updated': 2,
             'metadata': {
-                'timestamp': 3,
-                'remote_id': 4,
-                'digest': 5,
-                'refs': 6
+                'remote_id': 3,
+                'branch': 4,
+                'commit': 5,
+                'version': 6
             }
         }
 
@@ -63,10 +67,10 @@ class TestSearchCommand(TestCase):
                 'id': 0,
                 'created': 1,
                 'updated': 2,
-                'timestamp': 3,
-                'remote_id': 4,
-                'digest': 5,
-                'refs': 6
+                'remote_id': 3,
+                'branch': 4,
+                'commit': 5,
+                'version': 6
             })
 
     @patch('pulp_ostree.extensions.admin.unit.SearchCommand.transform')
