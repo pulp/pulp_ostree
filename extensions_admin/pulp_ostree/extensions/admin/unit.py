@@ -14,7 +14,7 @@ def format_unit(unit_key):
     :rtype: str
     :see: pulp_ostree.common.model.Repository
     """
-    return 'remote_id: %(remote_id)s digest: %(digest)s' % unit_key
+    return 'remote_id:%(remote_id)s branch:%(branch)s commit:%(commit)s' % unit_key
 
 
 class CopyCommand(UnitCopyCommand):
@@ -57,10 +57,10 @@ class SearchCommand(DisplayUnitAssociationsCommand):
         'id',
         'created',
         'updated',
-        'timestamp',
         'remote_id',
-        'digest',
-        'refs'
+        'branch',
+        'commit',
+        'version'
     ]
 
     @staticmethod
@@ -77,10 +77,10 @@ class SearchCommand(DisplayUnitAssociationsCommand):
             'id': unit['id'],
             'created': unit['created'],
             'updated': unit['updated'],
-            'timestamp': metadata['timestamp'],
             'remote_id': metadata['remote_id'],
-            'digest': metadata['digest'],
-            'refs': metadata['refs']
+            'branch': metadata['branch'],
+            'commit': metadata['commit'],
+            'version': metadata.get('version', ''),
         }
         return document
 

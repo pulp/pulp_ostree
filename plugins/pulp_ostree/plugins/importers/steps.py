@@ -2,7 +2,6 @@ import os
 import errno
 
 from gettext import gettext as _
-from datetime import datetime
 from logging import getLogger
 
 from pulp.common.plugins import importer_constants
@@ -62,8 +61,11 @@ class Create(PluginStep):
         """
         try:
             repository = lib.Repository(path)
-            repository.create()
-            repository.add_remote(remote_id, url)
+            try:
+                repository.open()
+            except lib.LibError:
+                repository.create()
+                repository.add_remote(remote_id, url)
         except lib.LibError, le:
             pe = PulpCodedException(errors.OST0001, path=path, reason=str(le))
             raise pe
@@ -149,15 +151,14 @@ class Add(PluginStep):
         Find all branch (heads) in the local repository and
         create content units for them.
         """
-        refs = model.Refs()
-        timestamp = datetime.utcnow()
-        for branch in self.find_branches():
-            refs.add_head(branch)
-        unit = model.Repository(self.parent.remote_id, refs, timestamp)
-        self.link(unit)
-        _unit = Unit(unit.TYPE_ID, unit.unit_key, unit.metadata, unit.storage_path)
         conduit = self.get_conduit()
-        conduit.save_unit(_unit)
+        repository = lib.Repository(self.parent.storage_path)
+        for ref in repository.list_refs():
+            commit = model.Commit(ref.commit, ref.metadata)
+            unit = model.Unit(self.parent.remote_id, ref.path, commit)
+            self.link(unit)
+            _unit = Unit(constants.OSTREE_TYPE_ID, unit.key, unit.metadata, unit.storage_path)
+            conduit.save_unit(_unit)
 
     def link(self, unit):
         """
@@ -165,7 +166,7 @@ class Add(PluginStep):
         The link will be verified if it already exits.
 
         :param unit: The unit to linked.
-        :type unit: model.Repository
+        :type unit: model.Unit
         """
         link = unit.storage_path
         target = self.parent.storage_path
@@ -176,19 +177,3 @@ class Add(PluginStep):
                 pass  # identical
             else:
                 raise
-
-    def find_branches(self):
-        """
-        Find and return all of the branch heads in the local repository.
-
-        :return: List of: model.Head
-        :rtype: generator
-        """
-        root_dir = os.path.join(self.parent.storage_path, 'refs', 'heads')
-        for root, dirs, files in os.walk(root_dir):
-            for name in files:
-                path = os.path.join(root, name)
-                branch_id = os.path.relpath(path, root_dir)
-                with open(path) as fp:
-                    commit_id = fp.read()
-                    yield model.Head(branch_id, commit_id.strip())
