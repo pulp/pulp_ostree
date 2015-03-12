@@ -1,6 +1,7 @@
 from gettext import gettext as _
 
-from pulp.client import arg_utils, parsers
+from okaara import parsers as okaara_parsers
+from pulp.client import arg_utils
 from pulp.client.commands.repo.cudl import CreateAndConfigureRepositoryCommand
 from pulp.client.commands.repo.cudl import ListRepositoriesCommand
 from pulp.client.commands.repo.cudl import UpdateRepositoryCommand
@@ -15,7 +16,7 @@ d = _('if "true", on each successful sync the repository will automatically be '
       'published; if "false" content will only be available after manually publishing '
       'the repository; defaults to "true"')
 OPT_AUTO_PUBLISH = PulpCliOption('--auto-publish', d, required=False,
-                                 parse_func=parsers.parse_boolean)
+                                 parse_func=okaara_parsers.parse_boolean)
 
 DESC_FEED = _('URL for the upstream ostree repo')
 
