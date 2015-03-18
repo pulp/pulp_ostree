@@ -1,4 +1,5 @@
 from gettext import gettext as _
+from urlparse import urlparse
 
 from okaara import parsers as okaara_parsers
 from pulp.client import arg_utils
@@ -12,16 +13,24 @@ from pulp.client.extensions.extensions import PulpCliOption
 from pulp_ostree.common import constants
 
 
-d = _('if "true", on each successful sync the repository will automatically be '
+description = \
+    _('if "true", on each successful sync the repository will automatically be '
       'published; if "false" content will only be available after manually publishing '
       'the repository; defaults to "true"')
-OPT_AUTO_PUBLISH = PulpCliOption('--auto-publish', d, required=False,
-                                 parse_func=okaara_parsers.parse_boolean)
+
+OPT_AUTO_PUBLISH = PulpCliOption(
+    '--auto-publish', description, required=False, parse_func=okaara_parsers.parse_boolean)
+
+description = _('determines the path component of the published url; defaults to the repo ID')
+OPT_RELATIVE_PATH = PulpCliOption('--relative-path', description, required=False)
 
 DESC_FEED = _('URL for the upstream ostree repo')
 
-d = _("a branch to sync from the upstream repository.  This option may be specified multiple times")
-OPT_BRANCH = PulpCliOption('--branch', d, aliases=['-b'], required=False, allow_multiple=True)
+description = _("a branch to sync from the upstream repository. This option "
+                "may be specified multiple times")
+
+OPT_BRANCH = PulpCliOption(
+    '--branch', description, aliases=['-b'], required=False, allow_multiple=True)
 
 IMPORTER_CONFIGURATION_FLAGS = dict(
     include_ssl=False,
@@ -40,6 +49,7 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         CreateAndConfigureRepositoryCommand.__init__(self, context)
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
+        self.add_option(OPT_RELATIVE_PATH)
         self.add_option(OPT_BRANCH)
         self.options_bundle.opt_feed.description = DESC_FEED
 
@@ -49,15 +59,27 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         is needed to create distributor configs.
 
         :param user_input:  dictionary of data passed in by okaara
-        :type  user_inpus:  dict
+        :type  user_input:  dict
 
         :return:    list of dict containing distributor_type_id,
                     repo_plugin_config, auto_publish, and distributor_id (the same
                     that would be passed to the RepoDistributorAPI.create call).
         :rtype:     list of dict
         """
-        config = {}
-        auto_publish = user_input.get('auto-publish', True)
+        relative_path = user_input.get(OPT_RELATIVE_PATH.keyword)
+        auto_publish = user_input.get(OPT_AUTO_PUBLISH.keyword, True)
+
+        # relative path derived using the path component of the feed url when not specified
+        if not relative_path:
+            feed_url = user_input.get(self.options_bundle.opt_feed.keyword)
+            if feed_url:
+                url = urlparse(feed_url)
+                relative_path = url.path
+
+        config = {
+            constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH: relative_path
+        }
+
         data = [
             dict(distributor_type_id=constants.WEB_DISTRIBUTOR_TYPE_ID,
                  distributor_config=config,
@@ -73,7 +95,7 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         is needed to create an importer config.
 
         :param user_input:  dictionary of data passed in by okaara
-        :type  user_inpus:  dict
+        :type  user_input:  dict
 
         :return:    importer config
         :rtype:     dict

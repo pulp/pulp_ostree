@@ -38,8 +38,16 @@ class TestConfigurationGetters(unittest.TestCase):
         self.assertEquals(directory, os.path.join(self.publish_dir, 'web', self.repo.id))
 
     def test_get_repo_relative_path(self):
-        directory = configuration.get_repo_relative_path(self.repo, self.config)
+        directory = configuration.get_repo_relative_path(self.repo, {})
         self.assertEquals(directory, self.repo.id)
+
+    def test_get_repo_relative_path_when_passed(self):
+        relative_path = '/7/x86/standard'
+        config = {
+            constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH: relative_path
+        }
+        directory = configuration.get_repo_relative_path(self.repo, config)
+        self.assertEquals(directory, relative_path[1:])
 
 
 class TestValidateConfig(unittest.TestCase):
