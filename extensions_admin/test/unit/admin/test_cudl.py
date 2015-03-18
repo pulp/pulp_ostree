@@ -22,11 +22,32 @@ class TestCreateOSTreerRepositoryCommand(unittest.TestCase):
 
     def test_describe_distributors(self):
         command = cudl.CreateOSTreeRepositoryCommand(Mock())
-        user_input = {}
+        relative_path = '7/x86/standard'
+        user_input = {
+            cudl.OPT_RELATIVE_PATH.keyword: relative_path
+        }
         result = command._describe_distributors(user_input)
         target_result = {'distributor_id': constants.CLI_WEB_DISTRIBUTOR_ID,
                          'distributor_type_id': constants.WEB_DISTRIBUTOR_TYPE_ID,
-                         'distributor_config': {},
+                         'distributor_config': {
+                             constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH: relative_path
+                         },
+                         'auto_publish': True}
+        compare_dict(result[0], target_result)
+
+    def test_describe_distributors_using_feed(self):
+        command = cudl.CreateOSTreeRepositoryCommand(Mock())
+        relative_path = '/7/x86/standard'
+        feed_url = 'http://planet.com%s' % relative_path
+        user_input = {
+            command.options_bundle.opt_feed.keyword: feed_url
+        }
+        result = command._describe_distributors(user_input)
+        target_result = {'distributor_id': constants.CLI_WEB_DISTRIBUTOR_ID,
+                         'distributor_type_id': constants.WEB_DISTRIBUTOR_TYPE_ID,
+                         'distributor_config': {
+                             constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH: relative_path
+                         },
                          'auto_publish': True}
         compare_dict(result[0], target_result)
 

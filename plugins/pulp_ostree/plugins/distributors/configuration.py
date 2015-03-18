@@ -76,4 +76,10 @@ def get_repo_relative_path(repo, config):
     :return: relative path for the repository
     :rtype:  str
     """
-    return repo.id
+    path = config.get(constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH)
+    if path:
+        if path.startswith('/'):
+            path = path[1:]
+    else:
+        path = repo.id
+    return path

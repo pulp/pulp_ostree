@@ -24,6 +24,7 @@ IMPORTER_CONFIG_FILE_PATH = 'server/plugins.conf.d/ostree_importer.json'
 DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY = 'ostree_publish_directory'
 DISTRIBUTOR_CONFIG_VALUE_PUBLISH_DIRECTORY = '/var/lib/pulp/published/ostree'
 DISTRIBUTOR_CONFIG_FILE_PATH = 'server/plugins.conf.d/ostree_distributor.json'
+DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH = 'relative_path'
 
 
 # Steps
