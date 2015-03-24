@@ -83,9 +83,9 @@ Common libraries for OSTree support.
 %files -n python-pulp-ostree-common
 %defattr(-,root,root,-)
 %dir %{python_sitelib}/pulp_ostree
+%dir %{python_sitelib}/pulp_ostree/extensions
 %{python_sitelib}/pulp_ostree/__init__.py*
 %{python_sitelib}/pulp_ostree/common/
-%dir %{python_sitelib}/pulp_ostree/extensions
 %{python_sitelib}/pulp_ostree/extensions/__init__.py*
 %{python_sitelib}/pulp_ostree_common*.egg-info
 
@@ -99,9 +99,10 @@ Summary: Pulp OSTree plugins
 Group: Development/Languages
 Requires: python-pulp-common >= %{platform_version}
 Requires: python-pulp-ostree-common = %{version} 
-Requires: pulp-server >= 2.5.1
+Requires: pulp-server >= 2.7
 Requires: python-setuptools
-Requires: ostree >= 2014.5.26
+Requires: ostree >= 2015.3.49
+Requires: pygobject3
 
 %description plugins
 Provides a collection of platform plugins that extend the Pulp platform
