@@ -154,6 +154,9 @@ class Add(PluginStep):
         conduit = self.get_conduit()
         repository = lib.Repository(self.parent.storage_path)
         for ref in repository.list_refs():
+            if ref.path not in self.parent.branches:
+                # not listed
+                continue
             commit = model.Commit(ref.commit, ref.metadata)
             unit = model.Unit(self.parent.remote_id, ref.path, commit)
             self.link(unit)
