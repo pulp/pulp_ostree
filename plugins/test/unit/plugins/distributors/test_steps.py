@@ -49,8 +49,7 @@ class TestMainStep(unittest.TestCase):
 
     @patch('pulp_ostree.plugins.distributors.steps.MainStep._add_ref')
     @patch('pulp_ostree.plugins.distributors.steps.lib')
-    @patch('pulp_ostree.plugins.distributors.steps.UnitAssociationCriteria')
-    def test_process_main(self, criteria, lib, add_ref):
+    def test_process_main(self, lib, add_ref):
         working_dir = '/tmp/working'
         units = [
             Mock(
@@ -63,18 +62,16 @@ class TestMainStep(unittest.TestCase):
                 metadata='md:2'),
         ]
         repo = Mock(id='test', working_dir=working_dir)
-        conduit = Mock()
-        conduit.get_units.return_value = units
         parent = Mock()
         parent.get_repo.return_value = repo
         parent.working_dir = working_dir
-        parent.get_conduit.return_value = conduit
 
         ostree_repo = Mock()
         lib.Repository.return_value = ostree_repo
 
         # test
         main = steps.MainStep()
+        main._get_units = Mock(return_value=units)
         main.parent = parent
         main.process_main()
 
@@ -82,9 +79,6 @@ class TestMainStep(unittest.TestCase):
         path = os.path.join(working_dir, repo.id)
         lib.Repository.assert_called_once_with(path)
         ostree_repo.create.assert_called_once_with()
-        criteria.assert_called_once_with(
-            unit_sort=[('created', pulp_constants.SORT_DIRECTION[pulp_constants.SORT_ASCENDING])],
-            type_ids=[constants.OSTREE_TYPE_ID])
         self.assertEqual(
             ostree_repo.pull_local.call_args_list,
             [
@@ -97,6 +91,33 @@ class TestMainStep(unittest.TestCase):
                 ((path, units[0].unit_key['branch'], units[0].unit_key['commit']), {}),
                 ((path, units[1].unit_key['branch'], units[1].unit_key['commit']), {}),
             ])
+
+    @patch('pulp_ostree.plugins.distributors.steps.UnitAssociationCriteria')
+    def test_get_units(self, criteria):
+        units = [
+            Mock(unit_key={'branch': 'branch:1'}),
+            Mock(unit_key={'branch': 'branch:1'}),
+            Mock(unit_key={'branch': 'branch:2'}),
+            Mock(unit_key={'branch': 'branch:2'}),
+            Mock(unit_key={'branch': 'branch:2'}),
+            Mock(unit_key={'branch': 'branch:3'}),
+        ]
+        conduit = Mock()
+        conduit.get_units.return_value = units
+        parent = Mock()
+        parent.get_conduit.return_value = conduit
+
+        # test
+        main = steps.MainStep()
+        main.parent = parent
+        _units = main._get_units()
+
+        # validation
+        criteria.assert_called_once_with(
+            unit_sort=[('_id', pulp_constants.SORT_DIRECTION[pulp_constants.SORT_ASCENDING])],
+            type_ids=[constants.OSTREE_TYPE_ID])
+        conduit.get_units.assert_called_once_with(criteria.return_value, as_generator=True)
+        self.assertEqual(sorted(_units), sorted([units[1], units[-2], units[-1]]))
 
     @patch('__builtin__.open')
     @patch('pulp_ostree.plugins.distributors.steps.mkdir')
