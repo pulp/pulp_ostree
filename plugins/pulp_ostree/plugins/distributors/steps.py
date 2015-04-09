@@ -64,24 +64,50 @@ class MainStep(PluginStep):
 
     def process_main(self):
         """
-        create a blank ostree
+        Publish the repository.
+        Create an empty repository.  Then, for each unit,
+        perform a (local) pull which links objects in this repository to
+        objects in the *backing* repository at the storage path.  This starts
+        with the branch HEAD commit and then includes all referenced objects.
         """
         repo = self.get_repo()
         path = os.path.join(self.get_working_dir(), repo.id)
         ostree_repo = lib.Repository(path)
         ostree_repo.create()
-        criteria = UnitAssociationCriteria(
-            type_ids=[constants.OSTREE_TYPE_ID],
-            unit_sort=[('created', SORT_DIRECTION[SORT_ASCENDING])])
-        units = self.get_conduit().get_units(criteria, as_generator=True)
-        for unit in units:
+        for unit in self._get_units():
             branch = unit.unit_key['branch']
             commit = unit.unit_key['commit']
             ostree_repo.pull_local(unit.storage_path, [commit])
             MainStep._add_ref(path, branch, commit)
 
+    def _get_units(self):
+        """
+        Get the collection of units to be published.
+        The collection contains only the newest unit for each branch.
+        :return: An iterable of units to publish.
+        :rtype: iterable
+        """
+        units = {}
+        conduit = self.get_conduit()
+        criteria = UnitAssociationCriteria(
+            type_ids=[constants.OSTREE_TYPE_ID],
+            unit_sort=[('_id', SORT_DIRECTION[SORT_ASCENDING])])
+        for unit in conduit.get_units(criteria, as_generator=True):
+            branch = unit.unit_key['branch']
+            units[branch] = unit
+        return units.values()
+
     @staticmethod
     def _add_ref(path, branch, commit):
+        """
+        Write a branch (ref) file into the published repository.
+        :param path: The absolute path to the repository.
+        :type path: str
+        :param branch: The branch relative path.
+        :type branch: str
+        :param commit: The commit hash.
+        :type commit: str
+        """
         path = os.path.join(path, 'refs', 'heads', os.path.dirname(branch))
         mkdir(path)
         path = os.path.join(path, os.path.basename(branch))
