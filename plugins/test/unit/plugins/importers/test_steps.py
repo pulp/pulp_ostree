@@ -204,7 +204,8 @@ class TestAdd(TestCase):
         ]
         refs = [
             Mock(path='branch:1', commit='commit:1', metadata='md:1'),
-            Mock(path='branch:2', commit='commit:2', metadata='md:2')
+            Mock(path='branch:2', commit='commit:2', metadata='md:2'),
+            Mock(path='branch:3', commit='commit:3', metadata='md:3')
         ]
         units = [
             Mock(key='key:1', metadata=refs[0].metadata, storage_path='path:1'),
@@ -214,6 +215,8 @@ class TestAdd(TestCase):
             Mock(),
             Mock()
         ]
+
+        branches = [r.path for r in refs[:-1]]
 
         repository = Mock()
         repository.list_refs.return_value = refs
@@ -228,7 +231,7 @@ class TestAdd(TestCase):
 
         # test
         step = Add()
-        step.parent = Mock(remote_id=remote_id, storage_path='/tmp/xyz')
+        step.parent = Mock(remote_id=remote_id, storage_path='/tmp/xyz', branches=branches)
         step.get_conduit = Mock(return_value=fake_conduit)
         step.process_main()
 
