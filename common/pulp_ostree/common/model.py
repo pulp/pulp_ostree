@@ -6,6 +6,7 @@ The content model:
 
 import os
 
+from datetime import datetime
 from hashlib import sha256
 
 from pulp_ostree.common import constants
@@ -108,6 +109,21 @@ class Unit(Head):
     TYPE_ID = constants.OSTREE_TYPE_ID
 
     COMMIT = 'commit'
+    CREATED = '_created'
+
+    def __init__(self, remote_id, branch, commit, created=None):
+        """
+        :param remote_id: Uniquely identifies a *remote* OSTree repository.
+        :type remote_id: str
+        :param branch: The branch path.
+        :type branch: str
+        :param commit: A commit.
+        :type commit: Commit
+        :param created: The created (UTC) timestamp.
+        :type created: datetime
+        """
+        super(Unit, self).__init__(remote_id, branch, commit)
+        self.created = created or datetime.utcnow()
 
     @property
     def key(self):
@@ -131,4 +147,7 @@ class Unit(Head):
         :return: The commit metadata.
         :rtype: dict
         """
-        return self.commit.metadata
+        md = {}
+        md.update(self.commit.metadata)
+        md[Unit.CREATED] = self.created
+        return md

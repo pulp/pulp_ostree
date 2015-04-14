@@ -91,7 +91,7 @@ class MainStep(PluginStep):
         conduit = self.get_conduit()
         criteria = UnitAssociationCriteria(
             type_ids=[constants.OSTREE_TYPE_ID],
-            unit_sort=[('_id', SORT_DIRECTION[SORT_ASCENDING])])
+            unit_sort=[('_created', SORT_DIRECTION[SORT_ASCENDING])])
         for unit in conduit.get_units(criteria, as_generator=True):
             branch = unit.unit_key['branch']
             units[branch] = unit

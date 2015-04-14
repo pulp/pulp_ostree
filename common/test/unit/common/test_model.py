@@ -63,6 +63,31 @@ class TestHeads(TestCase):
 
 class TestUnit(TestCase):
 
+    def test_init(self):
+        created = 1234
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock()
+        unit = Unit(remote_id, branch, commit, created)
+        self.assertEqual(unit.remote_id, remote_id)
+        self.assertEqual(unit.branch, branch)
+        self.assertEqual(unit.commit, commit)
+        self.assertEqual(unit.created, created)
+
+    @patch('pulp_ostree.common.model.datetime')
+    def test_init_now(self, dt):
+        now = 1234
+        dt.utcnow.return_value = now
+        remote_id = '1234'
+        branch = '/branch/core'
+        commit = Mock()
+        unit = Unit(remote_id, branch, commit)
+        dt.utcnow.assert_called_once_with()
+        self.assertEqual(unit.remote_id, remote_id)
+        self.assertEqual(unit.branch, branch)
+        self.assertEqual(unit.commit, commit)
+        self.assertEqual(unit.created, now)
+
     def test_unit_key(self):
         remote_id = '1234'
         branch = '/branch/core'
@@ -77,8 +102,11 @@ class TestUnit(TestCase):
             })
 
     def test_unit_md(self):
+        created = 1234
         remote_id = '1234'
         branch = '/branch/core'
-        commit = Mock()
-        unit = Unit(remote_id, branch, commit)
-        self.assertEqual(unit.metadata, unit.commit.metadata)
+        commit = Mock(metadata={'version': '1.0'})
+        unit = Unit(remote_id, branch, commit, created=created)
+        md = {Unit.CREATED: created}
+        md.update(unit.commit.metadata)
+        self.assertEqual(unit.metadata, md)
