@@ -114,7 +114,7 @@ class TestMainStep(unittest.TestCase):
 
         # validation
         criteria.assert_called_once_with(
-            unit_sort=[('_id', pulp_constants.SORT_DIRECTION[pulp_constants.SORT_ASCENDING])],
+            unit_sort=[('_created', pulp_constants.SORT_DIRECTION[pulp_constants.SORT_ASCENDING])],
             type_ids=[constants.OSTREE_TYPE_ID])
         conduit.get_units.assert_called_once_with(criteria.return_value, as_generator=True)
         self.assertEqual(sorted(_units), sorted([units[1], units[-2], units[-1]]))
