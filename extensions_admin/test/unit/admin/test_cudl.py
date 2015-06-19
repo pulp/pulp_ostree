@@ -1,12 +1,45 @@
 import unittest
 
-from mock import Mock
+from mock import Mock, patch
+from pulp.client.arg_utils import InvalidConfig
 from pulp.common.constants import REPO_NOTE_TYPE_KEY
 from pulp.common.plugins.importer_constants import KEY_FEED
 from pulp.devel.unit.util import compare_dict
 
 from pulp_ostree.common import constants
 from pulp_ostree.extensions.admin import cudl
+
+
+class TestRead(unittest.TestCase):
+
+    @patch('__builtin__.open')
+    def test_read(self, _open):
+        path = '/tmp/xx'
+        fp = Mock()
+        fp.__enter__ = Mock(return_value=fp)
+        fp.__exit__ = Mock()
+        _open.return_value = fp
+
+        # test
+        content = cudl.read(path)
+
+        # validation
+        _open.assert_called_once_with(path)
+        fp.__enter__.assert_called_once_with()
+        fp.__exit__.assert_called_once_with(None, None, None)
+        fp.read.assert_called_once_with()
+        self.assertEqual(content, fp.read.return_value)
+
+    @patch('__builtin__.open')
+    def test_read_failed(self, _open):
+        path = '/tmp/xx'
+        _open.side_effect = IOError
+
+        # test
+        self.assertRaises(InvalidConfig, cudl.read, path)
+
+        # validation
+        _open.assert_called_once_with(path)
 
 
 class TestCreateOSTreerRepositoryCommand(unittest.TestCase):
@@ -59,11 +92,24 @@ class TestCreateOSTreerRepositoryCommand(unittest.TestCase):
         result = command._describe_distributors(user_input)
         self.assertEquals(result[0]["auto_publish"], False)
 
-    def test_describe_importers(self):
+    @patch('pulp_ostree.extensions.admin.cudl.read')
+    def test_describe_importers(self, read):
         command = cudl.CreateOSTreeRepositoryCommand(Mock())
-        user_input = {'branch': ['apple']}
+        read.side_effect = hash
+        paths = ['path-1', 'path-2']
+        branches = ['apple', 'orange']
+        user_input = {
+            'branch': branches,
+            'gpg-key': paths
+        }
         result = command._parse_importer_config(user_input)
-        target_result = {constants.IMPORTER_CONFIG_KEY_BRANCHES: ['apple']}
+        self.assertEqual(
+            read.call_args_list,
+            [((p,), {}) for p in paths])
+        target_result = {
+            constants.IMPORTER_CONFIG_KEY_BRANCHES: branches,
+            constants.IMPORTER_CONFIG_KEY_GPG_KEYS: map(hash, paths)
+        }
         compare_dict(result, target_result)
 
 
@@ -77,16 +123,25 @@ class TestUpdateOSTreeRepositoryCommand(unittest.TestCase):
         self.mock_repo_response = Mock(response_body={})
         self.context.server.repo.repository.return_value = self.mock_repo_response
 
-    def test_run_with_importer_config(self):
+    @patch('pulp_ostree.extensions.admin.cudl.read')
+    def test_run_with_importer_config(self, read):
+        read.side_effect = hash
+        feed = 'http://'
+        paths = ['path-1', 'path-2']
+        branches = ['apple', 'orange']
         user_input = {
             'repo-id': 'foo-repo',
-            KEY_FEED: 'blah',
-            'branch': ['apple', 'peach']
+            KEY_FEED: feed,
+            'branch': branches,
+            'gpg-key': paths
         }
         self.command.run(**user_input)
 
-        expected_importer_config = {KEY_FEED: 'blah',
-                                    constants.IMPORTER_CONFIG_KEY_BRANCHES: ['apple', 'peach']}
+        expected_importer_config = {
+            KEY_FEED: feed,
+            constants.IMPORTER_CONFIG_KEY_BRANCHES: branches,
+            constants.IMPORTER_CONFIG_KEY_GPG_KEYS: map(hash, paths)
+        }
 
         self.context.server.repo.update.assert_called_once_with('foo-repo', {},
                                                                 expected_importer_config, None)
@@ -114,6 +169,21 @@ class TestUpdateOSTreeRepositoryCommand(unittest.TestCase):
         importer_config = {'branches': None}
         self.context.server.repo.update.assert_called_once_with('foo-repo', repo_config,
                                                                 importer_config, None)
+
+    def test_repo_update_importer_remove_gpg_keys(self):
+        repo_id = 'test'
+        user_input = {
+            'gpg-key': [''],
+            'repo-id': repo_id
+        }
+        self.command.run(**user_input)
+
+        repo_config = {}
+        importer_config = {
+            constants.IMPORTER_CONFIG_KEY_GPG_KEYS: None
+        }
+        self.context.server.repo.update.assert_called_once_with(
+            repo_id, repo_config, importer_config, None)
 
 
 class TestListOSTreeRepositoriesCommand(unittest.TestCase):
