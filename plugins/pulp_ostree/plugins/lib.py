@@ -347,7 +347,7 @@ class Remote(object):
             options['tls-client-cert-path'] = lib.GLib.Variant('s', self.ssl_cert_path)
         if self.ssl_key_path:
             options['tls-client-key-path'] = lib.GLib.Variant('s', self.ssl_key_path)
-        if self.ssl_key_path:
+        if self.ssl_ca_path:
             options['tls-ca-path'] = lib.GLib.Variant('s', self.ssl_ca_path)
         if self.proxy_url:
             options['proxy'] = lib.GLib.Variant('s', self.proxy_url)
