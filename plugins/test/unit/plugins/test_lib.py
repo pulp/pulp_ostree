@@ -2,7 +2,15 @@ from unittest import TestCase
 
 from mock import patch, Mock, ANY
 
-from pulp_ostree.plugins.lib import Lib, ProgressReport, Ref, Repository, LibError, wrapped
+from pulp_ostree.plugins.lib import (
+    Lib,
+    LibError,
+    ProgressReport,
+    Ref,
+    Remote,
+    Repository,
+    Summary,
+    wrapped)
 
 
 G_OBJECT = 'gi.repository'
@@ -94,6 +102,7 @@ class TestRepository(TestCase):
         path = '/tmp/path-1'
         repo = Repository(path)
         self.assertEqual(repo.path, path)
+        self.assertEqual(repo.impl, None)
 
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_open(self, lib):
@@ -115,6 +124,21 @@ class TestRepository(TestCase):
         _lib.OSTree.Repo.new.assert_called_once_with(fp)
         lib_repo.open.assert_called_once_with(None)
         self.assertFalse(lib_repo.create.called)
+        self.assertEqual(repo.impl, lib_repo)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_already_opened(self, lib):
+        path = '/tmp/path-1'
+        _lib = Mock()
+        lib.return_value = _lib
+
+        # test
+        repo = Repository(path)
+        repo.impl = Mock()
+        repo.open()
+
+        # validation
+        self.assertFalse(_lib.OSTree.Repo.new.called)
 
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_create(self, lib):
@@ -138,38 +162,32 @@ class TestRepository(TestCase):
         lib_repo.create.assert_called_once_with(_lib.OSTree.RepoMode.ARCHIVE_Z2, None)
 
     @patch('pulp_ostree.plugins.lib.Lib')
-    def test_add_remote(self, lib):
-        fp = Mock()
+    def test_already_created(self, lib):
         path = '/tmp/path-1'
-        remote_id = 'remote-1'
-        url = 'http://free-trees.com'
-        lib_repo = Mock()
         _lib = Mock()
-        _lib.GLib.Variant.side_effect = ['v1', 'v2']
-        _lib.Gio.File.new_for_path.return_value = fp
-        _lib.OSTree.Repo.new.return_value = lib_repo
         lib.return_value = _lib
 
         # test
         repo = Repository(path)
-        repo.add_remote(remote_id, url)
+        repo.impl = Mock()
+        repo.create()
 
         # validation
-        lib.assert_called_with()
-        _lib.OSTree.Repo.new.assert_called_once_with(fp)
-        lib_repo.open.assert_called_once_with(None)
-        lib_repo.remote_add.assert_called_once_with(remote_id, url, 'v2', None)
-        self.assertEqual(
-            _lib.GLib.Variant.call_args_list,
-            [
-                (('s', 'false'), {}),
-                (('a{sv}', {'gpg-verify': 'v1'}), {})
-            ])
+        self.assertFalse(_lib.OSTree.Repo.new.called)
+
+    def test_close(self):
+        repository = Repository('')
+        repository.impl = Mock()
+
+        # test
+        repository.close()
+
+        # validation
+        self.assertEqual(repository.impl, None)
 
     @patch('pulp_ostree.plugins.lib.Ref')
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_list_refs(self, lib, ref):
-        fp = Mock()
         path = '/tmp/path-1'
 
         commits = [
@@ -188,9 +206,7 @@ class TestRepository(TestCase):
         lib_repo = Mock()
         lib_repo.list_refs.return_value = refs
         lib_repo.load_variant.side_effect = commits
-        _lib.Gio.File.new_for_path.return_value = fp
         _lib.OSTree.ObjectType.COMMIT = 'COMMIT'
-        _lib.OSTree.Repo.new.return_value = lib_repo
         lib.return_value = _lib
 
         ref_objects = [Mock(), Mock()]
@@ -198,12 +214,13 @@ class TestRepository(TestCase):
 
         # test
         repo = Repository(path)
+        repo.open = Mock()
+        repo.impl = lib_repo
         listed = repo.list_refs()
 
         # validation
         lib.assert_called_with()
-        _lib.OSTree.Repo.new.assert_called_once_with(fp)
-        lib_repo.open.assert_called_once_with(None)
+        repo.open.assert_called_once_with()
         lib_repo.list_refs.assert_called_once_with(None, None)
         self.assertEqual(
             ref.call_args_list,
@@ -221,7 +238,6 @@ class TestRepository(TestCase):
 
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_pull(self, lib):
-        fp = Mock()
         path = '/tmp/path-1'
         remote_id = 'remote-1'
         refs = ['branch-1']
@@ -230,27 +246,25 @@ class TestRepository(TestCase):
         _lib = Mock()
         lib_repo = Mock()
         progress = Mock()
-        _lib.Gio.File.new_for_path.return_value = fp
-        _lib.OSTree.Repo.new.return_value = lib_repo
         _lib.OSTree.AsyncProgress.new.return_value = progress
         _lib.OSTree.RepoPullFlags.MIRROR = mirror
         lib.return_value = _lib
 
         # test
         repo = Repository(path)
+        repo.open = Mock()
+        repo.impl = lib_repo
         repo.pull(remote_id, refs, listener)
 
         # validation
         lib.assert_called_with()
-        _lib.OSTree.Repo.new.assert_called_once_with(fp)
-        lib_repo.open.assert_called_once_with(None)
+        repo.open.assert_called_once_with()
         progress.connect.assert_called_once_with('changed', ANY)
         lib_repo.pull.assert_called_once_with(remote_id, refs, mirror, progress, None)
         progress.finish.assert_called_once_with()
 
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_pull_local(self, lib):
-        fp = Mock()
         path = '/tmp/path-2'
         path_in = '/tmp/path-1'
         url = 'file://%s' % path_in
@@ -259,13 +273,13 @@ class TestRepository(TestCase):
         _lib = Mock()
         lib_repo = Mock()
         _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
-        _lib.Gio.File.new_for_path.return_value = fp
-        _lib.OSTree.Repo.new.return_value = lib_repo
         _lib.OSTree.RepoPullFlags.MIRROR = mirror
         lib.return_value = _lib
 
         # test
         repo = Repository(path)
+        repo.open = Mock()
+        repo.impl = lib_repo
         repo.pull_local(path_in, refs)
 
         # validation
@@ -275,8 +289,7 @@ class TestRepository(TestCase):
                 'flags': ('u', 'MIRROR')
             })
         lib.assert_called_with()
-        _lib.OSTree.Repo.new.assert_called_once_with(fp)
-        lib_repo.open.assert_called_once_with(None)
+        repo.open.assert_called_once_with()
         lib_repo.pull_with_options.assert_called_once_with(url, options, None, None)
 
     @patch('pulp_ostree.plugins.lib.ProgressReport')
@@ -344,6 +357,147 @@ class TestRepository(TestCase):
         progress.finish.assert_called_once_with()
 
 
+class TestRemote(TestCase):
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_list(self, lib):
+        repository = Mock()
+
+        # test
+        remotes = Remote.list(repository)
+
+        # validation
+        self.assertEqual(remotes, repository.impl.remote_list.return_value)
+
+    def test_init(self):
+        repository = Mock()
+        remote_id = 'test'
+
+        # test
+        remote = Remote(remote_id, repository)
+
+        # validation
+        self.assertEqual(remote.repository, repository)
+        self.assertEqual(remote.id, remote_id)
+        self.assertEqual(remote.url, '')
+        self.assertEqual(remote.ssl_ca_path, None)
+        self.assertEqual(remote.ssl_cert_path, None)
+        self.assertEqual(remote.ssl_key_path, None)
+        self.assertEqual(remote.proxy_url, None)
+        self.assertFalse(remote.ssl_validation)
+        self.assertFalse(remote.gpg_validation)
+
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    @patch('pulp_ostree.plugins.lib.Remote.options')
+    def test_add(self, options):
+        repository = Mock()
+
+        # test
+        remote = Remote('123', repository)
+        remote.add()
+
+        # validation
+        repository.open.assert_called_once_with()
+        repository.impl.remote_add.assert_called_once_with(remote.id, remote.url, options, None)
+
+    @patch('pulp_ostree.plugins.lib.Remote.list')
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_update(self, _list):
+        remote_id = '123'
+        repository = Mock()
+        _list.return_value = [remote_id]
+
+        # test
+        remote = Remote(remote_id, repository)
+        remote.delete = Mock()
+        remote.add = Mock()
+        remote.update()
+
+        # validation
+        _list.assert_called_once_with(repository)
+        remote.delete.assert_called_once_with()
+        remote.add.assert_called_once_with()
+
+    @patch('pulp_ostree.plugins.lib.Remote.list')
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_update_not_exist(self, _list):
+        repository = Mock()
+        _list.return_value = []
+
+        # test
+        remote = Remote('123', repository)
+        remote.delete = Mock()
+        remote.add = Mock()
+        remote.update()
+
+        # validation
+        _list.assert_called_once_with(repository)
+        remote.add.assert_called_once_with()
+        self.assertFalse(remote.delete.called)
+
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_delete(self):
+        repository = Mock()
+
+        # test
+        remote = Remote('123', repository)
+        remote.delete()
+
+        # validation
+        repository.open.assert_called_once_with()
+        repository.impl.remote_delete.assert_called_once_with(remote.id, None)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_import_key(self, lib):
+        repository = Mock()
+        keyring = '/tmp/keyring'
+        key_id = 'test-key'
+        fp = Mock()
+        _lib = Mock()
+        _lib.GLib.GError = GError
+        _lib.Gio.File.new_for_path.return_value = fp
+        lib.return_value = _lib
+
+        # test
+        remote = Remote('123', repository)
+        remote.import_key(keyring, [key_id])
+
+        # validation
+        repository.open.assert_called_once_with()
+        _lib.Gio.File.new_for_path.assert_called_once_with(keyring)
+        repository.impl.remote_gpg_import.assert_called_once_with(
+            remote.id, fp.read.return_value, [key_id])
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_options(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = variant
+        lib.return_value = _lib
+
+        # test
+        remote = Remote('', '')
+        remote.ssl_key_path = '/tmp/key'
+        remote.ssl_cert_path = '/tmp/certificate'
+        remote.ssl_ca_path = '/tmp/ca'
+        remote.ssl_validation = True
+        remote.gpg_validation = True
+        remote.proxy_url = 'http://proxy'
+        options = remote.options
+
+        # validation
+        self.assertEqual(
+            options,
+            ('a{sv}', {
+                'tls-client-cert-path': ('s', '/tmp/certificate'),
+                'tls-client-key-path': ('s', '/tmp/key'),
+                'tls-permissive': ('s', 'false'),
+                'gpg-verify': ('s', 'true'),
+                'tls-ca-path': ('s', '/tmp/ca'),
+                'proxy': ('s', 'http://proxy')
+            })
+        )
+
+
 class TestDecorator(TestCase):
 
     @patch('pulp_ostree.plugins.lib.Lib')
@@ -363,3 +517,23 @@ class TestDecorator(TestCase):
             function(1, 2)
         except LibError, le:
             self.assertEqual(le.args[0], repr(g_error))
+
+
+class TestSummary(TestCase):
+
+    def test_init(self):
+        repo = Mock()
+        summary = Summary(repo)
+        self.assertEqual(summary.repository, repo)
+
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_generate(self):
+        repo = Mock()
+
+        # test
+        summary = Summary(repo)
+        summary.generate()
+
+        # validation
+        repo.open.assert_called_once_with()
+        repo.impl.regenerate_summary.assert_called_once_with(None)

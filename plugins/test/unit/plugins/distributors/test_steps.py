@@ -91,6 +91,8 @@ class TestMainStep(unittest.TestCase):
                 ((path, units[0].unit_key['branch'], units[0].unit_key['commit']), {}),
                 ((path, units[1].unit_key['branch'], units[1].unit_key['commit']), {}),
             ])
+        lib.Summary.assert_called_once_with(ostree_repo)
+        lib.Summary.return_value.generate.assert_called_once_with()
 
     @patch('pulp_ostree.plugins.distributors.steps.UnitAssociationCriteria')
     def test_get_units(self, criteria):
