@@ -101,6 +101,8 @@ class Repository():
 
     :ivar path: The absolute path to an ostree repository.
     :type path: str
+    :ivar impl: The libostree implementation.
+    :type impl: OSTree.Repository
     """
 
     def __init__(self, path):
@@ -109,6 +111,7 @@ class Repository():
         :type path: str
         """
         self.path = path
+        self.impl = None
 
     @wrapped
     def open(self):
@@ -116,10 +119,14 @@ class Repository():
         Open an existing repository.
         :raises LibError:
         """
+        if self.impl:
+            # already opened
+            return
         lib = Lib()
         fp = lib.Gio.File.new_for_path(self.path)
         repository = lib.OSTree.Repo.new(fp)
         repository.open(None)
+        self.impl = repository
 
     @wrapped
     def create(self):
@@ -127,10 +134,20 @@ class Repository():
         Create the repository as needed.
         :raises LibError:
         """
+        if self.impl:
+            # already created
+            return
         lib = Lib()
         fp = lib.Gio.File.new_for_path(self.path)
         repository = lib.OSTree.Repo.new(fp)
         repository.create(lib.OSTree.RepoMode.ARCHIVE_Z2, None)
+        self.impl = repository
+
+    def close(self):
+        """
+        Close the repository.
+        """
+        self.impl = None
 
     @wrapped
     def list_refs(self):
@@ -143,34 +160,14 @@ class Repository():
         """
         _list = []
         lib = Lib()
-        fp = lib.Gio.File.new_for_path(self.path)
-        repository = lib.OSTree.Repo.new(fp)
-        repository.open(None)
-        _, refs = repository.list_refs(None, None)
+        self.open()
+        _, refs = self.impl.list_refs(None, None)
         for path, commit_id in sorted(refs.items()):
-            _, commit = repository.load_variant(lib.OSTree.ObjectType.COMMIT, commit_id)
+            _, commit = self.impl.load_variant(lib.OSTree.ObjectType.COMMIT, commit_id)
             metadata = commit[0]
             ref = Ref(path, commit_id, metadata)
             _list.append(ref)
         return _list
-
-    @wrapped
-    def add_remote(self, remote_id, url):
-        """
-        Add a remote definition to the repository.
-
-        :param remote_id: The unique identifier for the remote.
-        :type remote_id: str
-        :param url: The URL for the remote.
-        :type url: str
-        :raises LibError:
-        """
-        lib = Lib()
-        fp = lib.Gio.File.new_for_path(self.path)
-        options = lib.GLib.Variant('a{sv}', {'gpg-verify': lib.GLib.Variant('s', 'false')})
-        repository = lib.OSTree.Repo.new(fp)
-        repository.open(None)
-        repository.remote_add(remote_id, url, options, None)
 
     @wrapped
     def pull(self, remote_id, refs, listener):
@@ -187,7 +184,6 @@ class Repository():
         """
         lib = Lib()
         flags = lib.OSTree.RepoPullFlags.MIRROR
-        fp = lib.Gio.File.new_for_path(self.path)
         progress = lib.OSTree.AsyncProgress.new()
 
         def report_progress(report):
@@ -199,9 +195,8 @@ class Repository():
 
         try:
             progress.connect('changed', report_progress)
-            repository = lib.OSTree.Repo.new(fp)
-            repository.open(None)
-            repository.pull(remote_id, refs, flags, progress, None)
+            self.open()
+            self.impl.pull(remote_id, refs, flags, progress, None)
         finally:
             progress.finish()
 
@@ -220,7 +215,6 @@ class Repository():
         lib = Lib()
         url = 'file://' + path
         flags = lib.OSTree.RepoPullFlags.MIRROR
-        fp = lib.Gio.File.new_for_path(self.path)
 
         options = lib.GLib.Variant(
             'a{sv}',
@@ -229,6 +223,158 @@ class Repository():
                 'refs': lib.GLib.Variant('as', tuple(refs))
             })
 
-        repository = lib.OSTree.Repo.new(fp)
-        repository.open(None)
-        repository.pull_with_options(url, options, None, None)
+        self.open()
+        self.impl.pull_with_options(url, options, None, None)
+
+
+class Remote(object):
+    """
+    Represents an OSTree remote repository.
+
+    :ivar id: The remote ID.
+    :type id: str
+    :ivar repository: A repository.
+    :type repository: Repository
+    :ivar url: The remote URL.
+    :type url: str
+    :ivar ssl_validation: Do SSL peer certificate validation.
+    :type ssl_validation: bool
+    :ivar ssl_cert_path: The fully qualified path to an SSL client certificate.
+        The file must contain a PEM encoded X.509 certificate. It may optionally contain
+        The PEM encoded private key.
+    :type ssl_cert_path: str
+    :ivar ssl_key_path: The fully qualified path to an SSL client (private) key.
+        The file must contain a PEM encoded private key.
+    :type ssl_key_path: str
+    :ivar gpg_validation: Do GPG validation of pulled content.
+    :type gpg_validation: bool
+    :ivar proxy_url: The url for an HTTP proxy.
+    :type proxy_url: str
+    """
+
+    @staticmethod
+    @wrapped
+    def list(repository):
+        """
+        List remotes defined within the repository.
+
+        :param repository: The repository to be updated.
+        :type repository: Repository
+        :raises LibError:
+        :return: A list of remote IDs.
+        :rtype: list
+        """
+        repository.open()
+        return repository.impl.remote_list()
+
+    def __init__(self, remote_id, repository):
+        """
+        :param remote_id: The remote ID.
+        :type remote_id: str
+        :param repository: A repository.
+        :type repository: Repository
+        """
+        self.id = remote_id
+        self.repository = repository
+        self.url = ''
+        self.ssl_key_path = None
+        self.ssl_cert_path = None
+        self.ssl_ca_path = None
+        self.ssl_validation = False
+        self.gpg_validation = False
+        self.proxy_url = None
+
+    @wrapped
+    def add(self):
+        """
+        Add a remote definition to the repository.
+
+        :raises LibError:
+        """
+        self.repository.open()
+        self.repository.impl.remote_add(self.id, self.url, self.options, None)
+
+    @wrapped
+    def update(self):
+        """
+        Update a remote definition to the repository.
+        The remote is added if it does not already exist.
+
+        :raises LibError:
+        """
+        if self.id in self.list(self.repository):
+            self.delete()
+        self.add()
+
+    @wrapped
+    def delete(self):
+        """
+        Delete a remote definition from the repository.
+
+        :raises LibError:
+        """
+        self.repository.open()
+        self.repository.impl.remote_delete(self.id, None)
+
+    @wrapped
+    def import_key(self, path, key_ids):
+        """
+        Import GPG key by ID.
+
+        :param path: The absolute path to a keyring.
+        :type path: str
+        :param key_ids: A list of key IDs.
+        :type key_ids: list
+        """
+        self.repository.open()
+        lib = Lib()
+        fp = lib.Gio.File.new_for_path(path)
+        in_str = fp.read()
+        imported = self.repository.impl.remote_gpg_import(self.id, in_str, key_ids)
+        return imported
+
+    @property
+    def options(self):
+        """
+        Get remote options as Variant.
+
+        :return: A variant containing options.
+        :rtype: GLib.Variant
+        """
+        lib = Lib()
+        options = {}
+        if self.ssl_cert_path:
+            options['tls-client-cert-path'] = lib.GLib.Variant('s', self.ssl_cert_path)
+        if self.ssl_key_path:
+            options['tls-client-key-path'] = lib.GLib.Variant('s', self.ssl_key_path)
+        if self.ssl_key_path:
+            options['tls-ca-path'] = lib.GLib.Variant('s', self.ssl_ca_path)
+        if self.proxy_url:
+            options['proxy'] = lib.GLib.Variant('s', self.proxy_url)
+        options['tls-permissive'] = \
+            lib.GLib.Variant('s', str(not self.ssl_validation).lower())
+        options['gpg-verify'] = \
+            lib.GLib.Variant('s', str(self.gpg_validation).lower())
+        variant = lib.GLib.Variant('a{sv}', options)
+        return variant
+
+
+class Summary(object):
+    """
+    Represents a repository summary.
+
+    :ivar repository: A repository.
+    :type repository: Repository
+    """
+
+    def __init__(self, repository):
+        """
+        :param repository: A repository.
+        :type repository: Repository
+        """
+        self.repository = repository
+
+    @wrapped
+    def generate(self):
+        self.repository.open()
+        self.repository.impl.regenerate_summary(None)

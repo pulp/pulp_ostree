@@ -79,6 +79,8 @@ class MainStep(PluginStep):
             commit = unit.unit_key['commit']
             ostree_repo.pull_local(unit.storage_path, [commit])
             MainStep._add_ref(path, branch, commit)
+        summary = lib.Summary(ostree_repo)
+        summary.generate()
 
     def _get_units(self):
         """
