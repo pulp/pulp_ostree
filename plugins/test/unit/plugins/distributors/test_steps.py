@@ -26,7 +26,7 @@ class TestWebPublisher(unittest.TestCase):
         mock_configuration.get_master_publish_dir.return_value = master_pub_dir
 
         # test
-        publisher = steps.WebPublisher(repo, conduit, config)
+        publisher = steps.WebPublisher(repo, conduit, config, working_dir='/tmp/working')
 
         # validation
         mock_atomic.assert_called_once_with(
@@ -70,7 +70,7 @@ class TestMainStep(unittest.TestCase):
         lib.Repository.return_value = ostree_repo
 
         # test
-        main = steps.MainStep()
+        main = steps.MainStep(working_dir=working_dir)
         main._get_units = Mock(return_value=units)
         main.parent = parent
         main.process_main()
