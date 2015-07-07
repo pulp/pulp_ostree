@@ -123,7 +123,10 @@ class WebDistributor(Distributor):
                     configuration.get_web_publish_dir(repo, config)]
 
         for repo_dir in dir_list:
-            shutil.rmtree(repo_dir, ignore_errors=True)
+            # in case repo_dir is None
+            # ignore_errors set to True does not cover this.
+            if repo_dir:
+                shutil.rmtree(repo_dir, ignore_errors=True)
 
     def validate_config(self, repo, config, config_conduit):
         """
