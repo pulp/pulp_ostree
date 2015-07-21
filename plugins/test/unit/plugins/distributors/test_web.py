@@ -57,6 +57,21 @@ class TestBasics(unittest.TestCase):
 
         self.assertEquals(0, len(os.listdir(self.working_dir)))
 
+    @patch('pulp_ostree.plugins.distributors.web.configuration.get_master_publish_dir')
+    @patch('pulp_ostree.plugins.distributors.web.configuration.get_web_publish_dir')
+    def test_distributor_removed_dir_is_none(self, mock_web, mock_master):
+
+        mock_web.return_value = os.path.join(self.working_dir, 'web')
+        mock_master.return_value = os.path.join(self.working_dir, 'master')
+        repo_working_dir = None
+        os.makedirs(mock_web.return_value)
+        os.makedirs(mock_master.return_value)
+        repo = Mock(id='bar', working_dir=repo_working_dir)
+        config = {}
+        self.distributor.distributor_removed(repo, config)
+
+        self.assertEquals(0, len(os.listdir(self.working_dir)))
+
     @patch('pulp_ostree.plugins.distributors.web.WebPublisher')
     def test_publish_repo(self, mock_publisher):
         repo = Repository('test')

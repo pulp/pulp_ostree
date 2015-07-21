@@ -92,6 +92,12 @@ class TestCreateOSTreerRepositoryCommand(unittest.TestCase):
         result = command._describe_distributors(user_input)
         self.assertEquals(result[0]["auto_publish"], False)
 
+    def test_describe_distributors_default_auto_publish(self):
+        command = cudl.CreateOSTreeRepositoryCommand(Mock())
+        user_input = {}
+        result = command._describe_distributors(user_input)
+        self.assertEquals(result[0]["auto_publish"], True)
+
     @patch('pulp_ostree.extensions.admin.cudl.read')
     def test_describe_importers(self, read):
         command = cudl.CreateOSTreeRepositoryCommand(Mock())

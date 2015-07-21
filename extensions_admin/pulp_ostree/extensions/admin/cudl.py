@@ -90,8 +90,9 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
                     that would be passed to the RepoDistributorAPI.create call).
         :rtype:     list of dict
         """
+
         relative_path = user_input.get(OPT_RELATIVE_PATH.keyword)
-        auto_publish = user_input.get(OPT_AUTO_PUBLISH.keyword, True)
+        auto_publish = user_input.get(OPT_AUTO_PUBLISH.keyword)
 
         # relative path derived using the path component of the feed url when not specified
         if not relative_path:
@@ -99,6 +100,9 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
             if feed_url:
                 url = urlparse(feed_url)
                 relative_path = url.path
+
+        if auto_publish is None:
+            auto_publish = True
 
         config = {
             constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH: relative_path
