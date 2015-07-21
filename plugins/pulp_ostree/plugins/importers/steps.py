@@ -29,8 +29,7 @@ class Main(PluginStep):
         super(Main, self).__init__(
             step_type=constants.IMPORT_STEP_MAIN,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID,
-            **kwargs
-        )
+            **kwargs)
         self.feed_url = self.config.get(importer_constants.KEY_FEED)
         self.branches = self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
         self.remote_id = model.generate_remote_id(self.feed_url)
@@ -63,7 +62,6 @@ class Create(PluginStep):
         :raises PulpCodedException:
         """
         path = self.parent.storage_path
-
         mkdir(path)
         mkdir(os.path.join(os.path.dirname(path), constants.LINKS_DIR))
         self._init_repository(path)

@@ -33,10 +33,14 @@ class WebPublisher(PluginStep):
         :param working_dir: The temp directory this step should use for processing
         :type  working_dir: str
         """
-        super(WebPublisher, self).__init__(constants.PUBLISH_STEP_WEB_PUBLISHER,
-                                           repo, conduit, config, working_dir,
-                                           plugin_type=constants.WEB_DISTRIBUTOR_TYPE_ID, **kwargs)
-
+        super(WebPublisher, self).__init__(
+            step_type=constants.PUBLISH_STEP_WEB_PUBLISHER,
+            repo=repo,
+            conduit=conduit,
+            config=config,
+            working_dir=working_dir,
+            plugin_type=constants.WEB_DISTRIBUTOR_TYPE_ID,
+            **kwargs)
         publish_dir = configuration.get_web_publish_dir(repo, config)
         self.web_working_dir = os.path.join(self.get_working_dir(), repo.id)
         master_publish_dir = configuration.get_master_publish_dir(repo, config)
@@ -45,9 +49,7 @@ class WebPublisher(PluginStep):
             [(repo.id, publish_dir)],
             master_publish_dir,
             step_type=constants.PUBLISH_STEP_OVER_HTTP)
-
         atomic_publish.description = _('Making files available via web.')
-
         main = MainStep()
         self.add_child(main)
         self.add_child(atomic_publish)
