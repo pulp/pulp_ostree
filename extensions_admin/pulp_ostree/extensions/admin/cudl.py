@@ -32,13 +32,36 @@ description = _("a branch to sync from the upstream repository. This option "
 OPT_BRANCH = PulpCliOption(
     '--branch', description, aliases=['-b'], required=False, allow_multiple=True)
 
+description = _("the absolute path to an exported GPG key. This option "
+                "may be specified multiple times")
+
+OPT_GPG_KEY = PulpCliOption(
+    '--gpg-key', description, aliases=['-k'], required=False, allow_multiple=True)
+
+
 IMPORTER_CONFIGURATION_FLAGS = dict(
-    include_ssl=False,
+    include_ssl=True,
     include_sync=True,
     include_unit_policy=False,
-    include_proxy=False,
+    include_proxy=True,
     include_throttling=False
 )
+
+
+# special value that indicates a cleared list
+CLEAR_THE_LIST = ['']
+
+
+def read(path):
+    """
+    Read a file and return the content.
+    """
+    try:
+        with open(path) as fp:
+            return fp.read()
+    except IOError:
+        msg = _('File [%(p)s] cannot be read' % {'p': path})
+        raise arg_utils.InvalidConfig(msg)
 
 
 class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, ImporterConfigMixin):
@@ -51,6 +74,7 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         self.add_option(OPT_AUTO_PUBLISH)
         self.add_option(OPT_RELATIVE_PATH)
         self.add_option(OPT_BRANCH)
+        self.add_option(OPT_GPG_KEY)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def _describe_distributors(self, user_input):
@@ -105,9 +129,12 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         :rtype:     dict
         """
         config = self.parse_user_input(user_input)
-        value = user_input.pop(OPT_BRANCH.keyword, None)
-        if value:
-            config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = value
+        branch_list = user_input.pop(OPT_BRANCH.keyword, None)
+        if branch_list:
+            config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = branch_list
+        paths = user_input.pop(OPT_GPG_KEY.keyword, None)
+        if paths:
+            config[constants.IMPORTER_CONFIG_KEY_GPG_KEYS] = map(read, paths)
         return config
 
 
@@ -118,6 +145,7 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
         ImporterConfigMixin.__init__(self, **IMPORTER_CONFIGURATION_FLAGS)
         self.add_option(OPT_AUTO_PUBLISH)
         self.add_option(OPT_BRANCH)
+        self.add_option(OPT_GPG_KEY)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def run(self, **kwargs):
@@ -125,12 +153,21 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
         importer_config = self.parse_user_input(kwargs)
 
+        # branch list
         if OPT_BRANCH.keyword in kwargs:
-            value = kwargs.pop(OPT_BRANCH.keyword, None)
-            if value == ['']:
-                # clear out the specified branches
+            value = kwargs.pop(OPT_BRANCH.keyword)
+            if value == CLEAR_THE_LIST:
                 value = None
             importer_config[constants.IMPORTER_CONFIG_KEY_BRANCHES] = value
+
+        # gpg key list
+        if OPT_GPG_KEY.keyword in kwargs:
+            value = kwargs.pop(OPT_GPG_KEY.keyword)
+            if value == CLEAR_THE_LIST:
+                value = None
+            else:
+                value = map(read, value)
+            importer_config[constants.IMPORTER_CONFIG_KEY_GPG_KEYS] = value
 
         # Remove importer specific keys
         for key in importer_config.keys():

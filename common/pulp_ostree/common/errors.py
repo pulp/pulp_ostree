@@ -10,3 +10,7 @@ OST0001 = Error('OST0001',
 OST0002 = Error('OST0002',
                 _('Pulling remote branch: %(branch)s failed.  Reason: %(reason)s'),
                 ['branch', 'reason'])
+
+OST0003 = Error('OST0003',
+                _('Delete remote: %(id)s failed.  Reason: %(reason)s'),
+                ['id', 'reason'])

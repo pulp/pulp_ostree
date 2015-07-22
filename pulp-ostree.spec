@@ -102,6 +102,7 @@ Requires: python-pulp-ostree-common = %{version}
 Requires: pulp-server >= 2.7
 Requires: python-setuptools
 Requires: ostree >= 2015.3.49
+Requires: python-gnupg
 Requires: pygobject3
 
 %description plugins

@@ -22,21 +22,25 @@ class WebPublisher(PluginStep):
     of a repository via a web server
     """
 
-    def __init__(self, repo, conduit, config):
+    def __init__(self, repo, conduit, config, working_dir=None, **kwargs):
         """
-        :param repo: Pulp managed Yum repository
+        :param repo: The repo being worked on
         :type  repo: pulp.plugins.model.Repository
-        :param conduit: Conduit providing access to relative Pulp functionality
+        :param conduit: The conduit for the repo
         :type  conduit: pulp.plugins.conduits.repo_publish.RepoPublishConduit
         :param config: Pulp configuration for the distributor
         :type  config: pulp.plugins.config.PluginCallConfiguration
+        :param working_dir: The temp directory this step should use for processing
+        :type  working_dir: str
         """
         super(WebPublisher, self).__init__(
-            constants.PUBLISH_STEP_WEB_PUBLISHER,
-            repo,
-            conduit,
-            config)
-
+            step_type=constants.PUBLISH_STEP_WEB_PUBLISHER,
+            repo=repo,
+            conduit=conduit,
+            config=config,
+            working_dir=working_dir,
+            plugin_type=constants.WEB_DISTRIBUTOR_TYPE_ID,
+            **kwargs)
         publish_dir = configuration.get_web_publish_dir(repo, config)
         self.web_working_dir = os.path.join(self.get_working_dir(), repo.id)
         master_publish_dir = configuration.get_master_publish_dir(repo, config)
@@ -45,9 +49,7 @@ class WebPublisher(PluginStep):
             [(repo.id, publish_dir)],
             master_publish_dir,
             step_type=constants.PUBLISH_STEP_OVER_HTTP)
-
         atomic_publish.description = _('Making files available via web.')
-
         main = MainStep()
         self.add_child(main)
         self.add_child(atomic_publish)
@@ -79,6 +81,8 @@ class MainStep(PluginStep):
             commit = unit.unit_key['commit']
             ostree_repo.pull_local(unit.storage_path, [commit])
             MainStep._add_ref(path, branch, commit)
+        summary = lib.Summary(ostree_repo)
+        summary.generate()
 
     def _get_units(self):
         """
