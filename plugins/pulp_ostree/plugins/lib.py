@@ -117,6 +117,7 @@ class Repository():
     def open(self):
         """
         Open an existing repository.
+
         :raises LibError:
         """
         if self.impl:
@@ -132,6 +133,7 @@ class Repository():
     def create(self):
         """
         Create the repository as needed.
+
         :raises LibError:
         """
         if self.impl:
@@ -284,6 +286,19 @@ class Remote(object):
         self.gpg_validation = False
         self.proxy_url = None
 
+    @property
+    def impl(self):
+        return self.repository.impl
+
+    @wrapped
+    def open(self):
+        """
+        Open the associated repository.
+
+        :raises LibError:
+        """
+        self.repository.open()
+
     @wrapped
     def add(self):
         """
@@ -291,8 +306,8 @@ class Remote(object):
 
         :raises LibError:
         """
-        self.repository.open()
-        self.repository.impl.remote_add(self.id, self.url, self.options, None)
+        self.open()
+        self.impl.remote_add(self.id, self.url, self.options, None)
 
     @wrapped
     def update(self):
@@ -313,8 +328,8 @@ class Remote(object):
 
         :raises LibError:
         """
-        self.repository.open()
-        self.repository.impl.remote_delete(self.id, None)
+        self.open()
+        self.impl.remote_delete(self.id, None)
 
     @wrapped
     def import_key(self, path, key_ids):
@@ -326,12 +341,35 @@ class Remote(object):
         :param key_ids: A list of key IDs.
         :type key_ids: list
         """
-        self.repository.open()
+        self.open()
         lib = Lib()
         fp = lib.Gio.File.new_for_path(path)
         in_str = fp.read()
-        imported = self.repository.impl.remote_gpg_import(self.id, in_str, key_ids)
+        imported = self.impl.remote_gpg_import(self.id, in_str, key_ids)
         return imported
+
+    @wrapped
+    def list_refs(self):
+        """
+        Get (remote) repository references.
+
+        :return: list of: Ref
+        :rtype: list
+        :raises LibError:
+        """
+        _list = []
+        lib = Lib()
+        self.open()
+        flags = lib.OSTree.RepoPullFlags.COMMIT_ONLY
+        _, summary = self.impl.remote_list_refs(self.id, None)
+        refs = sorted(summary.keys())
+        self.impl.pull(self.id, refs, flags, None, None)
+        for path, commit_id in sorted(summary.items()):
+            _, commit = self.impl.load_variant(lib.OSTree.ObjectType.COMMIT, commit_id)
+            metadata = commit[0]
+            ref = Ref(path, commit_id, metadata)
+            _list.append(ref)
+        return _list
 
     @property
     def options(self):
@@ -374,7 +412,20 @@ class Summary(object):
         """
         self.repository = repository
 
+    @property
+    def impl(self):
+        return self.repository.impl
+
+    @wrapped
+    def open(self):
+        """
+        Open the associated repository.
+
+        :raises LibError:
+        """
+        self.repository.open()
+
     @wrapped
     def generate(self):
-        self.repository.open()
-        self.repository.impl.regenerate_summary(None)
+        self.open()
+        self.impl.regenerate_summary(None, None)

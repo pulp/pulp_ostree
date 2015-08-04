@@ -359,8 +359,8 @@ class TestRepository(TestCase):
 
 class TestRemote(TestCase):
 
-    @patch('pulp_ostree.plugins.lib.Lib')
-    def test_list(self, lib):
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_list(self):
         repository = Mock()
 
         # test
@@ -386,6 +386,18 @@ class TestRemote(TestCase):
         self.assertEqual(remote.proxy_url, None)
         self.assertFalse(remote.ssl_validation)
         self.assertFalse(remote.gpg_validation)
+
+    def test_impl(self):
+        repository = Mock()
+        remote = Remote('123', repository)
+        self.assertEqual(remote.impl, repository.impl)
+
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_open(self):
+        repository = Mock()
+        remote = Remote('123', repository)
+        remote.open()
+        repository.open.assert_called_once_with()
 
     @patch('pulp_ostree.plugins.lib.Lib', Mock())
     @patch('pulp_ostree.plugins.lib.Remote.options')
@@ -468,6 +480,60 @@ class TestRemote(TestCase):
         repository.impl.remote_gpg_import.assert_called_once_with(
             remote.id, fp.read.return_value, [key_id])
 
+    @patch('pulp_ostree.plugins.lib.Ref')
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_list_refs(self, lib, ref):
+        remote_id = '123'
+
+        summary = {
+            'branch:1': 'commit:1',
+            'branch:2': 'commit:2'
+        }
+        commits = [
+            ('commit:1', [{'version': 1}]),
+            ('commit:2', [{'version': 2}])
+        ]
+
+        _lib = Mock()
+        lib_repo = Mock()
+        lib_repo.remote_list_refs.return_value = (1, summary)
+        lib_repo.load_variant.side_effect = commits
+        _lib.OSTree.ObjectType.COMMIT = 'COMMIT'
+        _lib.OSTree.RepoPullFlags.COMMIT_ONLY = 'COMMIT_ONLY'
+        lib.return_value = _lib
+
+        ref_objects = [Mock(), Mock()]
+        ref.side_effect = ref_objects
+
+        # test
+        remote = Remote(remote_id, Mock(impl=lib_repo))
+        remote.open = Mock()
+        listed = remote.list_refs()
+
+        # validation
+        lib.assert_called_with()
+        remote.open.assert_called_once_with()
+        lib_repo.remote_list_refs.assert_called_once_with(remote_id, None)
+        lib_repo.pull.assert_called_once_with(
+            remote_id,
+            sorted(summary.keys()),
+            _lib.OSTree.RepoPullFlags.COMMIT_ONLY,
+            None,
+            None)
+        self.assertEqual(
+            ref.call_args_list,
+            [
+                (('branch:1', 'commit:1', {'version': 1}), {}),
+                (('branch:2', 'commit:2', {'version': 2}), {}),
+            ])
+        self.assertEqual(
+            lib_repo.load_variant.call_args_list,
+            [
+                ((_lib.OSTree.ObjectType.COMMIT, 'commit:1'), {}),
+                ((_lib.OSTree.ObjectType.COMMIT, 'commit:2'), {}),
+            ])
+        self.assertEqual(listed, ref_objects)
+
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_options(self, lib):
         _lib = Mock()
@@ -526,6 +592,18 @@ class TestSummary(TestCase):
         summary = Summary(repo)
         self.assertEqual(summary.repository, repo)
 
+    def test_impl(self):
+        repo = Mock()
+        summary = Summary(repo)
+        self.assertEqual(summary.impl, repo.impl)
+
+    @patch('pulp_ostree.plugins.lib.Lib', Mock())
+    def test_open(self):
+        repo = Mock()
+        summary = Summary(repo)
+        summary.open()
+        repo.open.assert_called_once_with()
+
     @patch('pulp_ostree.plugins.lib.Lib', Mock())
     def test_generate(self):
         repo = Mock()
@@ -536,4 +614,4 @@ class TestSummary(TestCase):
 
         # validation
         repo.open.assert_called_once_with()
-        repo.impl.regenerate_summary.assert_called_once_with(None)
+        repo.impl.regenerate_summary.assert_called_once_with(None, None)
