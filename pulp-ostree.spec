@@ -2,7 +2,7 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 # Required platform version
-%global platform_version 2.7.0
+%global platform_version 2.8
 
 
 Name: pulp-ostree
@@ -99,7 +99,7 @@ Summary: Pulp OSTree plugins
 Group: Development/Languages
 Requires: python-pulp-common >= %{platform_version}
 Requires: python-pulp-ostree-common = %{version} 
-Requires: pulp-server >= 2.7
+Requires: pulp-server >= %{platform_version}
 Requires: python-setuptools
 Requires: ostree >= 2015.3.49
 Requires: python-gnupg

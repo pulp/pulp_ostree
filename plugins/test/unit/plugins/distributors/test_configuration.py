@@ -31,15 +31,15 @@ class TestConfigurationGetters(unittest.TestCase):
 
     def test_get_master_publish_dir(self):
         directory = configuration.get_master_publish_dir(self.repo, self.config)
-        self.assertEquals(directory, os.path.join(self.publish_dir, 'master', self.repo.id))
+        self.assertEquals(directory, os.path.join(self.publish_dir, 'master', self.repo.repo_id))
 
     def test_get_web_publish_dir(self):
         directory = configuration.get_web_publish_dir(self.repo, self.config)
-        self.assertEquals(directory, os.path.join(self.publish_dir, 'web', self.repo.id))
+        self.assertEquals(directory, os.path.join(self.publish_dir, 'web', self.repo.repo_id))
 
     def test_get_repo_relative_path(self):
         directory = configuration.get_repo_relative_path(self.repo, {})
-        self.assertEquals(directory, self.repo.id)
+        self.assertEquals(directory, self.repo.repo_id)
 
     def test_get_repo_relative_path_when_passed(self):
         relative_path = '/7/x86/standard'

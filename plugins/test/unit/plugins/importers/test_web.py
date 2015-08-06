@@ -27,8 +27,9 @@ class TestImporter(TestCase):
         self.assertEqual(result, (True, ''))
 
     @patch('pulp_ostree.plugins.importers.web.Main')
-    def test_sync(self, main):
-        repo = Mock()
+    @patch('pulp_ostree.plugins.importers.web.Repository')
+    def test_sync(self, repository, main):
+        repo = Mock(id='123')
         conduit = Mock()
         config = Mock()
 
@@ -37,7 +38,9 @@ class TestImporter(TestCase):
         report = importer.sync_repo(repo, conduit, config)
 
         # validation
-        main.assert_called_once_with(repo=repo, conduit=conduit, config=config)
+        repository.objects.get.assert_called_once_with(repo_id=repo.id)
+        main.assert_called_once_with(
+            repo=repository.objects.get.return_value, conduit=conduit, config=config)
         main.return_value.process_lifecycle.assert_called_once_with()
         self.assertEqual(report, main.return_value.process_lifecycle.return_value)
 

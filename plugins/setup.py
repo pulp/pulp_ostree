@@ -15,6 +15,9 @@ setup(
         ],
         'pulp.distributors': [
             'distributor = pulp_ostree.plugins.distributors.web:entry_point'
+        ],
+        'pulp.unit_models': [
+            'ostree=pulp_ostree.plugins.db.model:Branch'
         ]
     }
 )

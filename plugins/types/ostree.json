@@ -1,9 +1,0 @@
-{"types": [
-    {
-        "id": "ostree",
-        "display_name": "OSTree Branch",
-        "description": "An OSTree branch",
-        "unit_key": ["remote_id", "branch", "commit"],
-        "search_indexes": []
-    }
-]}

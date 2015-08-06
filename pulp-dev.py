@@ -29,7 +29,6 @@ LINKS = (
      '/etc/pulp/server/plugins.conf.d/ostree_distributor.json'),
     ('plugins/etc/pulp/server/plugins.conf.d/ostree_importer.json',
      '/etc/pulp/server/plugins.conf.d/ostree_importer.json'),
-    ('plugins/types/ostree.json', DIR_PLUGINS + '/types/ostree.json'),
 )
 
 
