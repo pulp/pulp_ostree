@@ -44,7 +44,7 @@ class Commit(object):
         :type metadata: dict
         """
         self.digest = digest
-        self.metadata = metadata
+        self.metadata = dict([(k.replace('.', '-'), v) for k, v in metadata.items()])
 
 
 class Head(object):

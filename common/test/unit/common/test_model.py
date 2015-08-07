@@ -22,10 +22,19 @@ class TestCommit(TestCase):
 
     def test_init(self):
         digest = '123'
-        metadata = {'A': 1}
+        metadata = {
+            'A': 1,
+            'B.a.d': 2,
+            'hello': 3
+        }
+        stored = {
+            'A': 1,
+            'B-a-d': 2,
+            'hello': 3
+        }
         commit = Commit(digest, metadata)
         self.assertEqual(commit.digest, digest)
-        self.assertEqual(commit.metadata, metadata)
+        self.assertEqual(commit.metadata, stored)
 
 
 class TestHeads(TestCase):
