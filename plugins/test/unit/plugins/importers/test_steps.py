@@ -216,10 +216,18 @@ class TestAdd(TestCase):
         self.assertEqual(step.step_id, constants.IMPORT_STEP_ADD_UNITS)
         self.assertTrue(step.description is not None)
 
+    @patch(MODULE + '.Add.add_units')
+    @patch(MODULE + '.Add.add_summary')
+    def test_process_main(self, add_summary, add_units):
+        step = Add()
+        step.process_main()
+        add_summary.assert_called_once_with()
+        add_units.assert_called_once_with()
+
     @patch(MODULE + '.lib')
     @patch(MODULE + '.model')
     @patch(MODULE + '.associate_single_unit')
-    def test_process_main(self, fake_associate, fake_model, fake_lib):
+    def test_add_units(self, fake_associate, fake_model, fake_lib):
         repo_id = 'r-1234'
         remote_id = 'remote-1'
         refs = [
@@ -250,7 +258,7 @@ class TestAdd(TestCase):
         step = Add()
         step.parent = parent
         step.get_conduit = Mock(return_value=fake_conduit)
-        step.process_main()
+        step.add_units()
 
         # validation
         fake_lib.Repository.assert_called_once_with(step.parent.storage_dir)
@@ -269,6 +277,38 @@ class TestAdd(TestCase):
             [
                 ((parent.get_repo.return_value, u), {}) for u in units[:-1]
             ])
+
+    @patch(MODULE + '.lib')
+    def test_add_summary(self, fake_lib):
+        refs = [
+            Mock(),
+            Mock(),
+            Mock()
+        ]
+        remote = Mock()
+        remote.list_refs.return_value = refs
+        lib_repository = Mock()
+        repository = Mock(id='1234')
+        fake_lib.Remote.return_value = remote
+        fake_lib.Repository.return_value = lib_repository
+        parent = Mock(storage_dir='/tmp/xx', repo_id=repository.id)
+        parent.get_repo.return_value = repository
+
+        # test
+        step = Add()
+        step.parent = parent
+        step.add_summary()
+
+        # validation
+        fake_lib.Repository.assert_called_once_with(step.parent.storage_dir)
+        fake_lib.Remote.assert_called_once_with(step.parent.repo_id, lib_repository)
+        repository.scratchpad.update.assert_called_once_with(
+            {
+                constants.REMOTE: {
+                    constants.SUMMARY: [r.dict() for r in remote.list_refs.return_value]
+                }
+            })
+        repository.save.assert_called_once_with()
 
 
 class TestClean(TestCase):
