@@ -8,7 +8,7 @@ from gnupg import GPG
 from mongoengine import NotUniqueError
 
 from pulp.common.plugins import importer_constants
-from pulp.plugins.util.publish_step import PluginStep, SaveUnitsStep
+from pulp.plugins.util.publish_step import PluginStep
 from pulp.server.content.storage import SharedStorage
 from pulp.server.controllers.repository import associate_single_unit
 from pulp.server.exceptions import PulpCodedException
@@ -129,7 +129,7 @@ class Pull(PluginStep):
             raise pe
 
 
-class Add(SaveUnitsStep):
+class Add(PluginStep):
     """
     Add content units.
     """
@@ -140,8 +140,31 @@ class Add(SaveUnitsStep):
 
     def process_main(self, item=None):
         """
+        Get the remote summary and add/update the repository
+        scratchpad.  Then, add the content unit and associate to the repository.
+        """
+        self.add_summary()
+        self.add_units()
+
+    def add_summary(self):
+        """
+        Add/update the remote summary information in the
+        repository scratchpad.
+        """
+        repository = self.get_repo()
+        lib_repository = lib.Repository(self.parent.storage_dir)
+        remote = lib.Remote(self.parent.repo_id, lib_repository)
+        repository.scratchpad.update({
+            constants.REMOTE: {
+                constants.SUMMARY: [r.dict() for r in remote.list_refs()]
+            }
+        })
+        repository.save()
+
+    def add_units(self):
+        """
         Find all branch (heads) in the local repository and
-        create content units for them.  The
+        create content units for them.
         """
         lib_repository = lib.Repository(self.parent.storage_dir)
         for ref in lib_repository.list_refs():

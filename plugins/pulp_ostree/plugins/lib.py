@@ -87,15 +87,46 @@ class ProgressReport(object):
 class Ref(object):
     """
     Repository reference.
+
+    :ivar name: The reference name.
+    :type name: str
+    :ivar commit: The referenced commit hash.
+    :type commit: str
+    :ivar metadata: The commit metadata.
+    :type metadata: dict
     """
 
-    def __init__(self, path, commit, metadata):
-        self.path = path
+    def __init__(self, name, commit, metadata):
+        """
+        :param name: The reference name.
+        :type name: str
+        :param commit: The referenced commit hash.
+        :type commit: str
+        :param metadata: The commit metadata.
+        :type metadata: dict
+        """
+        self.name = name
         self.commit = commit
         self.metadata = metadata
 
+    @property
+    def path(self):
+        """
+        backwards compatibility
+        """
+        return self.name
 
-class Repository():
+    def dict(self):
+        """
+        Convert to a dictionary.
+
+        :return: A dictionary representation.
+        :rtype: dict
+        """
+        return dict(self.__dict__)
+
+
+class Repository(object):
     """
     An ostree repository.
 
@@ -349,10 +380,13 @@ class Remote(object):
         return imported
 
     @wrapped
-    def list_refs(self):
+    def list_refs(self, required=False):
         """
         Get (remote) repository references.
 
+        :param required: Indicates the summary file is required and
+            an exception should be raised when it cannot be fetched.
+        :type required: bool
         :return: list of: Ref
         :rtype: list
         :raises LibError:
@@ -360,9 +394,15 @@ class Remote(object):
         _list = []
         lib = Lib()
         self.open()
-        flags = lib.OSTree.RepoPullFlags.COMMIT_ONLY
-        _, summary = self.impl.remote_list_refs(self.id, None)
+        try:
+            _, summary = self.impl.remote_list_refs(self.id, None)
+        except lib.GLib.GError:
+            if not required:
+                summary = {}
+            else:
+                raise
         refs = sorted(summary.keys())
+        flags = lib.OSTree.RepoPullFlags.COMMIT_ONLY
         self.impl.pull(self.id, refs, flags, None, None)
         for path, commit_id in sorted(summary.items()):
             _, commit = self.impl.load_variant(lib.OSTree.ObjectType.COMMIT, commit_id)

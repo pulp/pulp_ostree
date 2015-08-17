@@ -6,6 +6,11 @@ OSTREE_TYPE_ID = 'ostree'
 REPO_NOTE_OSTREE = 'OSTREE'
 
 
+# Scratchpad
+REMOTE = 'remote'
+SUMMARY = 'summary'
+
+
 # Plugins
 WEB_IMPORTER_TYPE_ID = 'ostree_web_importer'
 WEB_DISTRIBUTOR_TYPE_ID = 'ostree_web_distributor'

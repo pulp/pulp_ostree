@@ -42,9 +42,14 @@ class TestRef(TestCase):
 
     def test_init(self):
         ref = Ref(1, 2, 3)
-        self.assertEqual(ref.path, 1)
+        self.assertEqual(ref.path, 1)  # backwards compatibility
+        self.assertEqual(ref.name, 1)
         self.assertEqual(ref.commit, 2)
         self.assertEqual(ref.metadata, 3)
+
+    def test_dict(self):
+        ref = Ref(1, 2, 3)
+        self.assertEqual(ref.dict(), ref.__dict__)
 
 
 class TestLoad(TestCase):
@@ -508,7 +513,7 @@ class TestRemote(TestCase):
         # test
         remote = Remote(remote_id, Mock(impl=lib_repo))
         remote.open = Mock()
-        listed = remote.list_refs()
+        listed = remote.list_refs(required=True)
 
         # validation
         lib.assert_called_with()
@@ -533,6 +538,41 @@ class TestRemote(TestCase):
                 ((_lib.OSTree.ObjectType.COMMIT, 'commit:2'), {}),
             ])
         self.assertEqual(listed, ref_objects)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_list_refs_no_summary(self, lib):
+        remote_id = '123'
+
+        _lib = Mock()
+        _lib.GLib.GError = GError
+        lib_repo = Mock()
+        lib_repo.remote_list_refs.side_effect = GError()
+        lib.return_value = _lib
+
+        # test
+        remote = Remote(remote_id, Mock(impl=lib_repo))
+        remote.open = Mock()
+        listed = remote.list_refs()
+
+        # validation
+        lib.assert_called_with()
+        remote.open.assert_called_once_with()
+        lib_repo.remote_list_refs.assert_called_once_with(remote_id, None)
+        self.assertEqual(listed, [])
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_list_refs_no_summary_but_required(self, lib):
+        remote_id = '123'
+
+        _lib = Mock()
+        _lib.GLib.GError = GError
+        lib_repo = Mock()
+        lib_repo.remote_list_refs.side_effect = GError()
+        lib.return_value = _lib
+
+        # test and validation
+        remote = Remote(remote_id, Mock(impl=lib_repo))
+        self.assertRaises(LibError, remote.list_refs, True)
 
     @patch('pulp_ostree.plugins.lib.Lib')
     def test_options(self, lib):
