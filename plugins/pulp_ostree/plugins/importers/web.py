@@ -4,6 +4,7 @@ from gettext import gettext as _
 
 from pulp.common.config import read_json_config
 from pulp.plugins.importer import Importer
+from pulp.server.db.model import Repository
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.importers.steps import Main
@@ -87,7 +88,8 @@ class WebImporter(Importer):
         :return: report of the details of the sync
         :rtype:  pulp.plugins.model.SyncReport
         """
-        step = Main(repo=repo, conduit=conduit, config=config)
+        repository = Repository.objects.get(repo_id=repo.id)
+        step = Main(repo=repository, conduit=conduit, config=config)
         report = step.process_lifecycle()
         return report
 

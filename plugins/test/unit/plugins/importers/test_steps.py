@@ -1,5 +1,4 @@
 import os
-import errno
 
 from unittest import TestCase
 
@@ -8,9 +7,10 @@ from mock import patch, Mock, PropertyMock, ANY
 from pulp.common.plugins import importer_constants
 from pulp.server.exceptions import PulpCodedException
 
+from mongoengine import NotUniqueError
+
 from pulp_ostree.plugins.lib import LibError
 from pulp_ostree.plugins.importers.steps import Main, Create, Pull, Add, Clean, Remote
-from pulp_ostree.common.model import Unit
 from pulp_ostree.common import constants, errors
 
 
@@ -20,9 +20,9 @@ MODULE = 'pulp_ostree.plugins.importers.steps'
 
 class TestMainStep(TestCase):
 
-    @patch('pulp_ostree.common.model.generate_remote_id')
+    @patch('pulp_ostree.plugins.db.model.generate_remote_id')
     def test_init(self, fake_generate):
-        repo = Mock()
+        repo = Mock(repo_id='id-123')
         conduit = Mock()
         working_dir = 'dir-123'
         url = 'url-123'
@@ -47,14 +47,32 @@ class TestMainStep(TestCase):
         self.assertEqual(step.feed_url, url)
         self.assertEqual(step.remote_id, digest)
         self.assertEqual(step.branches, branches)
-        self.assertEqual(step.storage_path,
-                         os.path.join(constants.SHARED_STORAGE, digest, 'content'))
-
+        self.assertEqual(step.repo_id, repo.repo_id)
         self.assertEqual(len(step.children), 4)
         self.assertTrue(isinstance(step.children[0], Create))
         self.assertTrue(isinstance(step.children[1], Pull))
         self.assertTrue(isinstance(step.children[2], Add))
         self.assertTrue(isinstance(step.children[3], Clean))
+
+    @patch(MODULE + '.SharedStorage')
+    def test_storage_dir(self, storage):
+        url = 'url-123'
+        repo = Mock(id='id-123')
+        config = {
+            importer_constants.KEY_FEED: url,
+        }
+        st = Mock()
+        st.__enter__ = Mock(return_value=st)
+        st.__exit__ = Mock()
+        storage.return_value = st
+
+        # test
+        step = Main(repo=repo, config=config)
+        path = step.storage_dir
+        storage.assert_called_once_with(step.remote_id)
+        st.__enter__.assert_called_once_with()
+        st.__exit__.assert_called_once_with(None, None, None)
+        self.assertEqual(path, st.content_dir)
 
 
 class TestCreate(TestCase):
@@ -66,39 +84,48 @@ class TestCreate(TestCase):
 
     @patch(MODULE + '.lib')
     @patch(MODULE + '.Remote')
-    def test_init_repository(self, fake_remote, fake_lib):
+    def test_process_main(self, fake_remote, fake_lib):
         url = 'url-123'
         remote_id = 'remote-123'
         repo_id = 'repo-123'
-        path = 'root/path-123'
+        parent = Mock(
+            feed_url=url,
+            remote_id=remote_id,
+            repo_id=repo_id,
+            storage_dir='root/path-123')
 
         fake_lib.LibError = LibError
         fake_lib.Repository.return_value.open.side_effect = LibError
 
         # test
         step = Create()
-        step.parent = Mock(feed_url=url, remote_id=remote_id, repo_id=repo_id)
-        step._init_repository(path)
+        step.parent = parent
+        step.process_main()
 
         # validation
         fake_remote.assert_called_once_with(step, fake_lib.Repository.return_value)
-        fake_lib.Repository.assert_called_once_with(path)
+        fake_lib.Repository.assert_called_once_with(parent.storage_dir)
         fake_lib.Repository.return_value.open.assert_called_once_with()
         fake_lib.Repository.return_value.create.assert_called_once_with()
         fake_remote.return_value.add.assert_called_once_with()
 
     @patch(MODULE + '.lib')
     @patch(MODULE + '.Remote')
-    def test_init_repository_exists(self, fake_remote, fake_lib):
+    def test_process_main_repository_exists(self, fake_remote, fake_lib):
         url = 'url-123'
         remote_id = 'remote-123'
         repo_id = 'repo-xyz'
         path = 'root/path-123'
+        parent = Mock(
+            feed_url=url,
+            remote_id=remote_id,
+            repo_id=repo_id,
+            storage_dir='root/path-123')
 
         # test
         step = Create()
-        step.parent = Mock(feed_url=url, remote_id=remote_id, repo_id=repo_id)
-        step._init_repository(path)
+        step.parent = parent
+        step.process_main()
 
         # validation
         fake_remote.assert_called_once_with(step, fake_lib.Repository.return_value)
@@ -107,37 +134,16 @@ class TestCreate(TestCase):
         fake_remote.return_value.add.assert_called_once_with()
 
     @patch(MODULE + '.lib')
-    def test_init_repository_exception(self, fake_lib):
+    def test_process_main_repository_exception(self, fake_lib):
         fake_lib.LibError = LibError
         fake_lib.Repository.side_effect = LibError
         try:
             step = Create()
             step.parent = Mock(feed_url='', remote_id='')
-            step._init_repository('')
+            step.process_main()
             self.assertTrue(False, msg='Create exception expected')
         except PulpCodedException, pe:
             self.assertEqual(pe.error_code, errors.OST0001)
-
-    @patch(MODULE + '.mkdir')
-    def test_process_main(self, fake_mkdir):
-        url = 'url-123'
-        remote_id = 'remote-123'
-        path = 'root/path-123'
-
-        # test
-        step = Create()
-        step.parent = Mock(storage_path=path, feed_url=url, remote_id=remote_id)
-        step._init_repository = Mock()
-        step.process_main()
-
-        # validation
-        self.assertEqual(
-            fake_mkdir.call_args_list,
-            [
-                ((path,), {}),
-                ((os.path.join(os.path.dirname(path), constants.LINKS_DIR),), {})
-            ])
-        step._init_repository.assert_called_with(path)
 
 
 class TestPull(TestCase):
@@ -154,7 +160,7 @@ class TestPull(TestCase):
 
         # test
         step = Pull()
-        step.parent = Mock(storage_path=path, repo_id=repo_id, branches=branches)
+        step.parent = Mock(storage_dir=path, repo_id=repo_id, branches=branches)
         step._pull = Mock()
         step.process_main()
 
@@ -212,27 +218,22 @@ class TestAdd(TestCase):
 
     @patch(MODULE + '.lib')
     @patch(MODULE + '.model')
-    @patch(MODULE + '.Add.link')
-    @patch(MODULE + '.Unit')
-    def test_process_main(self, fake_unit, fake_link, fake_model, fake_lib):
+    @patch(MODULE + '.associate_single_unit')
+    def test_process_main(self, fake_associate, fake_model, fake_lib):
+        repo_id = 'r-1234'
         remote_id = 'remote-1'
-        commits = [
-            Mock(),
-            Mock()
-        ]
         refs = [
             Mock(path='branch:1', commit='commit:1', metadata='md:1'),
             Mock(path='branch:2', commit='commit:2', metadata='md:2'),
-            Mock(path='branch:3', commit='commit:3', metadata='md:3')
+            Mock(path='branch:3', commit='commit:3', metadata='md:3'),
+            Mock(path='branch:4', commit='commit:4', metadata='md:4'),
+            Mock(path='branch:5', commit='commit:5', metadata='md:5'),
         ]
-        units = [
-            Mock(key='key:1', metadata=refs[0].metadata, storage_path='path:1'),
-            Mock(key='key:2', metadata=refs[1].metadata, storage_path='path:2')
-        ]
-        pulp_units = [
-            Mock(),
-            Mock()
-        ]
+        units = [Mock(ref=r, unit_key={}) for r in refs]
+        units[0].save.side_effect = NotUniqueError  # duplicate
+
+        fake_model.Branch.side_effect = units
+        fake_model.Branch.objects.get.return_value = units[0]
 
         branches = [r.path for r in refs[:-1]]
 
@@ -240,139 +241,34 @@ class TestAdd(TestCase):
         repository.list_refs.return_value = refs
         fake_lib.Repository.return_value = repository
 
-        fake_model.Commit.side_effect = commits
-        fake_model.Unit.side_effect = units
-
-        fake_unit.side_effect = pulp_units
+        parent = Mock(remote_id=remote_id, storage_dir='/tmp/xyz', branches=branches)
+        parent.get_repo.return_value = Mock(repo_id=repo_id)
 
         fake_conduit = Mock()
 
         # test
         step = Add()
-        step.parent = Mock(remote_id=remote_id, storage_path='/tmp/xyz', branches=branches)
+        step.parent = parent
         step.get_conduit = Mock(return_value=fake_conduit)
         step.process_main()
 
         # validation
-        fake_lib.Repository.assert_called_once_with(step.parent.storage_path)
+        fake_lib.Repository.assert_called_once_with(step.parent.storage_dir)
         self.assertEqual(
-            fake_model.Commit.call_args_list,
+            fake_model.Branch.call_args_list,
             [
-                (('commit:1', 'md:1'), {}),
-                (('commit:2', 'md:2'), {}),
+                ((), dict(
+                    remote_id=remote_id,
+                    branch=r.path,
+                    commit=r.commit,
+                    metadata=r.metadata))
+                for r in refs[:-1]
             ])
         self.assertEqual(
-            fake_model.Unit.call_args_list,
+            fake_associate.call_args_list,
             [
-                ((remote_id, 'branch:1', commits[0]), {}),
-                ((remote_id, 'branch:2', commits[1]), {}),
+                ((parent.get_repo.return_value, u), {}) for u in units[:-1]
             ])
-        self.assertEqual(
-            fake_link.call_args_list,
-            [
-                ((units[0],), {}),
-                ((units[1],), {}),
-            ])
-        self.assertEqual(
-            fake_unit.call_args_list,
-            [
-                ((Unit.TYPE_ID, units[0].key, units[0].metadata, units[0].storage_path), {}),
-                ((Unit.TYPE_ID, units[1].key, units[1].metadata, units[1].storage_path), {}),
-            ])
-        self.assertEqual(
-            fake_conduit.save_unit.call_args_list,
-            [
-                ((pulp_units[0],), {}),
-                ((pulp_units[1],), {}),
-            ])
-
-    @patch('os.symlink')
-    def test_link(self, fake_link):
-        target = 'path-1'
-        link_path = 'path-2'
-        step = Add()
-        unit = Mock(storage_path=link_path)
-        step.parent = Mock(storage_path=target)
-        step.link(unit)
-        fake_link.assert_called_with(target, link_path)
-
-    @patch('os.readlink')
-    @patch('os.path.islink')
-    @patch('os.symlink')
-    def test_link_exists(self, fake_link, fake_islink, fake_readlink):
-        target = 'path-1'
-        link_path = 'path-2'
-        step = Add()
-        unit = Mock(storage_path=link_path)
-        step.parent = Mock(storage_path=target)
-        fake_islink.return_value = True
-        fake_readlink.return_value = target
-        fake_link.side_effect = OSError(errno.EEXIST, link_path)
-
-        # test
-        step.link(unit)
-
-        # validation
-        fake_islink.assert_called_with(link_path)
-        fake_readlink.assert_called_with(link_path)
-
-    @patch('os.readlink')
-    @patch('os.path.islink')
-    @patch('os.symlink')
-    def test_link_exists_not_link(self, fake_link, fake_islink, fake_readlink):
-        target = 'path-1'
-        link_path = 'path-2'
-        step = Add()
-        unit = Mock(storage_path=link_path)
-        step.parent = Mock(storage_path=target)
-        fake_islink.return_value = False
-        fake_readlink.return_value = target
-        fake_link.side_effect = OSError(errno.EEXIST, link_path)
-
-        # test
-        self.assertRaises(OSError, step.link, unit)
-
-        # validation
-        fake_islink.assert_called_with(link_path)
-        self.assertFalse(fake_readlink.called)
-
-    @patch('os.readlink')
-    @patch('os.path.islink')
-    @patch('os.symlink')
-    def test_link_exists_wrong_target(self, fake_link, fake_islink, fake_readlink):
-        target = 'path-1'
-        link_path = 'path-2'
-        step = Add()
-        unit = Mock(storage_path=link_path)
-        step.parent = Mock(storage_path=target)
-        fake_islink.return_value = True
-        fake_readlink.return_value = 'not-target'
-        fake_link.side_effect = OSError(errno.EEXIST, link_path)
-
-        # test
-        self.assertRaises(OSError, step.link, unit)
-
-        # validation
-        fake_islink.assert_called_with(link_path)
-        fake_readlink.assert_called_with(link_path)
-
-    @patch('os.readlink')
-    @patch('os.path.islink')
-    @patch('os.symlink')
-    def test_link_error(self, fake_link, fake_islink, fake_readlink):
-        target = 'path-1'
-        link_path = 'path-2'
-        step = Add()
-        unit = Mock(storage_path=link_path)
-        step.parent = Mock(storage_path=target)
-        fake_link.side_effect = OSError(errno.EPERM, link_path)
-
-        # test
-        self.assertRaises(OSError, step.link, unit)
-
-        # validation
-        self.assertFalse(fake_islink.called)
-        self.assertFalse(fake_readlink.called)
 
 
 class TestClean(TestCase):
@@ -389,7 +285,7 @@ class TestClean(TestCase):
 
         # test
         step = Clean()
-        step.parent = Mock(storage_path=path, repo_id=repo_id)
+        step.parent = Mock(storage_dir=path, repo_id=repo_id)
         step.process_main()
 
         # validation
@@ -408,7 +304,7 @@ class TestClean(TestCase):
         # test
         try:
             step = Clean()
-            step.parent = Mock(storage_path=path, importer_id=importer_id)
+            step.parent = Mock(storage_dir=path, importer_id=importer_id)
             step.process_main()
             self.assertTrue(False, msg='Delete remote exception expected')
         except PulpCodedException, pe:

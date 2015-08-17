@@ -38,54 +38,49 @@ class TestBasics(unittest.TestCase):
 
     def test_metadata(self):
         metadata = web.WebDistributor.metadata()
-
         self.assertEqual(metadata['id'], constants.WEB_DISTRIBUTOR_TYPE_ID)
         self.assertTrue(len(metadata['display_name']) > 0)
 
     @patch('pulp_ostree.plugins.distributors.web.configuration.get_master_publish_dir')
     @patch('pulp_ostree.plugins.distributors.web.configuration.get_web_publish_dir')
     def test_distributor_removed(self, mock_web, mock_master):
-
         mock_web.return_value = os.path.join(self.working_dir, 'web')
         mock_master.return_value = os.path.join(self.working_dir, 'master')
         repo_working_dir = os.path.join(self.working_dir, 'working')
         os.makedirs(mock_web.return_value)
         os.makedirs(mock_master.return_value)
-        repo = Mock(id='bar', working_dir=repo_working_dir)
-        config = {}
-        self.distributor.distributor_removed(repo, config)
-
+        repo = Mock(repo_id='bar', working_dir=repo_working_dir)
+        self.distributor.distributor_removed(repo, {})
         self.assertEquals(0, len(os.listdir(self.working_dir)))
 
     @patch('pulp_ostree.plugins.distributors.web.configuration.get_master_publish_dir')
     @patch('pulp_ostree.plugins.distributors.web.configuration.get_web_publish_dir')
     def test_distributor_removed_dir_is_none(self, mock_web, mock_master):
-
         mock_web.return_value = os.path.join(self.working_dir, 'web')
         mock_master.return_value = os.path.join(self.working_dir, 'master')
         repo_working_dir = None
         os.makedirs(mock_web.return_value)
         os.makedirs(mock_master.return_value)
-        repo = Mock(id='bar', working_dir=repo_working_dir)
+        repo = Mock(repo_id='bar', working_dir=repo_working_dir)
         config = {}
         self.distributor.distributor_removed(repo, config)
-
         self.assertEquals(0, len(os.listdir(self.working_dir)))
 
+    @patch('pulp_ostree.plugins.distributors.web.Repository')
     @patch('pulp_ostree.plugins.distributors.web.WebPublisher')
-    def test_publish_repo(self, mock_publisher):
+    def test_publish_repo(self, mock_publisher, mock_repo):
         repo = Repository('test')
         config = PluginCallConfiguration(None, None)
         conduit = RepoPublishConduit(repo.id, 'foo_repo')
         self.distributor.publish_repo(repo, conduit, config)
-
+        mock_repo.objects.get.assert_called_once_with(repo_id=repo.id)
+        mock_publisher.assert_called_once_with(mock_repo.objects.get.return_value, conduit, config)
         mock_publisher.return_value.assert_called_once()
 
     def test_cancel_publish_repo(self):
         self.distributor._publisher = MagicMock()
         self.distributor.cancel_publish_repo()
         self.assertTrue(self.distributor.canceled)
-
         self.distributor._publisher.cancel.assert_called_once()
 
     @patch('pulp_ostree.plugins.distributors.web.configuration.validate_config')

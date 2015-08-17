@@ -2,12 +2,6 @@
 OSTREE_TYPE_ID = 'ostree'
 
 
-# Platform
-CONTENT_DIR = 'content'
-LINKS_DIR = 'links'
-SHARED_STORAGE = '/var/lib/pulp/content/shared/%s' % OSTREE_TYPE_ID
-
-
 # Notes
 REPO_NOTE_OSTREE = 'OSTREE'
 

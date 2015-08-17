@@ -74,13 +74,13 @@ class SearchCommand(DisplayUnitAssociationsCommand):
         """
         metadata = unit['metadata']
         document = {
-            'id': unit['id'],
+            'id': unit['unit_id'],
             'created': unit['created'],
             'updated': unit['updated'],
             'remote_id': metadata['remote_id'],
             'branch': metadata['branch'],
             'commit': metadata['commit'],
-            'version': metadata.get('version', ''),
+            'version': metadata['metadata'].get('version')
         }
         return document
 

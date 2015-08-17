@@ -1,19 +1,20 @@
 import os
-import errno
 
 from gettext import gettext as _
 from logging import getLogger
 
 from gnupg import GPG
 
+from mongoengine import NotUniqueError
+
 from pulp.common.plugins import importer_constants
-from pulp.plugins.util.publish_step import PluginStep
-from pulp.plugins.model import Unit
-from pulp.plugins.util.misc import mkdir
+from pulp.plugins.util.publish_step import PluginStep, SaveUnitsStep
+from pulp.server.content.storage import SharedStorage
+from pulp.server.controllers.repository import associate_single_unit
 from pulp.server.exceptions import PulpCodedException
 
 from pulp_ostree.common import constants, errors
-from pulp_ostree.common import model
+from pulp_ostree.plugins.db import model
 from pulp_ostree.plugins import lib
 
 
@@ -33,13 +34,16 @@ class Main(PluginStep):
         self.feed_url = self.config.get(importer_constants.KEY_FEED)
         self.branches = self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
         self.remote_id = model.generate_remote_id(self.feed_url)
-        self.storage_path = os.path.join(
-            constants.SHARED_STORAGE, self.remote_id, constants.CONTENT_DIR)
-        self.repo_id = self.get_repo().id
+        self.repo_id = self.get_repo().repo_id
         self.add_child(Create())
         self.add_child(Pull())
         self.add_child(Add())
         self.add_child(Clean())
+
+    @property
+    def storage_dir(self):
+        with SharedStorage(self.remote_id) as storage:
+            return storage.content_dir
 
 
 class Create(PluginStep):
@@ -54,28 +58,15 @@ class Create(PluginStep):
         super(Create, self).__init__(step_type=constants.IMPORT_STEP_CREATE_REPOSITORY)
         self.description = _('Create Local Repository')
 
-    def process_main(self):
-        """
-        Ensure the local ostree repository has been created
-        and the configured.
-
-        :raises PulpCodedException:
-        """
-        path = self.parent.storage_path
-        mkdir(path)
-        mkdir(os.path.join(os.path.dirname(path), constants.LINKS_DIR))
-        self._init_repository(path)
-
-    def _init_repository(self, path):
+    def process_main(self, item=None):
         """
         Ensure the local ostree repository has been created
         and the configured.  Also creates and configures a temporary remote
         used for the subsequent pulls.
 
-        :param path: The absolute path to the local repository.
-        :type path: str
         :raises PulpCodedException:
         """
+        path = self.parent.storage_dir
         try:
             repository = lib.Repository(path)
             try:
@@ -98,7 +89,7 @@ class Pull(PluginStep):
         super(Pull, self).__init__(step_type=constants.IMPORT_STEP_PULL)
         self.description = _('Pull Remote Branches')
 
-    def process_main(self):
+    def process_main(self, item=None):
         """
         Pull each of the specified branches using the temporary remote
         configured using the repo_id as the remote_id.
@@ -106,7 +97,7 @@ class Pull(PluginStep):
         :raises PulpCodedException:
         """
         for branch_id in self.parent.branches:
-            self._pull(self.parent.storage_path, self.parent.repo_id, branch_id)
+            self._pull(self.parent.storage_dir, self.parent.repo_id, branch_id)
 
     def _pull(self, path, remote_id, branch_id):
         """
@@ -138,7 +129,7 @@ class Pull(PluginStep):
             raise pe
 
 
-class Add(PluginStep):
+class Add(SaveUnitsStep):
     """
     Add content units.
     """
@@ -147,40 +138,26 @@ class Add(PluginStep):
         super(Add, self).__init__(step_type=constants.IMPORT_STEP_ADD_UNITS)
         self.description = _('Add Content Units')
 
-    def process_main(self):
+    def process_main(self, item=None):
         """
         Find all branch (heads) in the local repository and
-        create content units for them.
+        create content units for them.  The
         """
-        conduit = self.get_conduit()
-        repository = lib.Repository(self.parent.storage_path)
-        for ref in repository.list_refs():
+        lib_repository = lib.Repository(self.parent.storage_dir)
+        for ref in lib_repository.list_refs():
             if ref.path not in self.parent.branches:
                 # not listed
                 continue
-            commit = model.Commit(ref.commit, ref.metadata)
-            unit = model.Unit(self.parent.remote_id, ref.path, commit)
-            self.link(unit)
-            _unit = Unit(constants.OSTREE_TYPE_ID, unit.key, unit.metadata, unit.storage_path)
-            conduit.save_unit(_unit)
-
-    def link(self, unit):
-        """
-        Link the unit storage path to the main *content* storage path.
-        The link will be verified if it already exits.
-
-        :param unit: The unit to linked.
-        :type unit: model.Unit
-        """
-        link = unit.storage_path
-        target = self.parent.storage_path
-        try:
-            os.symlink(target, link)
-        except OSError, e:
-            if e.errno == errno.EEXIST and os.path.islink(link) and os.readlink(link) == target:
-                pass  # identical
-            else:
-                raise
+            unit = model.Branch(
+                remote_id=self.parent.remote_id,
+                branch=ref.path,
+                commit=ref.commit,
+                metadata=ref.metadata)
+            try:
+                unit.save()
+            except NotUniqueError:
+                unit = model.Branch.objects.get(**unit.unit_key)
+            associate_single_unit(self.get_repo(), unit)
 
 
 class Clean(PluginStep):
@@ -192,12 +169,12 @@ class Clean(PluginStep):
         super(Clean, self).__init__(step_type=constants.IMPORT_STEP_CLEAN)
         self.description = _('Clean')
 
-    def process_main(self):
+    def process_main(self, item=None):
         """
         Clean up after import:
          - Delete the remote used for the pull.
         """
-        path = self.parent.storage_path
+        path = self.parent.storage_dir
         remote_id = self.parent.repo_id
         try:
             repository = lib.Repository(path)

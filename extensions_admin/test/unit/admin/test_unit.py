@@ -46,14 +46,14 @@ class TestSearchCommand(TestCase):
 
     def test_transform(self):
         unit = {
-            'id': 0,
+            'unit_id': 0,
             'created': 1,
             'updated': 2,
             'metadata': {
                 'remote_id': 3,
                 'branch': 4,
                 'commit': 5,
-                'version': 6
+                'metadata': {'version': 6}
             }
         }
 
