@@ -10,7 +10,7 @@ from pulp.server.exceptions import PulpCodedException
 from mongoengine import NotUniqueError
 
 from pulp_ostree.plugins.lib import LibError
-from pulp_ostree.plugins.importers.steps import Main, Create, Pull, Add, Clean, Remote
+from pulp_ostree.plugins.importers.steps import Main, Create, Summary, Pull, Add, Clean, Remote
 from pulp_ostree.common import constants, errors
 
 
@@ -48,11 +48,12 @@ class TestMainStep(TestCase):
         self.assertEqual(step.remote_id, digest)
         self.assertEqual(step.branches, branches)
         self.assertEqual(step.repo_id, repo.repo_id)
-        self.assertEqual(len(step.children), 4)
+        self.assertEqual(len(step.children), 5)
         self.assertTrue(isinstance(step.children[0], Create))
-        self.assertTrue(isinstance(step.children[1], Pull))
-        self.assertTrue(isinstance(step.children[2], Add))
-        self.assertTrue(isinstance(step.children[3], Clean))
+        self.assertTrue(isinstance(step.children[1], Summary))
+        self.assertTrue(isinstance(step.children[2], Pull))
+        self.assertTrue(isinstance(step.children[3], Add))
+        self.assertTrue(isinstance(step.children[4], Clean))
 
     @patch(MODULE + '.SharedStorage')
     def test_storage_dir(self, storage):
@@ -165,18 +166,13 @@ class TestPull(TestCase):
         step.process_main()
 
         # validation
-        self.assertEqual(
-            step._pull.call_args_list,
-            [
-                ((path, repo_id, branches[0]), {}),
-                ((path, repo_id, branches[1]), {}),
-            ])
+        step._pull.assert_called_once_with(path, repo_id, branches)
 
     @patch(MODULE + '.lib')
     def test_pull(self, fake_lib):
         remote_id = 'remote-123'
         path = 'root/path-123'
-        branch = 'branch-1'
+        branches = ['branch-1']
         repo = Mock()
         fake_lib.Repository.return_value = repo
         report = Mock(fetched=1, requested=2, percent=50)
@@ -189,13 +185,13 @@ class TestPull(TestCase):
         # test
         step = Pull()
         step.report_progress = Mock()
-        step._pull(path, remote_id, branch)
+        step._pull(path, remote_id, branches)
 
         # validation
         fake_lib.Repository.assert_called_once_with(path)
-        repo.pull.assert_called_once_with(remote_id, [branch], ANY)
+        repo.pull.assert_called_once_with(remote_id, branches, ANY)
         step.report_progress.assert_called_with(force=True)
-        self.assertEqual(step.progress_details, 'branch: branch-1 fetching 1/2 50%')
+        self.assertEqual(step.progress_details, 'fetching 1/2 50%')
 
     @patch(MODULE + '.lib')
     def test_pull_raising_exception(self, fake_lib):
@@ -216,18 +212,10 @@ class TestAdd(TestCase):
         self.assertEqual(step.step_id, constants.IMPORT_STEP_ADD_UNITS)
         self.assertTrue(step.description is not None)
 
-    @patch(MODULE + '.Add.add_units')
-    @patch(MODULE + '.Add.add_summary')
-    def test_process_main(self, add_summary, add_units):
-        step = Add()
-        step.process_main()
-        add_summary.assert_called_once_with()
-        add_units.assert_called_once_with()
-
     @patch(MODULE + '.lib')
     @patch(MODULE + '.model')
     @patch(MODULE + '.associate_single_unit')
-    def test_add_units(self, fake_associate, fake_model, fake_lib):
+    def test_process_main(self, fake_associate, fake_model, fake_lib):
         repo_id = 'r-1234'
         remote_id = 'remote-1'
         refs = [
@@ -258,7 +246,7 @@ class TestAdd(TestCase):
         step = Add()
         step.parent = parent
         step.get_conduit = Mock(return_value=fake_conduit)
-        step.add_units()
+        step.process_main()
 
         # validation
         fake_lib.Repository.assert_called_once_with(step.parent.storage_dir)
@@ -278,8 +266,11 @@ class TestAdd(TestCase):
                 ((parent.get_repo.return_value, u), {}) for u in units[:-1]
             ])
 
+
+class TestSummary(TestCase):
+
     @patch(MODULE + '.lib')
-    def test_add_summary(self, fake_lib):
+    def test_process_main(self, fake_lib):
         refs = [
             Mock(),
             Mock(),
@@ -295,9 +286,9 @@ class TestAdd(TestCase):
         parent.get_repo.return_value = repository
 
         # test
-        step = Add()
+        step = Summary()
         step.parent = parent
-        step.add_summary()
+        step.process_main()
 
         # validation
         fake_lib.Repository.assert_called_once_with(step.parent.storage_dir)

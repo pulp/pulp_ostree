@@ -30,6 +30,7 @@ DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH = 'relative_path'
 # Steps
 IMPORT_STEP_MAIN = 'import_main'
 IMPORT_STEP_CREATE_REPOSITORY = 'import_create_repository'
+IMPORT_STEP_SUMMARY = 'import_summary'
 IMPORT_STEP_PULL = 'import_pull'
 IMPORT_STEP_ADD_UNITS = 'import_add_unit'
 IMPORT_STEP_CLEAN = 'import_clean'
