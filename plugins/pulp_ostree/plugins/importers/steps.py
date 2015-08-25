@@ -129,7 +129,7 @@ class Pull(PluginStep):
 
     def process_main(self, item=None):
         """
-        Pull  each of the specified branches using the temporary remote
+        Pull each of the specified branches using the temporary remote
         configured using the repo_id as the remote_id.
 
         :raises PulpCodedException:
@@ -138,7 +138,7 @@ class Pull(PluginStep):
 
     def _pull(self, path, remote_id, refs):
         """
-        Pull  the specified branch.
+        Pull the specified branch.
 
         :param path: The absolute path to the local repository.
         :type path: str
