@@ -8,7 +8,7 @@ from gnupg import GPG
 from mongoengine import NotUniqueError
 
 from pulp.common.plugins import importer_constants
-from pulp.plugins.util.publish_step import PluginStep
+from pulp.plugins.util.publish_step import PluginStep, SaveUnitsStep
 from pulp.server.content.storage import SharedStorage
 from pulp.server.controllers.repository import associate_single_unit
 from pulp.server.exceptions import PulpCodedException
@@ -21,6 +21,9 @@ from pulp_ostree.plugins import lib
 log = getLogger(__name__)
 
 
+ALL = None  # all branches (refs)
+
+
 class Main(PluginStep):
     """
     The main synchronization step.
@@ -31,14 +34,24 @@ class Main(PluginStep):
             step_type=constants.IMPORT_STEP_MAIN,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID,
             **kwargs)
-        self.feed_url = self.config.get(importer_constants.KEY_FEED)
-        self.branches = self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, [])
         self.remote_id = model.generate_remote_id(self.feed_url)
-        self.repo_id = self.get_repo().repo_id
         self.add_child(Create())
+        self.add_child(Summary())
         self.add_child(Pull())
         self.add_child(Add())
         self.add_child(Clean())
+
+    @property
+    def feed_url(self):
+        return self.config.get(importer_constants.KEY_FEED)
+
+    @property
+    def branches(self):
+        return self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, ALL)
+
+    @property
+    def repo_id(self):
+        return self.get_repo().repo_id
 
     @property
     def storage_dir(self):
@@ -80,6 +93,31 @@ class Create(PluginStep):
             raise pe
 
 
+class Summary(PluginStep):
+    """
+    Update the summary information stored in the repository scratchpad.
+    """
+
+    def __init__(self):
+        super(Summary, self).__init__(step_type=constants.IMPORT_STEP_SUMMARY)
+        self.description = _('Update Summary')
+
+    def process_main(self, item=None):
+        """
+        Add/update the remote summary information in the
+        repository scratchpad.
+        """
+        repository = self.get_repo()
+        lib_repository = lib.Repository(self.parent.storage_dir)
+        remote = lib.Remote(self.parent.repo_id, lib_repository)
+        repository.scratchpad.update({
+            constants.REMOTE: {
+                constants.SUMMARY: [r.dict() for r in remote.list_refs()]
+            }
+        })
+        repository.save()
+
+
 class Pull(PluginStep):
     """
     Pull each of the specified branches.
@@ -96,10 +134,9 @@ class Pull(PluginStep):
 
         :raises PulpCodedException:
         """
-        for branch_id in self.parent.branches:
-            self._pull(self.parent.storage_dir, self.parent.repo_id, branch_id)
+        self._pull(self.parent.storage_dir, self.parent.repo_id, self.parent.branches)
 
-    def _pull(self, path, remote_id, branch_id):
+    def _pull(self, path, remote_id, refs):
         """
         Pull the specified branch.
 
@@ -107,29 +144,28 @@ class Pull(PluginStep):
         :type path: str
         :param remote_id: The remote ID.
         :type remote_id: str
-        :param branch_id: The branch to pull.
-        :type branch_id: str
+        :param refs: The refs to pull.
+        :type refs: list
         :raises PulpCodedException:
         """
         def report_progress(report):
             data = dict(
-                b=branch_id,
                 f=report.fetched,
                 r=report.requested,
                 p=report.percent
             )
-            self.progress_details = 'branch: %(b)s fetching %(f)d/%(r)d %(p)d%%' % data
+            self.progress_details = 'fetching %(f)d/%(r)d %(p)d%%' % data
             self.report_progress(force=True)
 
         try:
             repository = lib.Repository(path)
-            repository.pull(remote_id, [branch_id], report_progress)
+            repository.pull(remote_id, refs, report_progress)
         except lib.LibError, le:
-            pe = PulpCodedException(errors.OST0002, branch=branch_id, reason=str(le))
+            pe = PulpCodedException(errors.OST0002, reason=str(le))
             raise pe
 
 
-class Add(PluginStep):
+class Add(SaveUnitsStep):
     """
     Add content units.
     """
@@ -140,37 +176,15 @@ class Add(PluginStep):
 
     def process_main(self, item=None):
         """
-        Get the remote summary and add/update the repository
-        scratchpad.  Then, add the content unit and associate to the repository.
-        """
-        self.add_summary()
-        self.add_units()
-
-    def add_summary(self):
-        """
-        Add/update the remote summary information in the
-        repository scratchpad.
-        """
-        repository = self.get_repo()
-        lib_repository = lib.Repository(self.parent.storage_dir)
-        remote = lib.Remote(self.parent.repo_id, lib_repository)
-        repository.scratchpad.update({
-            constants.REMOTE: {
-                constants.SUMMARY: [r.dict() for r in remote.list_refs()]
-            }
-        })
-        repository.save()
-
-    def add_units(self):
-        """
         Find all branch (heads) in the local repository and
         create content units for them.
         """
         lib_repository = lib.Repository(self.parent.storage_dir)
         for ref in lib_repository.list_refs():
-            if ref.path not in self.parent.branches:
-                # not listed
-                continue
+            if self.parent.branches is not ALL:
+                if ref.path not in self.parent.branches:
+                    # not listed
+                    continue
             unit = model.Branch(
                 remote_id=self.parent.remote_id,
                 branch=ref.path,

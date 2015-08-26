@@ -8,8 +8,8 @@ OST0001 = Error('OST0001',
                 ['path', 'reason'])
 
 OST0002 = Error('OST0002',
-                _('Pulling remote branch: %(branch)s failed.  Reason: %(reason)s'),
-                ['branch', 'reason'])
+                _('Pulling remote refs failed.  Reason: %(reason)s'),
+                ['reason'])
 
 OST0003 = Error('OST0003',
                 _('Delete remote: %(id)s failed.  Reason: %(reason)s'),
