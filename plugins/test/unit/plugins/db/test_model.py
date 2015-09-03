@@ -3,6 +3,7 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
+from pulp_ostree.common import constants
 from pulp_ostree.plugins.db.model import Branch, MetadataField, generate_remote_id
 
 
@@ -48,6 +49,10 @@ class TestBranch(TestCase):
         # validation
         base.assert_called_once_with(sender, unit, **kwargs)
         self.assertEqual(unit.created, datetime.utcnow.return_value)
+
+    def test_storage_provider(self):
+        unit = Branch()
+        self.assertEqual(unit.storage_provider, constants.STORAGE_PROVIDER)
 
     def test_storage_id(self):
         unit = Branch(remote_id='123')

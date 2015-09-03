@@ -101,6 +101,17 @@ class Branch(SharedContentUnit):
         document.created = datetime.utcnow()
 
     @property
+    def storage_provider(self):
+        """
+        The storage provider.
+        This defines the storage mechanism and qualifies the storage_id.
+
+        :return: The storage provider.
+        :rtype: str
+        """
+        return constants.STORAGE_PROVIDER
+
+    @property
     def storage_id(self):
         """
         The identifier for the shared storage location.

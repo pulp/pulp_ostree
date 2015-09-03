@@ -70,7 +70,7 @@ class TestMainStep(TestCase):
         # test
         step = Main(repo=repo, config=config)
         path = step.storage_dir
-        storage.assert_called_once_with(step.remote_id)
+        storage.assert_called_once_with(constants.STORAGE_PROVIDER, step.remote_id)
         st.__enter__.assert_called_once_with()
         st.__exit__.assert_called_once_with(None, None, None)
         self.assertEqual(path, st.content_dir)
