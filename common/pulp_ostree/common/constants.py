@@ -1,6 +1,9 @@
 # Content
 OSTREE_TYPE_ID = 'ostree'
 
+# The shared storage provider
+STORAGE_PROVIDER = 'ostree'
+
 
 # Notes
 REPO_NOTE_OSTREE = 'OSTREE'

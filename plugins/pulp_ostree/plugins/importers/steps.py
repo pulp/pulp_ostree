@@ -55,7 +55,8 @@ class Main(PluginStep):
 
     @property
     def storage_dir(self):
-        with SharedStorage(self.remote_id) as storage:
+        storage_id = self.remote_id
+        with SharedStorage(constants.STORAGE_PROVIDER, storage_id) as storage:
             return storage.content_dir
 
 
