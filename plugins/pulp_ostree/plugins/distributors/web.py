@@ -5,7 +5,7 @@ import shutil
 
 from pulp.common.config import read_json_config
 from pulp.plugins.distributor import Distributor
-from pulp.server.db.model import Repository
+from pulp.server.db.models import Repository
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.distributors import configuration

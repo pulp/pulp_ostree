@@ -2,7 +2,7 @@ from datetime import datetime
 from hashlib import sha256
 
 from mongoengine import DateTimeField, StringField, DictField
-from pulp.server.db.model import SharedContentUnit
+from pulp.server.db.models import SharedContentUnit
 
 from pulp_ostree.common import constants
 

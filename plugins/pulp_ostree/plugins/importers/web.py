@@ -4,7 +4,7 @@ from gettext import gettext as _
 
 from pulp.common.config import read_json_config
 from pulp.plugins.importer import Importer
-from pulp.server.db.model import Repository
+from pulp.server.db.models import Repository
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.importers.steps import Main
