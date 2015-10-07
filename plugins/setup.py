@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pulp_ostree_plugins',
-    version='1.0.0b3',
+    version='1.0.0b4',
     packages=find_packages(),
     url='http://www.pulpproject.org',
     license='GPLv2+',
