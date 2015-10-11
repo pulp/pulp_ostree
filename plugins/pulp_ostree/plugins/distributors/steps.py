@@ -26,7 +26,7 @@ class WebPublisher(PluginStep):
     def __init__(self, repo, conduit, config, working_dir=None, **kwargs):
         """
         :param repo: The repository being published.
-        :type  repo: pulp.server.db.model.Repository
+        :type  repo: pulp.server.db.models.Repository
         :param conduit: Conduit providing access to relative Pulp functionality
         :type  conduit: pulp.plugins.conduits.repo_publish.RepoPublishConduit
         :param config: Pulp configuration for the distributor

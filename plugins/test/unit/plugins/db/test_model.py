@@ -43,7 +43,7 @@ class TestBranch(TestCase):
 
         # test
         unit = Branch()
-        with patch('pulp.server.db.model.SharedContentUnit.pre_save_signal') as base:
+        with patch('pulp.server.db.models.SharedContentUnit.pre_save_signal') as base:
             unit.pre_save_signal(sender, unit, **kwargs)
 
         # validation
