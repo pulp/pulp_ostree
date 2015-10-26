@@ -1,0 +1,30 @@
+=============================
+Pulp OSTree 1.0 Release Notes
+=============================
+
+Pulp OSTree 1.0.0
+=================
+
+New Features
+------------
+
+The Pulp team is pleased to release version 1.0.0 of the OSTree plugins for Pulp.
+These plugins provide support for OSTree repositories. Once the repository has been created
+and configured with a feed, branches can be pulled from a remote OSTree repository. Each pulled
+branch HEAD is stored as a content unit and associated with the repository. The actual
+trees are stored in a native OSTree repository. Content units can be copied between repositories.
+Publishing creates a new OSTree repository that is populated using OSTree *local-pull* of those
+commits specified by content units. The published repository contains *refs* for each branch
+and a summary file is generated.
+
+API Changes
+-----------
+
+- Added ``ostree_web_importer`` importer.
+- Added ``ostree_web_distributor`` distributor.
+
+
+Bugs Fixed
+----------
+
+You can see the :fixedbugs:`list of bugs fixed<1.0.0>`.
