@@ -114,7 +114,6 @@ to provide OSTree specific support.
 %{python_sitelib}/pulp_ostree/plugins/
 %config(noreplace) %{_sysconfdir}/httpd/conf.d/pulp_ostree.conf
 %config(noreplace) %{_sysconfdir}/pulp/server/plugins.conf.d/ostree_*.json
-%{_usr}/lib/pulp/plugins/types/ostree.json
 %{python_sitelib}/pulp_ostree_plugins*.egg-info
 %defattr(-,apache,apache,-)
 %{_var}/lib/pulp/published/ostree/
