@@ -81,9 +81,8 @@ class Branch(SharedContentUnit):
 
     # backward compatibility
     _ns = StringField(required=True, default=meta['collection'])
-    unit_type_id = StringField(
+    _content_type_id = StringField(
         required=True,
-        db_field='_content_type_id',
         default=constants.OSTREE_TYPE_ID)
 
     @classmethod

@@ -88,7 +88,7 @@ class MainStep(PluginStep):
         :rtype: iterable
         """
         units = {}
-        query = Q(unit_type_id=constants.OSTREE_TYPE_ID)
+        query = Q(_content_type_id=constants.OSTREE_TYPE_ID)
         associations = find_repo_content_units(
             self.get_repo(),
             repo_content_unit_q=query)

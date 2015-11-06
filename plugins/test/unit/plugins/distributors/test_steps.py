@@ -104,7 +104,7 @@ class TestMainStep(unittest.TestCase):
         unit_list = main._get_units()
 
         # validation
-        q.assert_called_once_with(unit_type_id=constants.OSTREE_TYPE_ID)
+        q.assert_called_once_with(_content_type_id=constants.OSTREE_TYPE_ID)
         find.assert_called_once_with(
             parent.get_repo.return_value, repo_content_unit_q=q.return_value)
         self.assertEqual(
