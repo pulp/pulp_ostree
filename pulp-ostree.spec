@@ -43,7 +43,6 @@ popd
 rm -rf %{buildroot}
 
 mkdir -p %{buildroot}/%{_sysconfdir}/pulp/
-mkdir -p %{buildroot}/%{_usr}/lib/pulp/plugins/types
 mkdir -p %{buildroot}/%{_var}/lib/pulp/published/ostree/
 mkdir -p %{buildroot}/%{_bindir}
 
@@ -60,7 +59,6 @@ pushd plugins
 popd
 
 cp -R plugins/etc %{buildroot}
-cp -R plugins/types/* %{buildroot}/%{_usr}/lib/pulp/plugins/types/
 
 # Remove tests
 rm -rf %{buildroot}/%{python_sitelib}/test
