@@ -5,7 +5,6 @@ import shutil
 
 from pulp.common.config import read_json_config
 from pulp.plugins.distributor import Distributor
-from pulp.server.db.model import Repository
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.distributors import configuration
@@ -84,8 +83,7 @@ class WebDistributor(Distributor):
         :rtype:  pulp.plugins.model.PublishReport
         """
         _logger.debug('Publishing ostree repository: %s' % repo.id)
-        repository = Repository.objects.get(repo_id=repo.id)
-        self._publisher = WebPublisher(repository, publish_conduit, config)
+        self._publisher = WebPublisher(repo, publish_conduit, config)
         return self._publisher.process_lifecycle()
 
     def cancel_publish_repo(self):
@@ -119,8 +117,8 @@ class WebDistributor(Distributor):
         """
         # remove the directories that might have been created for this repo/distributor
         dir_list = [repo.working_dir,
-                    configuration.get_master_publish_dir(repo, config),
-                    configuration.get_web_publish_dir(repo, config)]
+                    configuration.get_master_publish_dir(repo.repo_obj, config),
+                    configuration.get_web_publish_dir(repo.repo_obj, config)]
 
         for repo_dir in dir_list:
             # in case repo_dir is None

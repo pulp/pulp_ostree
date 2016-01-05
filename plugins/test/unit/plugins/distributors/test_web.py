@@ -66,15 +66,13 @@ class TestBasics(unittest.TestCase):
         self.distributor.distributor_removed(repo, config)
         self.assertEquals(0, len(os.listdir(self.working_dir)))
 
-    @patch('pulp_ostree.plugins.distributors.web.Repository')
     @patch('pulp_ostree.plugins.distributors.web.WebPublisher')
-    def test_publish_repo(self, mock_publisher, mock_repo):
+    def test_publish_repo(self, mock_publisher):
         repo = Repository('test')
         config = PluginCallConfiguration(None, None)
         conduit = RepoPublishConduit(repo.id, 'foo_repo')
         self.distributor.publish_repo(repo, conduit, config)
-        mock_repo.objects.get.assert_called_once_with(repo_id=repo.id)
-        mock_publisher.assert_called_once_with(mock_repo.objects.get.return_value, conduit, config)
+        mock_publisher.assert_called_once_with(repo, conduit, config)
         mock_publisher.return_value.assert_called_once()
 
     def test_cancel_publish_repo(self):

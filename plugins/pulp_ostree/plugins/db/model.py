@@ -37,6 +37,21 @@ class MetadataField(DictField):
         """
         return dict([(k.replace('.', '-'), v) for k, v in value.items()])
 
+    def validate(self, value):
+        """
+        Converts dict keys pre-validation. Otherwise validation will fail.
+
+        :param value: The original value.
+        :type value: dict
+        """
+        # borrowed from mongoengine. Without this, the error when a non-dict value is assigned
+        # would be a mysterious AttributeError from the above to_mongo() method.
+        if not isinstance(value, dict):
+            self.error('Only dictionaries may be used in a DictField')
+
+        converted = self.to_mongo(value)
+        super(MetadataField, self).validate(converted)
+
 
 class Branch(SharedContentUnit):
     """

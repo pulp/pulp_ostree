@@ -51,7 +51,7 @@ class Main(PluginStep):
 
     @property
     def repo_id(self):
-        return self.get_repo().repo_id
+        return self.get_repo().id
 
     @property
     def storage_dir(self):
@@ -108,15 +108,28 @@ class Summary(PluginStep):
         Add/update the remote summary information in the
         repository scratchpad.
         """
-        repository = self.get_repo()
+        repository = self.get_repo().repo_obj
         lib_repository = lib.Repository(self.parent.storage_dir)
         remote = lib.Remote(self.parent.repo_id, lib_repository)
+        refs = [r.dict() for r in remote.list_refs()]
+        map(self.convert_metadata_dict, refs)
         repository.scratchpad.update({
             constants.REMOTE: {
-                constants.SUMMARY: [r.dict() for r in remote.list_refs()]
+                constants.SUMMARY: refs
             }
         })
         repository.save()
+
+    @staticmethod
+    def convert_metadata_dict(ref):
+        """
+        Converts the metadata dict part of a ref dict so that keys do not include
+        dots.
+
+        :param ref: a dictionary retrieved with lib.Remote().list_refs()
+        :type  ref: dict
+        """
+        ref['metadata'] = dict((k.replace('.', '-'), v) for k, v in ref['metadata'].items())
 
 
 class Pull(PluginStep):
@@ -182,20 +195,23 @@ class Add(SaveUnitsStep):
         """
         lib_repository = lib.Repository(self.parent.storage_dir)
         for ref in lib_repository.list_refs():
+            # the branches listed here can have an undesired prefix ending with a ":"
+            branch = ref.path.split(':')[-1]
             if self.parent.branches is not ALL:
-                if ref.path not in self.parent.branches:
+                if branch not in self.parent.branches:
                     # not listed
+                    log.debug('skipping non-selected branch: {0}'.format(branch))
                     continue
             unit = model.Branch(
                 remote_id=self.parent.remote_id,
-                branch=ref.path,
+                branch=branch,
                 commit=ref.commit,
                 metadata=ref.metadata)
             try:
                 unit.save()
             except NotUniqueError:
                 unit = model.Branch.objects.get(**unit.unit_key)
-            associate_single_unit(self.get_repo(), unit)
+            associate_single_unit(self.get_repo().repo_obj, unit)
 
 
 class Clean(PluginStep):

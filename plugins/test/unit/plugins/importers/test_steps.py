@@ -1,6 +1,6 @@
 import os
 
-from unittest import TestCase
+from pulp.common.compat import unittest
 
 from mock import patch, Mock, PropertyMock, ANY
 
@@ -18,11 +18,11 @@ from pulp_ostree.common import constants, errors
 MODULE = 'pulp_ostree.plugins.importers.steps'
 
 
-class TestMainStep(TestCase):
+class TestMainStep(unittest.TestCase):
 
     @patch('pulp_ostree.plugins.db.model.generate_remote_id')
     def test_init(self, fake_generate):
-        repo = Mock(repo_id='id-123')
+        repo = Mock(id='id-123')
         conduit = Mock()
         working_dir = 'dir-123'
         url = 'url-123'
@@ -47,7 +47,7 @@ class TestMainStep(TestCase):
         self.assertEqual(step.feed_url, url)
         self.assertEqual(step.remote_id, digest)
         self.assertEqual(step.branches, branches)
-        self.assertEqual(step.repo_id, repo.repo_id)
+        self.assertEqual(step.repo_id, repo.id)
         self.assertEqual(len(step.children), 5)
         self.assertTrue(isinstance(step.children[0], Create))
         self.assertTrue(isinstance(step.children[1], Summary))
@@ -76,7 +76,7 @@ class TestMainStep(TestCase):
         self.assertEqual(path, st.content_dir)
 
 
-class TestCreate(TestCase):
+class TestCreate(unittest.TestCase):
 
     def test_init(self):
         step = Create()
@@ -147,7 +147,7 @@ class TestCreate(TestCase):
             self.assertEqual(pe.error_code, errors.OST0001)
 
 
-class TestPull(TestCase):
+class TestPull(unittest.TestCase):
 
     def test_init(self):
         step = Pull()
@@ -205,7 +205,7 @@ class TestPull(TestCase):
             self.assertEqual(pe.error_code, errors.OST0002)
 
 
-class TestAdd(TestCase):
+class TestAdd(unittest.TestCase):
 
     def test_init(self):
         step = Add()
@@ -231,14 +231,14 @@ class TestAdd(TestCase):
         fake_model.Branch.side_effect = units
         fake_model.Branch.objects.get.return_value = units[0]
 
-        branches = [r.path for r in refs[:-1]]
+        branches = [r.path.split(':')[-1] for r in refs[:-1]]
 
         repository = Mock()
         repository.list_refs.return_value = refs
         fake_lib.Repository.return_value = repository
 
         parent = Mock(remote_id=remote_id, storage_dir='/tmp/xyz', branches=branches)
-        parent.get_repo.return_value = Mock(repo_id=repo_id)
+        parent.get_repo.return_value = Mock(id=repo_id)
 
         fake_conduit = Mock()
 
@@ -255,7 +255,7 @@ class TestAdd(TestCase):
             [
                 ((), dict(
                     remote_id=remote_id,
-                    branch=r.path,
+                    branch=r.path.split(':')[-1],
                     commit=r.commit,
                     metadata=r.metadata))
                 for r in refs[:-1]
@@ -263,19 +263,26 @@ class TestAdd(TestCase):
         self.assertEqual(
             fake_associate.call_args_list,
             [
-                ((parent.get_repo.return_value, u), {}) for u in units[:-1]
+                ((parent.get_repo.return_value.repo_obj, u), {}) for u in units[:-1]
             ])
 
 
-class TestSummary(TestCase):
+class TestSummary(unittest.TestCase):
 
     @patch(MODULE + '.lib')
     def test_process_main(self, fake_lib):
         refs = [
             Mock(),
             Mock(),
-            Mock()
+            Mock(),
         ]
+        ref_dicts = [
+            {'commit': 'abc', 'name': 'foo', 'metadata': {'a.b': 'x'}},
+            {'commit': 'def', 'name': 'bar', 'metadata': {'a.b': 'y'}},
+            {'commit': 'hij', 'name': 'baz', 'metadata': {'a.b': 'z'}},
+        ]
+        for ref, d in zip(refs, ref_dicts):
+            ref.dict.return_value = d
         remote = Mock()
         remote.list_refs.return_value = refs
         lib_repository = Mock()
@@ -293,16 +300,28 @@ class TestSummary(TestCase):
         # validation
         fake_lib.Repository.assert_called_once_with(step.parent.storage_dir)
         fake_lib.Remote.assert_called_once_with(step.parent.repo_id, lib_repository)
-        repository.scratchpad.update.assert_called_once_with(
+        repository.repo_obj.scratchpad.update.assert_called_once_with(
             {
                 constants.REMOTE: {
-                    constants.SUMMARY: [r.dict() for r in remote.list_refs.return_value]
+                    constants.SUMMARY: [
+                        {'commit': 'abc', 'name': 'foo', 'metadata': {'a-b': 'x'}},
+                        {'commit': 'def', 'name': 'bar', 'metadata': {'a-b': 'y'}},
+                        {'commit': 'hij', 'name': 'baz', 'metadata': {'a-b': 'z'}},
+                    ]
                 }
             })
-        repository.save.assert_called_once_with()
+        repository.repo_obj.save.assert_called_once_with()
+
+    def test_convert_metadata_dict(self):
+        ref_dict = {'commit': 'abc', 'name': 'foo', 'metadata': {'a.b': 'x'}}
+
+        Summary.convert_metadata_dict(ref_dict)
+
+        self.assertDictEqual(ref_dict,
+                             {'commit': 'abc', 'name': 'foo', 'metadata': {'a-b': 'x'}})
 
 
-class TestClean(TestCase):
+class TestClean(unittest.TestCase):
 
     def test_init(self):
         step = Clean()
@@ -342,7 +361,7 @@ class TestClean(TestCase):
             self.assertEqual(pe.error_code, errors.OST0003)
 
 
-class TestRemote(TestCase):
+class TestRemote(unittest.TestCase):
 
     def test_init(self):
         step = Mock()

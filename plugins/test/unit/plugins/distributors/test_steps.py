@@ -5,6 +5,7 @@ import unittest
 from mock import Mock, patch
 
 from pulp_ostree.common import constants
+from pulp_ostree.plugins.db import model
 from pulp_ostree.plugins.distributors import steps
 
 
@@ -18,7 +19,7 @@ class TestWebPublisher(unittest.TestCase):
     @patch(MODULE + '.AtomicDirectoryPublishStep')
     @patch(MODULE + '.MainStep')
     def test_init(self, mock_main, mock_atomic, mock_configuration, mock_mkdir):
-        repo = Mock(repo_id='test', working_dir='/tmp/working')
+        repo = Mock(id='test', working_dir='/tmp/working')
         conduit = Mock()
         publish_dir = '/tmp/pub'
         master_pub_dir = '/tmp/master/pub'
@@ -81,19 +82,18 @@ class TestMainStep(unittest.TestCase):
         lib.Summary.assert_called_once_with(repository)
         lib.Summary.return_value.generate.assert_called_once_with()
 
-    @patch(MODULE + '.Q')
-    @patch(MODULE + '.find_repo_content_units')
-    def test_get_units(self, find, q):
-        associations = [
-            Mock(unit=Mock(name='0', branch='branch:1', created=0)),
-            Mock(unit=Mock(name='1', branch='branch:1', created=1)),
-            Mock(unit=Mock(name='2', branch='branch:2', created=2)),
-            Mock(unit=Mock(name='3', branch='branch:2', created=3)),
-            Mock(unit=Mock(name='4', branch='branch:2', created=4)),
-            Mock(unit=Mock(name='5', branch='branch:3', created=5)),
+    @patch(MODULE + '.get_unit_model_querysets')
+    def test_get_units(self, find):
+        units = [
+            Mock(name='0', branch='branch:1', created=0),
+            Mock(name='1', branch='branch:1', created=1),
+            Mock(name='2', branch='branch:2', created=2),
+            Mock(name='3', branch='branch:2', created=3),
+            Mock(name='4', branch='branch:2', created=4),
+            Mock(name='5', branch='branch:3', created=5),
         ]
 
-        find.return_value = reversed(associations)
+        find.return_value = [reversed(units)]
 
         parent = Mock()
         parent.get_repo.return_value = Mock(id='id-1234')
@@ -104,16 +104,15 @@ class TestMainStep(unittest.TestCase):
         unit_list = main._get_units()
 
         # validation
-        q.assert_called_once_with(_content_type_id=constants.OSTREE_TYPE_ID)
         find.assert_called_once_with(
-            parent.get_repo.return_value, repo_content_unit_q=q.return_value)
+            parent.get_repo.return_value.id, model.Branch)
         self.assertEqual(
             sorted(unit_list),
             sorted(
                 [
-                    associations[1].unit,
-                    associations[4].unit,
-                    associations[5].unit
+                    units[1],
+                    units[4],
+                    units[5]
                 ]))
 
     @patch('__builtin__.open')

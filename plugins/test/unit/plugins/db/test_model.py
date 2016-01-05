@@ -2,6 +2,7 @@ from hashlib import sha256
 from unittest import TestCase
 
 from mock import patch, Mock
+import mongoengine
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.db.model import Branch, MetadataField, generate_remote_id
@@ -32,6 +33,26 @@ class TestMetadataField(TestCase):
         }
         field = MetadataField()
         self.assertEqual(field.to_mongo(_in), _out)
+
+    def test_validate_with_dot(self):
+        """
+        The base DictField from mongoengine would fail this validation because of the dot in
+        the key. Our validator converts the '.' to a '-' before calling the validation code.
+        """
+        MetadataField().validate({'a.b': 'foo'})
+
+    def test_validate_with_dollar(self):
+        """
+        Ensures that the parent class validator is still being called.
+        """
+        self.assertRaises(mongoengine.ValidationError, MetadataField().validate, {'$stuff': 'foo'})
+
+    def test_validate_string(self):
+        """
+        Ensures that we
+        :return:
+        """
+        self.assertRaises(mongoengine.ValidationError, MetadataField().validate, 'foo')
 
 
 class TestBranch(TestCase):

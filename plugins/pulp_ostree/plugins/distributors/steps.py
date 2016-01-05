@@ -1,17 +1,17 @@
+import itertools
 import os
 import logging
 
 from gettext import gettext as _
 
-from mongoengine import Q
-
 from pulp.plugins.util.misc import mkdir
 from pulp.plugins.util.publish_step import PluginStep, AtomicDirectoryPublishStep
-from pulp.server.controllers.repository import find_repo_content_units
+from pulp.server.controllers.repository import get_unit_model_querysets
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins import lib
 from pulp_ostree.plugins.distributors import configuration
+from pulp_ostree.plugins.db.model import Branch
 
 
 _LOG = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class WebPublisher(PluginStep):
     def __init__(self, repo, conduit, config, working_dir=None, **kwargs):
         """
         :param repo: The repository being published.
-        :type  repo: pulp.server.db.model.Repository
+        :type  repo: pulp.plugins.model.Repository
         :param conduit: Conduit providing access to relative Pulp functionality
         :type  conduit: pulp.plugins.conduits.repo_publish.RepoPublishConduit
         :param config: Pulp configuration for the distributor
@@ -42,11 +42,11 @@ class WebPublisher(PluginStep):
             working_dir=working_dir,
             plugin_type=constants.WEB_DISTRIBUTOR_TYPE_ID,
             **kwargs)
-        self.publish_dir = os.path.join(self.get_working_dir(), repo.repo_id)
+        self.publish_dir = os.path.join(self.get_working_dir(), repo.id)
         atomic_publish = AtomicDirectoryPublishStep(
             self.get_working_dir(),
-            [(repo.repo_id, configuration.get_web_publish_dir(repo, config))],
-            configuration.get_master_publish_dir(repo, config),
+            [(repo.id, configuration.get_web_publish_dir(repo.repo_obj, config))],
+            configuration.get_master_publish_dir(repo.repo_obj, config),
             step_type=constants.PUBLISH_STEP_OVER_HTTP)
         atomic_publish.description = _('Making files available via web.')
         main = MainStep()
@@ -87,14 +87,11 @@ class MainStep(PluginStep):
         :return: An iterable of units to publish.
         :rtype: iterable
         """
-        units = {}
-        query = Q(_content_type_id=constants.OSTREE_TYPE_ID)
-        associations = find_repo_content_units(
-            self.get_repo(),
-            repo_content_unit_q=query)
-        for unit in sorted([a.unit for a in associations], key=lambda u: u.created):
-            units[unit.branch] = unit
-        return units.values()
+        units_by_branch = {}
+        units = itertools.chain(*get_unit_model_querysets(self.get_repo().id, Branch))
+        for unit in sorted(units, key=lambda u: u.created):
+            units_by_branch[unit.branch] = unit
+        return units_by_branch.values()
 
     @staticmethod
     def _add_ref(path, branch, commit):
