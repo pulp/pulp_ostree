@@ -13,7 +13,7 @@ The importer supports the settings documented in Pulp's `importer config docs`_ 
 of a the following OSTree specific properties:
 
 - ``branches`` - A list of branch names to be pulled during repository synchronization.
-  Only those branches listed will be pulled.
+  When the value is ``nil`` (or not specified), all branches will be pulled.
 - ``gpg_keys`` - An (optional) list of GPG keys used to validate signed commits.
 
 

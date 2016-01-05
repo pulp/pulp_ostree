@@ -3,11 +3,10 @@ Concepts
 
 .. _OSTree: https://wiki.gnome.org/action/show/Projects/OSTree?action=show&redirect=OSTree
 
-An ostree content unit represents a snapshot of an OSTree_ repository. A Pulp ostree repository
+An ostree content unit represents an OSTree_ branch head. A Pulp ostree repository
 may be synchronized with a :term:`remote` ostree repository. Each content unit created during
-synchronization with (the same) ``remote`` shares filesystem storage. Content units contain
-a snapshot of the repository's :term:`refs` and are uniquely identified by the
-:term:`remote_id` and the :term:`digest` of the unit's metadata.
+synchronization with (the same) ``remote`` shares filesystem storage.
+
 
 A Pulp ostree repository is configured with a list of branch names (or trees) which determines
 which branches are pulled during synchronization with its remote.  The list of branches may
