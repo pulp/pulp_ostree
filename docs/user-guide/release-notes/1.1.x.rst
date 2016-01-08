@@ -1,0 +1,35 @@
+=============================
+Pulp OSTree 1.1 Release Notes
+=============================
+
+
+Pulp OSTree 1.1.0
+=================
+
+New Features
+------------
+
+- The importer has the capability to pull *all* branches from the :term:`remote` OSTree repository.
+  This is controlled using the ``branches`` property in the importer configuration. When
+  the ``branches`` property is not specified or has the value of ``nil``, all of the braches
+  are pulled. When the ``branches`` property is set to an empty list ``[]``, no branches will
+  be pulled. This is useful for users that just want to fetch the ``summary`` information.
+
+- The importer now fetches the ``summary`` file from the remote OSTree repository. The
+  ``summary`` file provides a list of branches contained within the remote repository. This
+  information is stored in the Pulp repository scratchpad.
+
+
+API Changes
+-----------
+
+- The ``branches`` property in the importer configuration has changed. Previously, the
+  default value was an empty list. In this release, the default has been changed to ``nil``
+  and the associated behavior is to pull all branches. When the value is an empty list,
+  no branches are pulled.
+
+
+Bugs Fixed
+----------
+
+You can see the :fixedbugs:`list of bugs fixed<1.1.0>`.
