@@ -141,4 +141,59 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Mon Jan 11 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.1.beta
+- Bumping version to 1.1.0-0.1.beta (dkliban@redhat.com)
+- 1.1 release notes and docs updates. (jortel@redhat.com)
+- Merge pull request #55 from mhrivnak/fixes-for-platform
+  (mhrivnak@hrivnak.org)
+- adding el6 since there are now el6 packages for ostree (mhrivnak@redhat.com)
+- various fixes, mostly due to changes in platform (mhrivnak@redhat.com)
+- Convert shebang to python2 (ipanova@redhat.com)
+- Removed types/ directory references. (jortel@redhat.com)
+- Merge branch '1.0-dev' (dkliban@redhat.com)
+- Add fc23 to dist_list.txt config and removes fc21. (dkliban@redhat.com)
+- Bumping version to 1.0.1-0.1.beta (dkliban@redhat.com)
+- Updates plugin to match platform changes on ContentUnit (ipanova@redhat.com)
+- Removes a spec file entry for ostree.json which was removed
+  (bbouters@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.0.0-0.7.rc].
+  (dkliban@redhat.com)
+- Bumping version to 1.0.0-0.7.rc (dkliban@redhat.com)
+- Merge branch '1.0-dev' (dkliban@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (dkliban@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.0.0-0.5.beta].
+  (dkliban@redhat.com)
+- Bumping version to 1.0.0-0.5.beta (dkliban@redhat.com)
+- 1.0.0 release notes. (jortel@redhat.com)
+- Bumping version to 1.0.0-0.4.beta (dkliban@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.0.0-0.3.beta]. (pulp-
+  infra@redhat.com)
+- Bumping version to 1.0.0-0.3.beta (dkliban@redhat.com)
+- Merge branch '1.0-testing' into 1.0-dev (dkliban@redhat.com)
+- Merge branch '1.0-testing' (jortel@redhat.com)
+- Require 2015.8 - contains bug fixes and required features.
+  (jortel@redhat.com)
+- ref #1235 - add provider to shared storage. (jortel@redhat.com)
+- Bumps version to 1.1.0 alpha 1 (dkliban@redhat.com)
+- Fix docstring. (jortel@redhat.com)
+- ref #1178 - support pull all branches. (jortel@redhat.com)
+- ref #897 - fetch and store remote summary information in repo scratchpad.
+  (jortel@redhat.com)
+- ref #876 - convert to mongoengine model. (jortel@redhat.com)
+- Merge pull request #40 from jortel/issue-1162 (jortel@redhat.com)
+- ref #897 - support listing remote references. (jortel@redhat.com)
+- ref #1162 - replace (.) with (-) in commit metadata keys. (jortel@redhat.com)
+- mock < 1.1 in test requirements. (jortel@redhat.com)
+- formatting fixed. (jortel@redhat.com)
+- Merge branch 'master' into ssl-and-gpg-options (jortel@redhat.com)
+- Merge branch '1074' (ipanova@redhat.com)
+- Merge branch '1096' (ipanova@redhat.com)
+- Auto-publish now default to true. (ipanova@redhat.com)
+- Deleting an OSTree repo results in a TypeError on the server.
+  (ipanova@redhat.com)
+- Fix unit tests that fail against Pulp master (jeremy@jcline.org)
+- ref #911 - CLI support for SSL and GPG options. (jortel@redhat.com)
+- Merge pull request #31 from jortel/issue-912 (jortel@redhat.com)
+- ref #912 - support ssl and gpg options. (jortel@redhat.com)
+
 
