@@ -141,6 +141,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Wed Jan 13 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.2.beta
+- Bumping version to 1.1.0-0.2.beta (dkliban@redhat.com)
+
 * Mon Jan 11 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.1.beta
 - Bumping version to 1.1.0-0.1.beta (dkliban@redhat.com)
 - 1.1 release notes and docs updates. (jortel@redhat.com)
