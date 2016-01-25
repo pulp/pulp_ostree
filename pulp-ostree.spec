@@ -60,9 +60,6 @@ popd
 
 cp -R plugins/etc %{buildroot}
 
-# Remove tests
-rm -rf %{buildroot}/%{python_sitelib}/test
-
 %clean
 rm -rf %{buildroot}
 
