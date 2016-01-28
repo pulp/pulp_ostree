@@ -141,6 +141,12 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Thu Jan 28 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta
+- Merge branch '2327' (rbarlow@redhat.com)
+- Bumping version to 1.1.0-0.4.beta (dkliban@redhat.com)
+- Store WSGI scripts in /usr/share/pulp/wsgi instead of /srv.
+  (rbarlow@redhat.com)
+
 * Tue Jan 19 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.3.beta
 - Bumping version to 1.1.0-0.3.beta (dkliban@redhat.com)
 
