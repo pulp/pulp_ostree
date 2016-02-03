@@ -1,9 +1,12 @@
+#!/usr/bin/env python2
+
 from setuptools import setup, find_packages
+
 
 setup(
     name='pulp_ostree_plugins',
     version='1.1.0b5',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(exclude=['test', 'test.*']),
     url='http://www.pulpproject.org',
     license='GPLv2+',
     author='Pulp Team',
