@@ -86,12 +86,7 @@ class Branch(SharedContentUnit):
     meta = {
         'allow_inheritance': False,
         'collection': 'units_ostree',
-        'indexes': [
-            {
-                'fields': unit_key_fields,
-                'unique': True
-            },
-        ]
+        'indexes': []
     }
 
     # backward compatibility
