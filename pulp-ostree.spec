@@ -138,6 +138,13 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Fri Feb 19 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.5.beta
+- This uniqueness contstraint is now enforced by the platform for all content
+  units. (dkliban@redhat.com)
+- Do not install plugin tests. (rbarlow@redhat.com)
+- Do not install tests (pcreech@redhat.com)
+- Bumping version to 1.1.0-0.5.beta (dkliban@redhat.com)
+
 * Thu Jan 28 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.4.beta
 - Merge branch '2327' (rbarlow@redhat.com)
 - Bumping version to 1.1.0-0.4.beta (dkliban@redhat.com)
