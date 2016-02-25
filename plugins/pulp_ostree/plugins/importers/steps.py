@@ -34,6 +34,8 @@ class Main(PluginStep):
             step_type=constants.IMPORT_STEP_MAIN,
             plugin_type=constants.WEB_IMPORTER_TYPE_ID,
             **kwargs)
+        if not self.feed_url:
+            raise PulpCodedException(errors.OST0004)
         self.remote_id = model.generate_remote_id(self.feed_url)
         self.add_child(Create())
         self.add_child(Summary())
