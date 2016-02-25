@@ -55,6 +55,21 @@ class TestMainStep(unittest.TestCase):
         self.assertTrue(isinstance(step.children[3], Add))
         self.assertTrue(isinstance(step.children[4], Clean))
 
+    def test_init_no_feed(self):
+        repo = Mock(id='id-123')
+        url = None
+
+        config = {
+            importer_constants.KEY_FEED: url,
+            constants.IMPORTER_CONFIG_KEY_BRANCHES: []
+        }
+
+        # test and validation
+        try:
+            Main(repo=repo, config=config)
+        except PulpCodedException, pe:
+            self.assertEqual(pe.error_code, errors.OST0004)
+
     @patch(MODULE + '.SharedStorage')
     def test_storage_dir(self, storage):
         url = 'url-123'

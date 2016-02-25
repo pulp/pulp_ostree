@@ -14,3 +14,6 @@ OST0002 = Error('OST0002',
 OST0003 = Error('OST0003',
                 _('Delete remote: %(id)s failed.  Reason: %(reason)s'),
                 ['id', 'reason'])
+OST0004 = Error('OST0004',
+                _('Feed URL not specified'),
+                [])
