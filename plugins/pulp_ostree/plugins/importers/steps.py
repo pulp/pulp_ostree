@@ -110,11 +110,15 @@ class Summary(PluginStep):
         Add/update the remote summary information in the
         repository scratchpad.
         """
+        try:
+            lib_repository = lib.Repository(self.parent.storage_dir)
+            remote = lib.Remote(self.parent.repo_id, lib_repository)
+            refs = [r.dict() for r in remote.list_refs()]
+        except lib.LibError, le:
+            pe = PulpCodedException(errors.OST0005, reason=str(le))
+            raise pe
         repository = self.get_repo().repo_obj
-        lib_repository = lib.Repository(self.parent.storage_dir)
-        remote = lib.Remote(self.parent.repo_id, lib_repository)
-        refs = [r.dict() for r in remote.list_refs()]
-        map(self.convert_metadata_dict, refs)
+        map(self.clean_metadata, refs)
         repository.scratchpad.update({
             constants.REMOTE: {
                 constants.SUMMARY: refs
@@ -123,15 +127,17 @@ class Summary(PluginStep):
         repository.save()
 
     @staticmethod
-    def convert_metadata_dict(ref):
+    def clean_metadata(ref):
         """
-        Converts the metadata dict part of a ref dict so that keys do not include
-        dots.
+        Updates the metadata part of the specified ref by replacing
+        keys containing dot (.) with underscores (-).  This ensures the
+        keys can be stored in the DB.
 
-        :param ref: a dictionary retrieved with lib.Remote().list_refs()
+        :param ref: A dictionary retrieved with lib.Remote().list_refs()
         :type  ref: dict
         """
-        ref['metadata'] = dict((k.replace('.', '-'), v) for k, v in ref['metadata'].items())
+        key = 'metadata'
+        ref[key] = dict((k.replace('.', '-'), v) for k, v in ref[key].items())
 
 
 class Pull(PluginStep):

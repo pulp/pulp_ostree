@@ -67,6 +67,7 @@ class TestMainStep(unittest.TestCase):
         # test and validation
         try:
             Main(repo=repo, config=config)
+            self.assertTrue(False, msg='Main.__init__() exception expected')
         except PulpCodedException, pe:
             self.assertEqual(pe.error_code, errors.OST0004)
 
@@ -327,13 +328,54 @@ class TestSummary(unittest.TestCase):
             })
         repository.repo_obj.save.assert_called_once_with()
 
-    def test_convert_metadata_dict(self):
-        ref_dict = {'commit': 'abc', 'name': 'foo', 'metadata': {'a.b': 'x'}}
+    @patch(MODULE + '.lib')
+    def test_process_main_fetch_failed(self, fake_lib):
+        remote = Mock()
+        remote.list_refs.side_effect = LibError
+        lib_repository = Mock()
+        repository = Mock(id='1234')
+        fake_lib.Remote.return_value = remote
+        fake_lib.Repository.return_value = lib_repository
+        fake_lib.LibError = LibError
+        parent = Mock(storage_dir='/tmp/xx', repo_id=repository.id)
+        parent.get_repo.return_value = repository
 
-        Summary.convert_metadata_dict(ref_dict)
+        # test and validation
+        step = Summary()
+        step.parent = parent
+        try:
+            step.process_main()
+            self.assertTrue(False, msg='Fetch exception expected')
+        except PulpCodedException, pe:
+            self.assertEqual(pe.error_code, errors.OST0005)
 
-        self.assertDictEqual(ref_dict,
-                             {'commit': 'abc', 'name': 'foo', 'metadata': {'a-b': 'x'}})
+    def test_clean_metadata(self):
+        commit = 'abc'
+        name = 'foo'
+        metadata = {
+            'a.b': '123',
+            'a.b.c': '456',
+            'created': '2016-02-23T22:49:05Z'
+        }
+        ref = {
+            'commit': commit,
+            'name': name,
+            'metadata': metadata
+        }
+
+        cleaned = dict((k.replace('.', '-'), v) for k, v in metadata.items())
+
+        # test
+        Summary.clean_metadata(ref)
+
+        # validation
+        self.assertDictEqual(
+            ref,
+            {
+                'commit': commit,
+                'name': name,
+                'metadata': cleaned
+            })
 
 
 class TestClean(unittest.TestCase):
