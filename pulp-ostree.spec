@@ -138,6 +138,16 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Wed Mar 02 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.6.beta
+- Better handling of GLib.Error raised when fetching the summary. closes #1722
+  (jortel@redhat.com)
+- Merge pull request #63 from jortel/issue-1720 (jortel@redhat.com)
+- Better handling of sync without feed URL specified. closes #1720
+  (jortel@redhat.com)
+- Merge pull request #62 from seandst/413 (sean.myers@redhat.com)
+- Bumping version to 1.1.0-0.6.beta (dkliban@redhat.com)
+- Block attempts to load server.conf when running tests (sean.myers@redhat.com)
+
 * Fri Feb 19 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.5.beta
 - This uniqueness contstraint is now enforced by the platform for all content
   units. (dkliban@redhat.com)
