@@ -138,6 +138,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.7.beta
+- Bumping version to 1.1.0-0.7.beta (dkliban@redhat.com)
+
 * Wed Mar 02 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.6.beta
 - Better handling of GLib.Error raised when fetching the summary. closes #1722
   (jortel@redhat.com)
