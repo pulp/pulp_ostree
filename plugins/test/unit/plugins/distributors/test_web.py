@@ -83,6 +83,7 @@ class TestBasics(unittest.TestCase):
 
     @patch('pulp_ostree.plugins.distributors.web.configuration.validate_config')
     def test_validate_config(self, mock_validate):
-        value = self.distributor.validate_config(Mock(), 'foo', Mock())
-        mock_validate.assert_called_once_with('foo')
+        m_repo = Mock()
+        value = self.distributor.validate_config(m_repo, 'foo', Mock())
+        mock_validate.assert_called_once_with(m_repo, 'foo')
         self.assertEquals(value, mock_validate.return_value)
