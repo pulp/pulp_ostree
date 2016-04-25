@@ -138,6 +138,11 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Mon Apr 25 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-0.1.beta
+- Ensure unique relative path at validation time (asmacdo@gmail.com)
+- Bumping version to 1.1.1-0.1.beta (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.8.beta (dkliban@redhat.com)
+
 * Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.7.beta
 - Bumping version to 1.1.0-0.7.beta (dkliban@redhat.com)
 
