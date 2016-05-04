@@ -2,6 +2,11 @@
 Pulp OSTree 1.1 Release Notes
 =============================
 
+Pulp OSTree 1.1.1
+=================
+
+You can see the :fixedbugs:`list of bugs fixed<1.1.1>`.
+
 
 Pulp OSTree 1.1.0
 =================
