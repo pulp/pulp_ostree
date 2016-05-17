@@ -138,6 +138,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Tue May 17 2016 Sean Myers <sean.myers@redhat.com> 1.1.1-1
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+
 * Mon May 16 2016 pulpbot <pulp-infra@redhat.com> 1.1.1-0.4.rc
 - Bumping version to 1.1.1-0.4.rc (pulp-infra@redhat.com)
 - Configures Sphinx docs config to not look for static media
