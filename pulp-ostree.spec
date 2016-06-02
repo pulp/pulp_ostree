@@ -98,6 +98,7 @@ Requires: pulp-server >= %{platform_version}
 Requires: python-setuptools
 Requires: ostree >= 2015.8
 Requires: python-gnupg
+Requires: gnupg
 Requires: pygobject3
 
 %description plugins
