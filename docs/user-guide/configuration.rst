@@ -17,4 +17,4 @@ of a the following OSTree specific properties:
 - ``gpg_keys`` - An (optional) list of GPG keys used to validate signed commits.
 
 
-.. _importer config docs: https://pulp-user-guide.readthedocs.org/en/latest/server.html#importers
+.. _importer config docs: https://docs.pulpproject.org/en/latest/server.html#importers
