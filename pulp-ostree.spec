@@ -139,6 +139,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Mon Jun 27 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-1
+- Bumping version to 1.1.2-1 (sean.myers@redhat.com)
+
 * Wed Jun 15 2016 Sean Myers <sean.myers@redhat.com> 1.1.2-0.1.beta
 - Bumping version to 1.1.2-0.1.beta (sean.myers@redhat.com)
 - Add gnupg as dependency (ipanova@redhat.com)
