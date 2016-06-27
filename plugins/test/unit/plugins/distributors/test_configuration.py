@@ -3,8 +3,7 @@ import shutil
 import tempfile
 import unittest
 
-from mock import Mock
-
+import mock
 from pulp.plugins.config import PluginCallConfiguration
 
 from pulp_ostree.common import constants
@@ -18,7 +17,7 @@ class TestConfigurationGetters(unittest.TestCase):
         self.publish_dir = os.path.join(self.working_directory, 'publish')
         self.repo_working = os.path.join(self.working_directory, 'work')
 
-        self.repo = Mock(id='foo', working_dir=self.repo_working)
+        self.repo = mock.Mock(id='foo', working_dir=self.repo_working)
         self.config = PluginCallConfiguration({constants.DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY:
                                               self.publish_dir}, {})
 
@@ -50,9 +49,11 @@ class TestConfigurationGetters(unittest.TestCase):
         self.assertEquals(directory, relative_path[1:])
 
 
+@mock.patch('pulp_ostree.plugins.distributors.configuration.model.Distributor.objects')
 class TestValidateConfig(unittest.TestCase):
 
-    def test_server_url_fully_qualified(self):
+    def test_server_url_fully_qualified(self, mock_dist_qs):
+        m_repo = mock.MagicMock()
         config = PluginCallConfiguration({}, {})
-        self.assertEquals((True, None),
-                          configuration.validate_config(config))
+        self.assertEquals(
+            (True, None), configuration.validate_config(m_repo, config))
