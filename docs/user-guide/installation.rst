@@ -1,7 +1,7 @@
 Installation
 ============
 
-.. _Pulp User Guide: http://pulp-user-guide.readthedocs.org
+.. _Pulp User Guide: https://docs.pulpproject.org
 
 Prerequisites
 -------------
