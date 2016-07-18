@@ -139,6 +139,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Mon Jul 18 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-1
+- Bumping version to 1.1.3-1 (sean.myers@redhat.com)
+
 * Mon Jul 11 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-0.1.beta
 - Bumping version to 1.1.3-0.1.beta (sean.myers@redhat.com)
 - Automatic commit of package [pulp-ostree] release [1.1.2-1].
