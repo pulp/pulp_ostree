@@ -6,7 +6,7 @@
 
 
 Name: pulp-ostree
-Version: 1.1.3
+Version: 1.1.4
 Release: 0.1.alpha%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
