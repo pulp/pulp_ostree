@@ -2,6 +2,7 @@ import os
 
 from gettext import gettext as _
 from logging import getLogger
+from urlparse import urlparse, urlunparse
 
 from gnupg import GPG
 
@@ -400,11 +401,17 @@ class Remote(object):
         port = self.config.get(importer_constants.KEY_PROXY_PORT)
         user = self.config.get(importer_constants.KEY_PROXY_USER)
         password = self.config.get(importer_constants.KEY_PROXY_PASS)
-        if host and port:
-            url = ':'.join((host, str(port)))
+        if host:
+            host = host.split('://', 1)
+            if len(host) == 1:
+                host = ('http', host[0])
+            host = '://'.join(host)
+            parsed = list(urlparse(host))
+            if port:
+                parsed[1] = '{}:{}'.format(parsed[1], port)
             if user and password:
-                auth = ':'.join((user, password))
-                url = '@'.join((auth, url))
+                parsed[1] = '{}:{}@{}'.format(user, password, parsed[1])
+            url = urlunparse(parsed)
         return url
 
     def add(self):
