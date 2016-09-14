@@ -2,7 +2,7 @@ import os
 
 import unittest
 
-from mock import Mock, patch
+from mock import Mock, patch, call
 
 from pulp_ostree.common import constants
 from pulp_ostree.plugins.db import model
@@ -36,7 +36,7 @@ class TestWebPublisher(unittest.TestCase):
             [('test', '/tmp/pub')],
             '/tmp/master/pub',
             step_type=constants.PUBLISH_STEP_OVER_HTTP)
-        mock_main.assert_called_once_with()
+        mock_main.assert_called_once_with(config=config)
         self.assertEquals(
             publisher.children,
             [mock_main.return_value, mock_atomic.return_value])
@@ -52,13 +52,17 @@ class TestMainStep(unittest.TestCase):
     @patch(MODULE + '.MainStep._add_ref')
     @patch(MODULE + '.lib')
     def test_process_main(self, lib, add_ref):
+        depth = 3
         units = [
             Mock(branch='branch:1', commit='commit:1', storage_path='path:1'),
             Mock(branch='branch:2', commit='commit:2', storage_path='path:2'),
         ]
         repository = Mock()
         lib.Repository.return_value = repository
-        parent = Mock(publish_dir='/tmp/dir-1234')
+        config = {
+            constants.DISTRIBUTOR_CONFIG_KEY_DEPTH: '3'
+        }
+        parent = Mock(publish_dir='/tmp/dir-1234', config=config)
 
         # test
         main = steps.MainStep()
@@ -72,12 +76,12 @@ class TestMainStep(unittest.TestCase):
         self.assertEqual(
             repository.pull_local.call_args_list,
             [
-                ((u.storage_path, [u.commit]), {}) for u in units
+                call(u.storage_path, [u.commit], depth) for u in units
             ])
         self.assertEqual(
             add_ref.call_args_list,
             [
-                ((parent.publish_dir, u.branch, u.commit), {}) for u in units
+                call(parent.publish_dir, u.branch, u.commit) for u in units
             ])
         lib.Summary.assert_called_once_with(repository)
         lib.Summary.return_value.generate.assert_called_once_with()

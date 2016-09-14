@@ -49,7 +49,7 @@ class WebPublisher(PluginStep):
             configuration.get_master_publish_dir(repo.repo_obj, config),
             step_type=constants.PUBLISH_STEP_OVER_HTTP)
         atomic_publish.description = _('Making files available via web.')
-        main = MainStep()
+        main = MainStep(config=config)
         self.add_child(main)
         self.add_child(atomic_publish)
         mkdir(self.publish_dir)
@@ -63,6 +63,12 @@ class MainStep(PluginStep):
         self.redirect_context = None
         self.description = _('Publish Trees')
 
+    @property
+    def depth(self):
+        depth = self.parent.config.get(
+            constants.IMPORTER_CONFIG_KEY_DEPTH, constants.DEFAULT_DEPTH)
+        return int(depth)
+
     def process_main(self, item=None):
         """
         Publish the repository.
@@ -75,7 +81,7 @@ class MainStep(PluginStep):
         repository = lib.Repository(path)
         repository.create()
         for unit in self._get_units():
-            repository.pull_local(unit.storage_path, [unit.commit])
+            repository.pull_local(unit.storage_path, [unit.commit], self.depth)
             MainStep._add_ref(path, unit.branch, unit.commit)
         summary = lib.Summary(repository)
         summary.generate()

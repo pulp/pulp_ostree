@@ -52,6 +52,11 @@ class Main(PluginStep):
         return self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, ALL)
 
     @property
+    def depth(self):
+        depth = self.config.get(constants.IMPORTER_CONFIG_KEY_DEPTH, constants.DEFAULT_DEPTH)
+        return int(depth)
+
+    @property
     def repo_id(self):
         return self.get_repo().id
 
@@ -156,9 +161,13 @@ class Pull(PluginStep):
 
         :raises PulpCodedException:
         """
-        self._pull(self.parent.storage_dir, self.parent.repo_id, self.parent.branches)
+        self._pull(
+            self.parent.storage_dir,
+            self.parent.repo_id,
+            self.parent.branches,
+            self.parent.depth)
 
-    def _pull(self, path, remote_id, refs):
+    def _pull(self, path, remote_id, refs, depth):
         """
         Pull the specified branch.
 
@@ -168,6 +177,8 @@ class Pull(PluginStep):
         :type remote_id: str
         :param refs: The refs to pull.
         :type refs: list
+        :param depth: The tree traversal depth.
+        :type depth: int
         :raises PulpCodedException:
         """
         def report_progress(report):
@@ -181,7 +192,7 @@ class Pull(PluginStep):
 
         try:
             repository = lib.Repository(path)
-            repository.pull(remote_id, refs, report_progress)
+            repository.pull(remote_id, refs, report_progress, depth)
         except lib.LibError, le:
             pe = PulpCodedException(errors.OST0002, reason=str(le))
             raise pe
