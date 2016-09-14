@@ -21,13 +21,16 @@ CLI_WEB_DISTRIBUTOR_ID = 'ostree_web_distributor_name_cli'
 
 
 # Configuration
+DEFAULT_DEPTH = 0
 IMPORTER_CONFIG_KEY_BRANCHES = 'branches'
+IMPORTER_CONFIG_KEY_DEPTH = 'depth'
 IMPORTER_CONFIG_KEY_GPG_KEYS = 'gpg_keys'
 IMPORTER_CONFIG_FILE_PATH = 'server/plugins.conf.d/ostree_importer.json'
 DISTRIBUTOR_CONFIG_KEY_PUBLISH_DIRECTORY = 'ostree_publish_directory'
 DISTRIBUTOR_CONFIG_VALUE_PUBLISH_DIRECTORY = '/var/lib/pulp/published/ostree'
 DISTRIBUTOR_CONFIG_FILE_PATH = 'server/plugins.conf.d/ostree_distributor.json'
 DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH = 'relative_path'
+DISTRIBUTOR_CONFIG_KEY_DEPTH = 'depth'
 
 
 # Steps
