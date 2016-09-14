@@ -589,10 +589,10 @@ class TestRemote(unittest.TestCase):
         self.assertEqual(key_ids, [k['keyid'] for k in key_list])
 
     def test_proxy_url(self):
-        host = 'proxy-host'
-        port = 'proxy-port'
-        user = 'proxy-user'
-        password = 'proxy-password'
+        host = 'http://dog.com'
+        port = '3128'
+        user = 'jake'
+        password = 'bark'
         config = {
             importer_constants.KEY_PROXY_HOST: host,
             importer_constants.KEY_PROXY_PORT: port,
@@ -602,15 +602,87 @@ class TestRemote(unittest.TestCase):
         step = Mock()
         step.get_config.return_value = config
 
-        proxy_url = '@'.join(
-            (':'.join((user, password)),
-             ':'.join((host, port))))
+        proxy_url = 'http://jake:bark@dog.com:3128'
 
         # test
         remote = Remote(step, None)
 
         # validation
         self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_url_without_scheme(self):
+        host = 'dog.com'
+        port = '3128'
+        user = 'jake'
+        password = 'bark'
+        config = {
+            importer_constants.KEY_PROXY_HOST: host,
+            importer_constants.KEY_PROXY_PORT: port,
+            importer_constants.KEY_PROXY_USER: user,
+            importer_constants.KEY_PROXY_PASS: password,
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        proxy_url = 'http://jake:bark@dog.com:3128'
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_url_without_port(self):
+        host = 'http://dog.com'
+        port = None
+        user = 'jake'
+        password = 'bark'
+        config = {
+            importer_constants.KEY_PROXY_HOST: host,
+            importer_constants.KEY_PROXY_PORT: port,
+            importer_constants.KEY_PROXY_USER: user,
+            importer_constants.KEY_PROXY_PASS: password,
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        proxy_url = 'http://jake:bark@dog.com'
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_without_auth(self):
+        host = 'http://dog.com'
+        port = '3128'
+        config = {
+            importer_constants.KEY_PROXY_HOST: host,
+            importer_constants.KEY_PROXY_PORT: port,
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        proxy_url = 'http://dog.com:3128'
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_without_host(self):
+        config = {
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, None)
 
     @patch(MODULE + '.lib')
     @patch(MODULE + '.Remote.url', PropertyMock())
