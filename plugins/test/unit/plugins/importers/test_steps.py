@@ -27,11 +27,13 @@ class TestMainStep(unittest.TestCase):
         working_dir = 'dir-123'
         url = 'url-123'
         branches = ['branch-1', 'branch-2']
+        depth = 3
         digest = 'digest-123'
         fake_generate.return_value = digest
         config = {
             importer_constants.KEY_FEED: url,
-            constants.IMPORTER_CONFIG_KEY_BRANCHES: branches
+            constants.IMPORTER_CONFIG_KEY_BRANCHES: branches,
+            constants.IMPORTER_CONFIG_KEY_DEPTH: depth,
         }
 
         # test
@@ -47,6 +49,7 @@ class TestMainStep(unittest.TestCase):
         self.assertEqual(step.feed_url, url)
         self.assertEqual(step.remote_id, digest)
         self.assertEqual(step.branches, branches)
+        self.assertEqual(step.depth, depth)
         self.assertEqual(step.repo_id, repo.id)
         self.assertEqual(len(step.children), 5)
         self.assertTrue(isinstance(step.children[0], Create))
@@ -174,26 +177,28 @@ class TestPull(unittest.TestCase):
         repo_id = 'repo-xyz'
         path = 'root/path-123'
         branches = ['branch-1', 'branch-2']
+        depth = 3
 
         # test
         step = Pull()
-        step.parent = Mock(storage_dir=path, repo_id=repo_id, branches=branches)
+        step.parent = Mock(storage_dir=path, repo_id=repo_id, branches=branches, depth=depth)
         step._pull = Mock()
         step.process_main()
 
         # validation
-        step._pull.assert_called_once_with(path, repo_id, branches)
+        step._pull.assert_called_once_with(path, repo_id, branches, depth)
 
     @patch(MODULE + '.lib')
     def test_pull(self, fake_lib):
         remote_id = 'remote-123'
         path = 'root/path-123'
         branches = ['branch-1']
+        depth = 3
         repo = Mock()
         fake_lib.Repository.return_value = repo
         report = Mock(fetched=1, requested=2, percent=50)
 
-        def fake_pull(remote_id, branch, listener):
+        def fake_pull(remote_id, branch, listener, depth):
             listener(report)
 
         repo.pull.side_effect = fake_pull
@@ -201,11 +206,11 @@ class TestPull(unittest.TestCase):
         # test
         step = Pull()
         step.report_progress = Mock()
-        step._pull(path, remote_id, branches)
+        step._pull(path, remote_id, branches, depth)
 
         # validation
         fake_lib.Repository.assert_called_once_with(path)
-        repo.pull.assert_called_once_with(remote_id, branches, ANY)
+        repo.pull.assert_called_once_with(remote_id, branches, ANY, depth)
         step.report_progress.assert_called_with(force=True)
         self.assertEqual(step.progress_details, 'fetching 1/2 50%')
 
@@ -215,7 +220,7 @@ class TestPull(unittest.TestCase):
         fake_lib.Repository.return_value.pull.side_effect = LibError
         try:
             step = Pull()
-            step._pull('', '', '')
+            step._pull('', '', '', 0)
             self.assertTrue(False, msg='Pull exception expected')
         except PulpCodedException, pe:
             self.assertEqual(pe.error_code, errors.OST0002)
@@ -584,10 +589,10 @@ class TestRemote(unittest.TestCase):
         self.assertEqual(key_ids, [k['keyid'] for k in key_list])
 
     def test_proxy_url(self):
-        host = 'proxy-host'
-        port = 'proxy-port'
-        user = 'proxy-user'
-        password = 'proxy-password'
+        host = 'http://dog.com'
+        port = '3128'
+        user = 'jake'
+        password = 'bark'
         config = {
             importer_constants.KEY_PROXY_HOST: host,
             importer_constants.KEY_PROXY_PORT: port,
@@ -597,15 +602,87 @@ class TestRemote(unittest.TestCase):
         step = Mock()
         step.get_config.return_value = config
 
-        proxy_url = '@'.join(
-            (':'.join((user, password)),
-             ':'.join((host, port))))
+        proxy_url = 'http://jake:bark@dog.com:3128'
 
         # test
         remote = Remote(step, None)
 
         # validation
         self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_url_without_scheme(self):
+        host = 'dog.com'
+        port = '3128'
+        user = 'jake'
+        password = 'bark'
+        config = {
+            importer_constants.KEY_PROXY_HOST: host,
+            importer_constants.KEY_PROXY_PORT: port,
+            importer_constants.KEY_PROXY_USER: user,
+            importer_constants.KEY_PROXY_PASS: password,
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        proxy_url = 'http://jake:bark@dog.com:3128'
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_url_without_port(self):
+        host = 'http://dog.com'
+        port = None
+        user = 'jake'
+        password = 'bark'
+        config = {
+            importer_constants.KEY_PROXY_HOST: host,
+            importer_constants.KEY_PROXY_PORT: port,
+            importer_constants.KEY_PROXY_USER: user,
+            importer_constants.KEY_PROXY_PASS: password,
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        proxy_url = 'http://jake:bark@dog.com'
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_without_auth(self):
+        host = 'http://dog.com'
+        port = '3128'
+        config = {
+            importer_constants.KEY_PROXY_HOST: host,
+            importer_constants.KEY_PROXY_PORT: port,
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        proxy_url = 'http://dog.com:3128'
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, proxy_url)
+
+    def test_proxy_without_host(self):
+        config = {
+        }
+        step = Mock()
+        step.get_config.return_value = config
+
+        # test
+        remote = Remote(step, None)
+
+        # validation
+        self.assertEqual(remote.proxy_url, None)
 
     @patch(MODULE + '.lib')
     @patch(MODULE + '.Remote.url', PropertyMock())

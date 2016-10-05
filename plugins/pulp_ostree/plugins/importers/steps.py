@@ -2,6 +2,7 @@ import os
 
 from gettext import gettext as _
 from logging import getLogger
+from urlparse import urlparse, urlunparse
 
 from gnupg import GPG
 
@@ -50,6 +51,11 @@ class Main(PluginStep):
     @property
     def branches(self):
         return self.config.get(constants.IMPORTER_CONFIG_KEY_BRANCHES, ALL)
+
+    @property
+    def depth(self):
+        depth = self.config.get(constants.IMPORTER_CONFIG_KEY_DEPTH, constants.DEFAULT_DEPTH)
+        return int(depth)
 
     @property
     def repo_id(self):
@@ -156,9 +162,13 @@ class Pull(PluginStep):
 
         :raises PulpCodedException:
         """
-        self._pull(self.parent.storage_dir, self.parent.repo_id, self.parent.branches)
+        self._pull(
+            self.parent.storage_dir,
+            self.parent.repo_id,
+            self.parent.branches,
+            self.parent.depth)
 
-    def _pull(self, path, remote_id, refs):
+    def _pull(self, path, remote_id, refs, depth):
         """
         Pull the specified branch.
 
@@ -168,6 +178,8 @@ class Pull(PluginStep):
         :type remote_id: str
         :param refs: The refs to pull.
         :type refs: list
+        :param depth: The tree traversal depth.
+        :type depth: int
         :raises PulpCodedException:
         """
         def report_progress(report):
@@ -181,7 +193,7 @@ class Pull(PluginStep):
 
         try:
             repository = lib.Repository(path)
-            repository.pull(remote_id, refs, report_progress)
+            repository.pull(remote_id, refs, report_progress, depth)
         except lib.LibError, le:
             pe = PulpCodedException(errors.OST0002, reason=str(le))
             raise pe
@@ -400,11 +412,17 @@ class Remote(object):
         port = self.config.get(importer_constants.KEY_PROXY_PORT)
         user = self.config.get(importer_constants.KEY_PROXY_USER)
         password = self.config.get(importer_constants.KEY_PROXY_PASS)
-        if host and port:
-            url = ':'.join((host, str(port)))
+        if host:
+            host = host.split('://', 1)
+            if len(host) == 1:
+                host = ('http', host[0])
+            host = '://'.join(host)
+            parsed = list(urlparse(host))
+            if port:
+                parsed[1] = '{}:{}'.format(parsed[1], port)
             if user and password:
-                auth = ':'.join((user, password))
-                url = '@'.join((auth, url))
+                parsed[1] = '{}:{}@{}'.format(user, password, parsed[1])
+            url = urlunparse(parsed)
         return url
 
     def add(self):

@@ -126,6 +126,122 @@ class Ref(object):
         return dict(self.__dict__)
 
 
+class Variant(object):
+    """
+    Variant encoding.
+    """
+
+    @staticmethod
+    def utf8(thing):
+        """
+        Encode as UTF-8.
+
+        :param thing: An object.
+        :return: The utf-8 encoded string.
+        """
+        return unicode(thing).encode('utf8')
+
+    @staticmethod
+    def dict(d):
+        """
+        Encode as a (variant) dictionary.
+
+        :param d: A dictionary to encode.
+        :type  d: dict
+        :return: The variant.
+        :rtype: lib.GLib.Variant
+        """
+        tag = 'a{sv}'
+        lib = Lib()
+        return lib.GLib.Variant(tag, d)
+
+    @staticmethod
+    def opt_dict(d):
+        """
+        Encode as a (variant) options dictionary.
+        All items with None values are omitted.
+
+        :param d: A dictionary to encode.
+        :type  d: dict
+        :return: The variant.
+        :rtype: lib.GLib.Variant
+        """
+        filtered = dict((k, v) for k, v in d.iteritems() if v)
+        return Variant.dict(filtered)
+
+    @staticmethod
+    def str_list(collection):
+        """
+        Encode as (variant) string array.
+
+        :param collection: An iterable.
+        :type  collection: iterable
+        :return: A value to be used in variants.
+        :rtype: lib.GLib.Variant
+        """
+        tag = 'as'
+        lib = Lib()
+        if isinstance(collection, (list, tuple)):
+            return lib.GLib.Variant(tag, tuple(map(Variant.utf8, collection)))
+        else:
+            return None
+
+    @staticmethod
+    def str(s):
+        """
+        Encode as a (variant) string.
+
+        :param s: A string.
+        :type  s: basestring
+        :return: The variant.
+        :rtype: lib.GLib.Variant
+        """
+        tag = 's'
+        lib = Lib()
+        if isinstance(s, basestring):
+            return lib.GLib.Variant(tag, Variant.utf8(s))
+        else:
+            return None
+
+    @staticmethod
+    def int(n):
+        """
+        Encode as a (variant) integer.
+
+        :param n: An integer.
+        :type  n: int
+        :return: The variant.
+        :rtype: lib.GLib.Variant
+        """
+        tag = 'i'
+        lib = Lib()
+        if isinstance(n, (basestring, int, float)):
+            return lib.GLib.Variant(tag, int(n))
+        else:
+            return None
+
+    @staticmethod
+    def bool(b, negated=False):
+        """
+        Encode as a (variant) boolean.
+
+        :param b: A boolean.
+        :type  b: bool
+        :param negated: Negate the boolean.
+        :type negated: bool
+        :return: The variant.
+        :rtype: lib.GLib.Variant
+        """
+        tag = 's'
+        lib = Lib()
+        if isinstance(b, bool):
+            if negated:
+                b = (not b)
+            return lib.GLib.Variant(tag, str(b).lower())
+        else:
+            return None
+
+
 class Repository(object):
     """
     An ostree repository.
@@ -203,21 +319,29 @@ class Repository(object):
         return _list
 
     @wrapped
-    def pull(self, remote_id, refs, listener):
+    def pull(self, remote_id, refs, listener, depth=0):
         """
         Run the pull request.
 
         :param remote_id: The unique identifier for the remote.
         :type remote_id: str:
-        :param refs: A list of references to pull.
+        :param refs: A list of references to pull.  None = ALL.
         :type refs: list
         :param listener: A progress listener.
         :type listener: callable
+        :param depth: The tree traversal depth.  Note: -1 is infinite.
+        :type depth: int
         :raises LibError:
         """
         lib = Lib()
         flags = lib.OSTree.RepoPullFlags.MIRROR
         progress = lib.OSTree.AsyncProgress.new()
+
+        options = {
+            'flags': Variant.int(flags),
+            'depth': Variant.int(depth),
+            'refs': Variant.str_list(refs)
+        }
 
         def report_progress(report):
             try:
@@ -229,12 +353,12 @@ class Repository(object):
         try:
             progress.connect('changed', report_progress)
             self.open()
-            self.impl.pull(remote_id, refs, flags, progress, None)
+            self.impl.pull_with_options(remote_id, Variant.opt_dict(options), progress, None)
         finally:
             progress.finish()
 
     @wrapped
-    def pull_local(self, path, refs):
+    def pull_local(self, path, refs, depth=0):
         """
         Run the pull (local) request.
         Fast pull from another repository using hard links.
@@ -243,21 +367,22 @@ class Repository(object):
         :type path: str:
         :param refs: A list of references to pull.
         :type refs: list
+        :param depth: The tree traversal depth.  Note: -1 is infinite.
+        :type depth: int
         :raises LibError:
         """
         lib = Lib()
         url = 'file://' + path
         flags = lib.OSTree.RepoPullFlags.MIRROR
 
-        options = lib.GLib.Variant(
-            'a{sv}',
-            {
-                'flags': lib.GLib.Variant('u', flags),
-                'refs': lib.GLib.Variant('as', tuple(refs))
-            })
+        options = {
+            'flags': Variant.int(flags),
+            'depth': Variant.int(depth),
+            'refs': Variant.str_list(refs)
+        }
 
         self.open()
-        self.impl.pull_with_options(url, options, None, None)
+        self.impl.pull_with_options(url, Variant.opt_dict(options), None, None)
 
 
 class Remote(object):
@@ -419,22 +544,15 @@ class Remote(object):
         :return: A variant containing options.
         :rtype: GLib.Variant
         """
-        lib = Lib()
-        options = {}
-        if self.ssl_cert_path:
-            options['tls-client-cert-path'] = lib.GLib.Variant('s', self.ssl_cert_path)
-        if self.ssl_key_path:
-            options['tls-client-key-path'] = lib.GLib.Variant('s', self.ssl_key_path)
-        if self.ssl_ca_path:
-            options['tls-ca-path'] = lib.GLib.Variant('s', self.ssl_ca_path)
-        if self.proxy_url:
-            options['proxy'] = lib.GLib.Variant('s', self.proxy_url)
-        options['tls-permissive'] = \
-            lib.GLib.Variant('s', str(not self.ssl_validation).lower())
-        options['gpg-verify'] = \
-            lib.GLib.Variant('s', str(self.gpg_validation).lower())
-        variant = lib.GLib.Variant('a{sv}', options)
-        return variant
+        options = {
+            'tls-client-cert-path': Variant.str(self.ssl_cert_path),
+            'tls-client-key-path': Variant.str(self.ssl_key_path),
+            'tls-ca-path': Variant.str(self.ssl_ca_path),
+            'proxy': Variant.str(self.proxy_url),
+            'tls-permissive': Variant.bool(self.ssl_validation, negated=True),
+            'gpg-verify': Variant.bool(self.gpg_validation),
+        }
+        return Variant.opt_dict(options)
 
 
 class Summary(object):

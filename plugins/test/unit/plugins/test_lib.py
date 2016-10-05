@@ -8,6 +8,7 @@ from pulp_ostree.plugins.lib import (
     ProgressReport,
     Ref,
     Remote,
+    Variant,
     Repository,
     Summary,
     wrapped)
@@ -99,6 +100,86 @@ class TestProgressReport(TestCase):
         self.assertEqual(report.fetched, 10)
         self.assertEqual(report.requested, 0)
         self.assertEqual(report.percent, 0)
+
+
+class TestVariant(TestCase):
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_str(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        lib.return_value = _lib
+        # str
+        s = 'hello'
+        tag, value = Variant.str(s)
+        self.assertEqual(tag, 's')
+        self.assertEqual(value, s)
+        # none
+        self.assertTrue(Variant.str(None) is None)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_int(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        lib.return_value = _lib
+        # integer
+        n = '10'
+        tag, value = Variant.int(n)
+        self.assertEqual(tag, 'i')
+        self.assertEqual(value, int(n))
+        # none
+        self.assertTrue(Variant.int(None) is None)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_bool(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        lib.return_value = _lib
+        # bool
+        b = True
+        tag, value = Variant.bool(b)
+        self.assertEqual(tag, 's')
+        self.assertEqual(value, 'true')
+        # negated
+        b = True
+        tag, value = Variant.bool(b, negated=True)
+        self.assertEqual(tag, 's')
+        self.assertEqual(value, 'false')
+        # none
+        self.assertTrue(Variant.bool(None) is None)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_str_list(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        lib.return_value = _lib
+        # list
+        _list = ['1', '2']
+        tag, value = Variant.str_list(_list)
+        self.assertEqual(tag, 'as')
+        self.assertEqual(value, tuple(_list))
+        # none
+        self.assertTrue(Variant.str_list(None) is None)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_dict(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        lib.return_value = _lib
+        d = dict(a=1, b=2)
+        tag, value = Variant.dict(d)
+        self.assertEqual(tag, 'a{sv}')
+        self.assertEqual(value, d)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_options(self, lib):
+        _lib = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        lib.return_value = _lib
+        d = dict(a=1, b=2, c=3)
+        tag, value = Variant.dict(d)
+        self.assertEqual(tag, 'a{sv}')
+        self.assertEqual(value, dict((k, v) for k, v in d.iteritems() if v))
 
 
 class TestRepository(TestCase):
@@ -245,12 +326,14 @@ class TestRepository(TestCase):
     def test_pull(self, lib):
         path = '/tmp/path-1'
         remote_id = 'remote-1'
+        depth = 3
         refs = ['branch-1']
-        mirror = 'MIRROR'
+        mirror = 0xFF
         listener = Mock()
         _lib = Mock()
         lib_repo = Mock()
         progress = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
         _lib.OSTree.AsyncProgress.new.return_value = progress
         _lib.OSTree.RepoPullFlags.MIRROR = mirror
         lib.return_value = _lib
@@ -259,13 +342,53 @@ class TestRepository(TestCase):
         repo = Repository(path)
         repo.open = Mock()
         repo.impl = lib_repo
-        repo.pull(remote_id, refs, listener)
+        repo.pull(remote_id, refs, listener, depth)
 
         # validation
+        options = (
+            'a{sv}', {
+                'refs': ('as', tuple(refs)),
+                'depth': ('i', depth),
+                'flags': ('i', mirror)
+            })
         lib.assert_called_with()
         repo.open.assert_called_once_with()
         progress.connect.assert_called_once_with('changed', ANY)
-        lib_repo.pull.assert_called_once_with(remote_id, refs, mirror, progress, None)
+        lib_repo.pull_with_options.assert_called_once_with(remote_id, options, progress, None)
+        progress.finish.assert_called_once_with()
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_pull_all(self, lib):
+        path = '/tmp/path-1'
+        remote_id = 'remote-1'
+        depth = 3
+        refs = None
+        mirror = 0xFF
+        listener = Mock()
+        _lib = Mock()
+        lib_repo = Mock()
+        progress = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        _lib.OSTree.AsyncProgress.new.return_value = progress
+        _lib.OSTree.RepoPullFlags.MIRROR = mirror
+        lib.return_value = _lib
+
+        # test
+        repo = Repository(path)
+        repo.open = Mock()
+        repo.impl = lib_repo
+        repo.pull(remote_id, refs, listener, depth)
+
+        # validation
+        options = (
+            'a{sv}', {
+                'depth': ('i', depth),
+                'flags': ('i', mirror)
+            })
+        lib.assert_called_with()
+        repo.open.assert_called_once_with()
+        progress.connect.assert_called_once_with('changed', ANY)
+        lib_repo.pull_with_options.assert_called_once_with(remote_id, options, progress, None)
         progress.finish.assert_called_once_with()
 
     @patch('pulp_ostree.plugins.lib.Lib')
@@ -274,7 +397,8 @@ class TestRepository(TestCase):
         path_in = '/tmp/path-1'
         url = 'file://%s' % path_in
         refs = ['branch-1']
-        mirror = 'MIRROR'
+        mirror = 0xFF
+        depth = 3
         _lib = Mock()
         lib_repo = Mock()
         _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
@@ -285,13 +409,44 @@ class TestRepository(TestCase):
         repo = Repository(path)
         repo.open = Mock()
         repo.impl = lib_repo
-        repo.pull_local(path_in, refs)
+        repo.pull_local(path_in, refs, depth)
 
         # validation
         options = (
             'a{sv}', {
-                'refs': ('as', ('branch-1',)),
-                'flags': ('u', 'MIRROR')
+                'refs': ('as', tuple(refs)),
+                'depth': ('i', depth),
+                'flags': ('i', mirror)
+            })
+        lib.assert_called_with()
+        repo.open.assert_called_once_with()
+        lib_repo.pull_with_options.assert_called_once_with(url, options, None, None)
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_pull_local_all(self, lib):
+        path = '/tmp/path-2'
+        path_in = '/tmp/path-1'
+        url = 'file://%s' % path_in
+        refs = None
+        mirror = 0xFF
+        depth = 3
+        _lib = Mock()
+        lib_repo = Mock()
+        _lib.GLib.Variant.side_effect = Mock(side_effect=variant)
+        _lib.OSTree.RepoPullFlags.MIRROR = mirror
+        lib.return_value = _lib
+
+        # test
+        repo = Repository(path)
+        repo.open = Mock()
+        repo.impl = lib_repo
+        repo.pull_local(path_in, refs, depth)
+
+        # validation
+        options = (
+            'a{sv}', {
+                'depth': ('i', depth),
+                'flags': ('i', mirror)
             })
         lib.assert_called_with()
         repo.open.assert_called_once_with()
@@ -304,6 +459,7 @@ class TestRepository(TestCase):
         listener = Mock()
         progress = Mock()
         _lib.OSTree.AsyncProgress.new.return_value = progress
+        _lib.OSTree.RepoPullFlags.MIRROR = 0xFF
         lib.return_value = _lib
         report = Mock()
 
@@ -327,6 +483,7 @@ class TestRepository(TestCase):
         listener = Mock(side_effect=ValueError)
         progress = Mock()
         _lib.OSTree.AsyncProgress.new.return_value = progress
+        _lib.OSTree.RepoPullFlags.MIRROR = 0xFF
         lib.return_value = _lib
         report = Mock()
 
@@ -348,10 +505,11 @@ class TestRepository(TestCase):
         _lib = Mock()
         _lib.GLib.GError = GError
         _repo = Mock()
-        _repo.pull.side_effect = GError
+        _repo.pull_with_options.side_effect = GError
         progress = Mock()
         _lib.OSTree.Repo.new.return_value = _repo
         _lib.OSTree.AsyncProgress.new.return_value = progress
+        _lib.OSTree.RepoPullFlags.MIRROR = 0xFF
         lib.return_value = _lib
 
         # test
