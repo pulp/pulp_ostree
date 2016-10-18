@@ -139,6 +139,16 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Tue Oct 18 2016 Sean Myers <sean.myers@redhat.com> 1.1.4-0.1.beta
+- Bumping version to 1.1.4-0.1.beta (sean.myers@redhat.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Fix proxy URL construction in remote configuration. closes #2213
+  (jortel@redhat.com)
+- Removing fc22 from the list of supported platforms. (ipanova@redhat.com)
+- pin to flake8-2.6.2 for py2.6 support (asmacdo@gmail.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Bumping version to 1.1.3-0.1.alpha (sean.myers@redhat.com)
+
 * Mon Jul 11 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-0.1.beta
 - Bumping version to 1.1.3-0.1.beta (sean.myers@redhat.com)
 - Automatic commit of package [pulp-ostree] release [1.1.2-1].
