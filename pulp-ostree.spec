@@ -139,6 +139,62 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Tue Oct 25 2016 Sean Myers <sean.myers@redhat.com> 1.2.0-0.1.beta
+- Bumping version to 1.2.0-0.1.beta (sean.myers@redhat.com)
+- Build latest plugin upstream version for f24 (sean.myers@redhat.com)
+- Support tree traversal depth. closes #2205 (jortel@redhat.com)
+- Fix proxy URL construction in remote configuration. closes #2213
+  (jortel@redhat.com)
+- Removing fc22 from the list of supported platforms. (ipanova@redhat.com)
+- Add basic mention-bot config (jeremy@jcline.org)
+- pin to flake8-2.6.2 for py2.6 support (asmacdo@gmail.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Bumping version to 1.1.3-0.1.alpha (sean.myers@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.3-0.1.beta].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.3-0.1.beta (sean.myers@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.2-1].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.2-1 (sean.myers@redhat.com)
+- Remove intersphinx and enable Strict mode (bbouters@redhat.com)
+- Bumping version to 1.1.3-0.1.alpha (sean.myers@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.2-0.1.beta].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.2-0.1.beta (sean.myers@redhat.com)
+- Add gnupg as dependency (ipanova@redhat.com)
+- Reverting strict mode so that Koji can build RPMs again (bbouters@redhat.com)
+- Enables strict mode for sphinx docs builds (bbouters@redhat.com)
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.1-1].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.1-1 (sean.myers@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.1-0.4.rc]. (pulp-
+  infra@redhat.com)
+- Bumping version to 1.1.1-0.4.rc (pulp-infra@redhat.com)
+- Configures Sphinx docs config to not look for static media
+  (bbouters@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.1-0.3.rc].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.1-0.3.rc (sean.myers@redhat.com)
+- adding release note for 1.1.1 (mhrivnak@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.1-0.2.beta].
+  (sean.myers@redhat.com)
+- Bumping version to 1.1.1-0.2.beta (sean.myers@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.1-0.1.beta].
+  (sean.myers@redhat.com)
+- Bumping version to 1.2.0-0.1.beta (dkliban@redhat.com)
+- Ensure unique relative path at validation time (asmacdo@gmail.com)
+- Automatic commit of package [pulp-ostree] release [1.1.0-1].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-1 (dkliban@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.0-0.9.rc].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.9.rc (dkliban@redhat.com)
+- Bumping version to 1.1.1-0.1.beta (dkliban@redhat.com)
+- Automatic commit of package [pulp-ostree] release [1.1.0-0.8.beta].
+  (dkliban@redhat.com)
+- Bumping version to 1.1.0-0.8.beta (dkliban@redhat.com)
+
 * Thu Mar 03 2016 Dennis Kliban <dkliban@redhat.com> 1.1.0-0.7.beta
 - Bumping version to 1.1.0-0.7.beta (dkliban@redhat.com)
 
