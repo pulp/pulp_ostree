@@ -1,0 +1,34 @@
+=============================
+Pulp OSTree 1.2 Release Notes
+=============================
+
+Pulp OSTree 1.2.0
+=================
+
+New Features
+------------
+
+- The importer has the capability to pull using a user specified tree traversal depth.
+  This is controlled using the ``depth`` property in the importer configuration. The traversal
+  depth determines how much of the commit history is pulled. For example: a depth of 3 will
+  cause the newest 3 commits to be pulled for a given branch.
+
+- The distributor has the capability to publish using a user specified tree traversal depth.
+  This is controlled using the ``depth`` property in the distributor configuration. The traversal
+  depth determines how much of the commit history is published. For example: a depth of 3 will
+  cause the newest 3 commits to be published for a given branch.
+
+
+API Changes
+-----------
+
+- A ``depth`` property has been added to both the importer and distributor configurations.
+  This controls to tree traversal depth when pulling remote refs and when publishing trees.
+  A depth of ``0`` (the default) specifies that only newest commits are pulled and published.
+  A depth of ``-1`` is used to specify an unlimited depth.
+
+
+Bugs Fixed
+----------
+
+You can see the :fixedbugs:`list of bugs fixed<1.2.0>`.
