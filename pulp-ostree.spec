@@ -139,6 +139,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Mon Oct 31 2016 Sean Myers <sean.myers@redhat.com> 1.1.4-1
+- Bumping version to 1.1.4-1 (sean.myers@redhat.com)
+
 * Tue Oct 18 2016 Sean Myers <sean.myers@redhat.com> 1.1.4-0.1.beta
 - Bumping version to 1.1.4-0.1.beta (sean.myers@redhat.com)
 - Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
