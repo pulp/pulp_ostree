@@ -6,7 +6,7 @@
 
 
 Name: pulp-ostree
-Version: 1.1.3
+Version: 1.1.4
 Release: 1%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
@@ -139,8 +139,18 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
-* Mon Jul 18 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-1
-- Bumping version to 1.1.3-1 (sean.myers@redhat.com)
+* Mon Oct 31 2016 Sean Myers <sean.myers@redhat.com> 1.1.4-1
+- Bumping version to 1.1.4-1 (sean.myers@redhat.com)
+
+* Tue Oct 18 2016 Sean Myers <sean.myers@redhat.com> 1.1.4-0.1.beta
+- Bumping version to 1.1.4-0.1.beta (sean.myers@redhat.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Fix proxy URL construction in remote configuration. closes #2213
+  (jortel@redhat.com)
+- Removing fc22 from the list of supported platforms. (ipanova@redhat.com)
+- pin to flake8-2.6.2 for py2.6 support (asmacdo@gmail.com)
+- Bumping version to 1.1.4-0.1.alpha (sean.myers@redhat.com)
+- Bumping version to 1.1.3-0.1.alpha (sean.myers@redhat.com)
 
 * Mon Jul 11 2016 Sean Myers <sean.myers@redhat.com> 1.1.3-0.1.beta
 - Bumping version to 1.1.3-0.1.beta (sean.myers@redhat.com)
