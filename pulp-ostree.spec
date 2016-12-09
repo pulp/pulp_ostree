@@ -7,7 +7,7 @@
 
 Name: pulp-ostree
 Version: 1.2.0
-Release: 0.3.beta%{?dist}
+Release: 0.4.rc%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
