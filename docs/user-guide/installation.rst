@@ -6,21 +6,36 @@ Installation
 Prerequisites
 -------------
 
-The only requirement is to meet the prerequisites of the Pulp Platform. Please
+``libostree`` is required for this plugin. As of this writing, both Fedora and
+RHEL package it as part of the ``ostree`` RPM. On RHEL, you may need to enable
+an Atomic-related channel to access the ``ostree`` package.
+
+The other requirement is to meet the prerequisites of the Pulp Platform. Please
 see the `Pulp User Guide`_ for prerequisites including repository setup.
 
-Development
------------
+Server
+------
 
-The only way to install ostree support currently is to setup a development
-environment. Installation through RPMs will come at a later time.
+First stop all Pulp services on your servers, the same as if doing an upgrade.
+
+Then install the new RPM.
 
 ::
 
-    git clone https://github.com/pulp/pulp_ostree.git
-    cd pulp_ostree
-    sudo ./manage_setup_pys.sh develop
-    sudo ./pulp-dev.py -I
-    sudo -u apache pulp-manage-db
+    $ sudo yum install pulp-ostree-plugins
+
+Then run ``pulp-manage-db`` to initialize the new type in Pulp's database.
+
+::
+
+    $ sudo -u apache pulp-manage-db
+
 
 Then restart each pulp component, as documented in the `Pulp User Guide`_.
+
+Admin Client
+------------
+
+::
+
+    $ sudo yum install pulp-ostree-admin-extensions

@@ -6,40 +6,40 @@ Create A Repository
 
 A repository may be created using pulp-admin::
 
-  $ pulp-admin ostree repo create --repo-id=f23 \
-      --feed=http://dl.fedoraproject.org/pub/fedora/linux/atomic/23/ \
-      -b fedora-atomic/f23/x86_64/docker-host
+  $ pulp-admin ostree repo create --repo-id=f25 \
+      --feed=http://dl.fedoraproject.org/pub/fedora/linux/atomic/25/ \
+      -b fedora-atomic/25/x86_64/docker-host
 
 Update Branches
 ---------------
 A repository may be updated to add/remove branches. Each update replaces the list
 of branches::
 
-  $ pulp-admin ostree repo update --repo-id=f23 -b fedora-atomic/f23/x86_64/docker-host
+  $ pulp-admin ostree repo update --repo-id=f25 -b fedora-atomic/25/x86_64/docker-host
 
 Synchronize Repository
 ----------------------
 
 A repository may be synchronized with its remote::
 
-  $ pulp-admin ostree repo sync run --repo-id=f23
+  $ pulp-admin ostree repo sync run --repo-id=f25
 
 List Content
 ------------
 The content contained within a repository may be listed::
 
-  $ pulp-admin ostree repo search --repo-id=f23
+  $ pulp-admin ostree repo search --repo-id=f25
   +----------------------------------------------------------------------+
                                Content Units
   +----------------------------------------------------------------------+
 
-  Id:        a80df750-7b21-4b90-9171-f743bd04fafb
-  Created:   2015-12-22T20:49:25Z
-  Updated:   2015-12-22T20:49:25Z
-  Remote Id: d2f04e37db9caadb59f8f227b0ec6e5fa4128feda4c048ad2ebcb3e1d925d773
-  Branch:    fedora-atomic/f23/x86_64/docker-host
-  Commit:    aab6ef55dd4287de725c42f03bae52deaced986ca62a988f7c795501951dbf8f
-  Version:   23.38
+  Id:        9ebf36e4-1f01-4064-a151-c60e9c256a40
+  Created:   2017-01-24T21:42:41Z
+  Updated:   2017-01-24T21:42:41Z
+  Remote Id: d9680ea424e704ad20d57011c054adb7e3f4ad43f8849c0e1eb9efd4f0ba9bf1
+  Branch:    fedora-atomic/25/x86_64/docker-host
+  Commit:    27b1ae24686697235c35b793b5c8ab0822b8427e892d3659f0cb300c400979fa
+  Version:   25.46
 
 
 Fields:
@@ -72,12 +72,11 @@ View Summary Information
 The summary information fetched from the remote repository can be viewed by listing
 OSTree repositories and including the ``--details`` option::
 
- $ pulp-admin ostree repo list --details
  +----------------------------------------------------------------------+
                           OSTree Repositories
  +----------------------------------------------------------------------+
 
- Id:                  f23
+ Id:                  f25
  Display Name:        None
  Description:         None
  Content Unit Counts:
@@ -86,18 +85,37 @@ OSTree repositories and including the ``--details`` option::
  Scratchpad:
    Remote:
      Summary:
-       Commit:   099d0138bef28bde23e0bb8cf5377fe549e90f9fe0d28d6c2956fdf86b63e1aa
+       Commit:   27b1ae24686697235c35b793b5c8ab0822b8427e892d3659f0cb300c400979fa
        Metadata:
-         Rpmostree-inputhash: 52f47deff0333b5f7c2a950c13d1902f98b3610e11ec1900950
-                              9a775d180ac90
-         Version:             23.44
-       Name:     fedora-atomic/f23/x86_64/docker-host
-       Commit:   8def7a3c424c8439e9807d464255ebabd7798dd649d0f0a6850bab0e18dbcadc
-       Metadata:
-         Rpmostree-inputhash: 5e38595e838c601be3cb8ff8afa574bbd152ea1cccef6605178
-                              45d456cda1edc
-         Version:             23.41
-       Name:     fedora-atomic/f23/x86_64/testing/docker-host
+         Rpmostree-inputhash: 960578ee113bce7ce7213e7b487db2534cb3ffb33d6055b7e86
+                              7dfe44a2e8f94
+         Version:             25.46
+       Name:     fedora-atomic/25/x86_64/docker-host
+ Importers:
+   Config:
+     Branches: fedora-atomic/25/x86_64/docker-host
+     Feed:     https://kojipkgs.fedoraproject.org/atomic/25/
+   Id:                   ostree_web_importer
+   Importer Type Id:     ostree_web_importer
+   Last Override Config:
+   Last Sync:            2017-01-24T21:53:16Z
+   Last Updated:         2017-01-24T21:53:45Z
+   Repo Id:              f25
+   Scratchpad:           None
+ Distributors:
+   Auto Publish:         True
+   Config:
+     Relative Path: /atomic/25/
+   Distributor Type Id:  ostree_web_distributor
+   Id:                   ostree_web_distributor_name_cli
+   Last Override Config:
+   Last Publish:         2017-01-24T21:53:22Z
+   Last Updated:         2017-01-24T21:34:57Z
+   Repo Id:              f25
+   Scratchpad:
+
+
+
 
 This information is included in the repository ``scratchpad`` and provides a list of branches
 contained within the remote repository.
@@ -112,3 +130,25 @@ Fields:
 
  Metadata
    The commit metadata which by convention may include an optional ``version`` property.
+
+
+Copy
+----
+
+To copy a specific branch from one repository to another, first create the new repository::
+
+	$ pulp-admin ostree repo create --repo-id=f25-test
+
+Then run a copy command::
+
+	$ pulp-admin ostree repo copy -f f25 -t f25-test --str-eq='branch=fedora-atomic/25/x86_64/testing/docker-host'
+	This command may be exited via ctrl+c without affecting the request.
+
+
+	[\]
+	Running...
+
+	Copied:
+	  remote_id:d9680ea424e704ad20d57011c054adb7e3f4ad43f8849c0e1eb9efd4f0ba9bf1
+	branch:fedora-atomic/25/x86_64/testing/docker-host
+	commit:35c51948ffdc01c7f235796efcd2b34c7d14b3f1feb417a2ce849ecf2ec13bb2
