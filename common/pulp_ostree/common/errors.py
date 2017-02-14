@@ -20,3 +20,11 @@ OST0004 = Error('OST0004',
 OST0005 = Error('OST0005',
                 _('Fetch summary failed. Reason: %(reason)s'),
                 ['reason'])
+
+OST0006 = Error('OST0006',
+                _('Pulling local refs failed. Reason: %(reason)s'),
+                ['reason'])
+
+OST0007 = Error('OST0007',
+                _('Repair local repository at: %(path)s failed. Reason: %(reason)s'),
+                ['path', 'reason'])

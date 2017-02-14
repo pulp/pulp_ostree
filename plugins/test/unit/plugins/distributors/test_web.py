@@ -73,7 +73,7 @@ class TestBasics(unittest.TestCase):
         conduit = RepoPublishConduit(repo.id, 'foo_repo')
         self.distributor.publish_repo(repo, conduit, config)
         mock_publisher.assert_called_once_with(repo, conduit, config)
-        mock_publisher.return_value.assert_called_once()
+        mock_publisher.return_value.process_lifecycle.assert_called_once()
 
     def test_cancel_publish_repo(self):
         self.distributor._publisher = MagicMock()
