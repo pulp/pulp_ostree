@@ -2,6 +2,7 @@ from gettext import gettext as _
 
 from pulp.client.commands.repo import cudl, sync_publish, status
 from pulp.client.extensions.decorator import priority
+from pulp.client.extensions.extensions import PulpCliFlag
 
 from pulp_ostree.common import constants
 from pulp_ostree.extensions.admin.cudl import CreateOSTreeRepositoryCommand
@@ -21,6 +22,12 @@ DESC_PUBLISH = _('publish an ostree repository')
 
 SECTION_SYNC = 'sync'
 DESC_SYNC = _('sync a ostree repository from an upstream repository')
+
+
+OPT_REPAIR = PulpCliFlag(
+    '--repair',
+    _("repair a corrupted local repository"),
+    aliases=['-r'])
 
 
 @priority()
@@ -93,8 +100,10 @@ def add_sync_section(context, parent_section):
     :rtype: PulpCliSection
     """
     renderer = status.PublishStepStatusRenderer(context)
-
-    sync_section = parent_section.create_subsection(SECTION_SYNC, DESC_SYNC)
-    sync_section.add_command(sync_publish.RunSyncRepositoryCommand(context, renderer))
-
-    return sync_section
+    section = parent_section.create_subsection(SECTION_SYNC, DESC_SYNC)
+    command = sync_publish.RunSyncRepositoryCommand(
+        context=context,
+        renderer=renderer,
+        override_config_options=(OPT_REPAIR,))
+    section.add_command(command)
+    return section

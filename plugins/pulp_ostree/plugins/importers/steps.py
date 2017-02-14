@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from gettext import gettext as _
 from logging import getLogger
@@ -38,6 +39,8 @@ class Main(PluginStep):
         if not self.feed_url:
             raise PulpCodedException(errors.OST0004)
         self.remote_id = model.generate_remote_id(self.feed_url)
+        if self.repair:
+            self.add_child(Repair())
         self.add_child(Create())
         self.add_child(Summary())
         self.add_child(Pull())
@@ -67,6 +70,38 @@ class Main(PluginStep):
         with SharedStorage(constants.STORAGE_PROVIDER, storage_id) as storage:
             return storage.content_dir
 
+    @property
+    def repair(self):
+        return self.config.get(constants.IMPORTER_CONFIG_REPAIR, False)
+
+
+class Repair(PluginStep):
+
+    def __init__(self):
+        super(Repair, self).__init__(step_type=constants.IMPORT_STEP_REPAIR_REPOSITORY)
+        self.description = _('Repair Local Repository')
+
+    def process_main(self, item=None):
+        """
+        Repair corrupted local repository.
+        The only option to repair a corrupted repository is to re-create it.
+        Separate step because:
+          - shutil.rmtree() is very slow and should be reflected in
+            progress reporting.
+          - anticipating better tools provided by libostree for
+            doing the repair in the future.
+
+        :raises PulpCodedException:
+        """
+        path = self.parent.storage_dir
+        shutil.rmtree(path, ignore_errors=True)
+        try:
+            repository = lib.Repository(path)
+            repository.create()
+        except lib.LibError as le:
+            pe = PulpCodedException(errors.OST0007, path=path, reason=str(le))
+            raise pe
+
 
 class Create(PluginStep):
     """
@@ -78,7 +113,7 @@ class Create(PluginStep):
 
     def __init__(self):
         super(Create, self).__init__(step_type=constants.IMPORT_STEP_CREATE_REPOSITORY)
-        self.description = _('Create Local Repository')
+        self.description = _('Create/Open Local Repository')
 
     def process_main(self, item=None):
         """
@@ -97,7 +132,7 @@ class Create(PluginStep):
                 repository.create()
             remote = Remote(self, repository)
             remote.add()
-        except lib.LibError, le:
+        except lib.LibError as le:
             pe = PulpCodedException(errors.OST0001, path=path, reason=str(le))
             raise pe
 
@@ -120,7 +155,7 @@ class Summary(PluginStep):
             lib_repository = lib.Repository(self.parent.storage_dir)
             remote = lib.Remote(self.parent.repo_id, lib_repository)
             refs = [r.dict() for r in remote.list_refs()]
-        except lib.LibError, le:
+        except lib.LibError as le:
             pe = PulpCodedException(errors.OST0005, reason=str(le))
             raise pe
         repository = self.get_repo().repo_obj
@@ -194,7 +229,7 @@ class Pull(PluginStep):
         try:
             repository = lib.Repository(path)
             repository.pull(remote_id, refs, report_progress, depth)
-        except lib.LibError, le:
+        except lib.LibError as le:
             pe = PulpCodedException(errors.OST0002, reason=str(le))
             raise pe
 
@@ -254,7 +289,7 @@ class Clean(PluginStep):
             repository = lib.Repository(path)
             remote = lib.Remote(remote_id, repository)
             remote.delete()
-        except lib.LibError, le:
+        except lib.LibError as le:
             pe = PulpCodedException(errors.OST0003, id=remote_id, reason=str(le))
             raise pe
 
@@ -275,7 +310,7 @@ class Remote(object):
     def __init__(self, step, repository):
         """
         :param step: The create step.
-        :type step: Create
+        :type step: PluginStep
         :param repository: An OSTree repository.
         :type repository: lib.Repository
         """
