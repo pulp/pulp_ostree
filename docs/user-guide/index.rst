@@ -8,3 +8,4 @@ User Guide
    configuration
    release-notes/index
    recipes
+   troubleshooting

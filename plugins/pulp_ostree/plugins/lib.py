@@ -26,8 +26,9 @@ def wrapped(fn):
         lib.load()
         try:
             return fn(*args, **kwargs)
-        except lib.GLib.GError, ge:
-            raise LibError(repr(ge))
+        except lib.GLib.GError as le:
+            description = repr(le).encode('utf-8')
+            raise LibError(description)
     return _fn
 
 

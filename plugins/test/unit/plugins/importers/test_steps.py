@@ -10,7 +10,8 @@ from pulp.server.exceptions import PulpCodedException
 from mongoengine import NotUniqueError
 
 from pulp_ostree.plugins.lib import LibError
-from pulp_ostree.plugins.importers.steps import Main, Create, Summary, Pull, Add, Clean, Remote
+from pulp_ostree.plugins.importers.steps import (
+    Main, Create, Summary, Pull, Add, Clean, Remote, Repair)
 from pulp_ostree.common import constants, errors
 
 
@@ -34,6 +35,7 @@ class TestMainStep(unittest.TestCase):
             importer_constants.KEY_FEED: url,
             constants.IMPORTER_CONFIG_KEY_BRANCHES: branches,
             constants.IMPORTER_CONFIG_KEY_DEPTH: depth,
+            constants.IMPORTER_CONFIG_REPAIR: True,
         }
 
         # test
@@ -51,12 +53,13 @@ class TestMainStep(unittest.TestCase):
         self.assertEqual(step.branches, branches)
         self.assertEqual(step.depth, depth)
         self.assertEqual(step.repo_id, repo.id)
-        self.assertEqual(len(step.children), 5)
-        self.assertTrue(isinstance(step.children[0], Create))
-        self.assertTrue(isinstance(step.children[1], Summary))
-        self.assertTrue(isinstance(step.children[2], Pull))
-        self.assertTrue(isinstance(step.children[3], Add))
-        self.assertTrue(isinstance(step.children[4], Clean))
+        self.assertEqual(len(step.children), 6)
+        self.assertTrue(isinstance(step.children[0], Repair))
+        self.assertTrue(isinstance(step.children[1], Create))
+        self.assertTrue(isinstance(step.children[2], Summary))
+        self.assertTrue(isinstance(step.children[3], Pull))
+        self.assertTrue(isinstance(step.children[4], Add))
+        self.assertTrue(isinstance(step.children[5], Clean))
 
     def test_init_no_feed(self):
         repo = Mock(id='id-123')
@@ -68,11 +71,9 @@ class TestMainStep(unittest.TestCase):
         }
 
         # test and validation
-        try:
+        with self.assertRaises(PulpCodedException) as assertion:
             Main(repo=repo, config=config)
-            self.assertTrue(False, msg='Main.__init__() exception expected')
-        except PulpCodedException, pe:
-            self.assertEqual(pe.error_code, errors.OST0004)
+            self.assertEqual(assertion.exception.error_code, errors.OST0004)
 
     @patch(MODULE + '.SharedStorage')
     def test_storage_dir(self, storage):
@@ -157,13 +158,52 @@ class TestCreate(unittest.TestCase):
     def test_process_main_repository_exception(self, fake_lib):
         fake_lib.LibError = LibError
         fake_lib.Repository.side_effect = LibError
-        try:
-            step = Create()
-            step.parent = Mock(feed_url='', remote_id='')
+        step = Create()
+        step.parent = Mock(feed_url='', remote_id='')
+        with self.assertRaises(PulpCodedException) as assertion:
             step.process_main()
-            self.assertTrue(False, msg='Create exception expected')
-        except PulpCodedException, pe:
-            self.assertEqual(pe.error_code, errors.OST0001)
+            self.assertEqual(assertion.exception.error_code, errors.OST0001)
+
+
+class TestRepair(unittest.TestCase):
+
+    def test_init(self):
+        step = Repair()
+        self.assertEqual(step.step_id, constants.IMPORT_STEP_REPAIR_REPOSITORY)
+        self.assertTrue(step.description is not None)
+
+    @patch(MODULE + '.lib')
+    @patch(MODULE + '.shutil')
+    def test_process_main(self, fake_shutil, fake_lib):
+        url = 'url-123'
+        repo_id = 'repo-123'
+        parent = Mock(
+            feed_url=url,
+            repo_id=repo_id,
+            storage_dir='root/path-123')
+
+        fake_lib.LibError = LibError
+
+        # test
+        step = Repair()
+        step.parent = parent
+        step.process_main()
+
+        # validation
+        fake_shutil.rmtree.assert_called_once_with(parent.storage_dir, ignore_errors=True)
+        fake_lib.Repository.assert_called_once_with(parent.storage_dir)
+        fake_lib.Repository.return_value.create.assert_called_once_with()
+
+    @patch(MODULE + '.lib')
+    @patch(MODULE + '.shutil', Mock())
+    def test_process_main_repository_exception(self, fake_lib):
+        fake_lib.LibError = LibError
+        fake_lib.Repository.side_effect = LibError
+        step = Repair()
+        step.parent = Mock(feed_url='')
+        with self.assertRaises(PulpCodedException) as assertion:
+            step.process_main()
+            self.assertEqual(assertion.exception.error_code, errors.OST0007)
 
 
 class TestPull(unittest.TestCase):
@@ -218,12 +258,10 @@ class TestPull(unittest.TestCase):
     def test_pull_raising_exception(self, fake_lib):
         fake_lib.LibError = LibError
         fake_lib.Repository.return_value.pull.side_effect = LibError
-        try:
-            step = Pull()
+        step = Pull()
+        with self.assertRaises(PulpCodedException) as assertion:
             step._pull('', '', '', 0)
-            self.assertTrue(False, msg='Pull exception expected')
-        except PulpCodedException, pe:
-            self.assertEqual(pe.error_code, errors.OST0002)
+            self.assertEqual(assertion.exception.error_code, errors.OST0002)
 
 
 class TestAdd(unittest.TestCase):
@@ -348,11 +386,9 @@ class TestSummary(unittest.TestCase):
         # test and validation
         step = Summary()
         step.parent = parent
-        try:
+        with self.assertRaises(PulpCodedException) as assertion:
             step.process_main()
-            self.assertTrue(False, msg='Fetch exception expected')
-        except PulpCodedException, pe:
-            self.assertEqual(pe.error_code, errors.OST0005)
+            self.assertEqual(assertion.exception.error_code, errors.OST0005)
 
     def test_clean_metadata(self):
         commit = 'abc'
@@ -414,13 +450,11 @@ class TestClean(unittest.TestCase):
         fake_lib.Remote.return_value.delete.side_effect = LibError
 
         # test
-        try:
-            step = Clean()
-            step.parent = Mock(storage_dir=path, importer_id=importer_id)
+        step = Clean()
+        step.parent = Mock(storage_dir=path, importer_id=importer_id)
+        with self.assertRaises(PulpCodedException) as assertion:
             step.process_main()
-            self.assertTrue(False, msg='Delete remote exception expected')
-        except PulpCodedException, pe:
-            self.assertEqual(pe.error_code, errors.OST0003)
+            self.assertEqual(assertion.exception.error_code, errors.OST0003)
 
 
 class TestRemote(unittest.TestCase):

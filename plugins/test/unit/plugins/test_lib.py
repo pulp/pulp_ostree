@@ -65,7 +65,7 @@ class TestLoad(TestCase):
         # validation
         self.assertEqual(_import.call_count, len(lib.__dict__))
         for name in lib.__dict__.keys():
-            _import.assert_any_with(G_OBJECT, fromlist=[name])
+            _import.assert_any_call(G_OBJECT, fromlist=[name])
             self.assertEqual(getattr(lib, name), hash(name))
 
 
@@ -769,7 +769,7 @@ class TestDecorator(TestCase):
         _lib = Mock()
         _lib.GLib.GError = GError
         lib.return_value = _lib
-        g_error = GError()
+        g_error = GError('bad', u'd\xf6g')
 
         @wrapped
         def function(a, b):
@@ -780,7 +780,7 @@ class TestDecorator(TestCase):
         try:
             function(1, 2)
         except LibError, le:
-            self.assertEqual(le.args[0], repr(g_error))
+            self.assertEqual(le.args[0], repr(g_error).encode('utf-8'))
 
 
 class TestSummary(TestCase):

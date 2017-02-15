@@ -6,9 +6,10 @@ from gettext import gettext as _
 
 from pulp.plugins.util.misc import mkdir
 from pulp.plugins.util.publish_step import PluginStep, AtomicDirectoryPublishStep
+from pulp.server.exceptions import PulpCodedException
 from pulp.server.controllers.repository import get_unit_model_querysets
 
-from pulp_ostree.common import constants
+from pulp_ostree.common import constants, errors
 from pulp_ostree.plugins import lib
 from pulp_ostree.plugins.distributors import configuration
 from pulp_ostree.plugins.db.model import Branch
@@ -76,13 +77,19 @@ class MainStep(PluginStep):
         perform a (local) pull which links objects in this repository to
         objects in the *backing* repository at the storage path.  This starts
         with the branch HEAD commit and then includes all referenced objects.
+
+        :raise PulpCodedException: on error.
         """
         path = self.parent.publish_dir
         repository = lib.Repository(path)
         repository.create()
         for unit in self._get_units():
-            repository.pull_local(unit.storage_path, [unit.commit], self.depth)
-            MainStep._add_ref(path, unit.branch, unit.commit)
+            try:
+                repository.pull_local(unit.storage_path, [unit.commit], self.depth)
+                MainStep._add_ref(path, unit.branch, unit.commit)
+            except lib.LibError as le:
+                pe = PulpCodedException(errors.OST0006, reason=str(le))
+                raise pe
         summary = lib.Summary(repository)
         summary.generate()
 

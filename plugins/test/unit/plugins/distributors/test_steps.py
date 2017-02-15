@@ -4,9 +4,12 @@ import unittest
 
 from mock import Mock, patch, call
 
-from pulp_ostree.common import constants
+from pulp.server.exceptions import PulpCodedException
+
+from pulp_ostree.common import constants, errors
 from pulp_ostree.plugins.db import model
 from pulp_ostree.plugins.distributors import steps
+from pulp_ostree.plugins.lib import LibError
 
 
 MODULE = 'pulp_ostree.plugins.distributors.steps'
@@ -60,7 +63,7 @@ class TestMainStep(unittest.TestCase):
         repository = Mock()
         lib.Repository.return_value = repository
         config = {
-            constants.DISTRIBUTOR_CONFIG_KEY_DEPTH: '3'
+            constants.DISTRIBUTOR_CONFIG_KEY_DEPTH: depth
         }
         parent = Mock(publish_dir='/tmp/dir-1234', config=config)
 
@@ -85,6 +88,26 @@ class TestMainStep(unittest.TestCase):
             ])
         lib.Summary.assert_called_once_with(repository)
         lib.Summary.return_value.generate.assert_called_once_with()
+
+    @patch(MODULE + '.lib')
+    def test_process_main_exception(self, lib):
+        units = [
+            Mock(branch='branch:1', commit='commit:1', storage_path='path:1'),
+        ]
+        repository = Mock()
+        repository.pull_local.side_effect = LibError
+        lib.Repository.return_value = repository
+        lib.LibError = LibError
+        parent = Mock(publish_dir='/tmp/dir-1234', config={})
+
+        # test
+        main = steps.MainStep()
+        main._get_units = Mock(return_value=units)
+        main.parent = parent
+
+        with self.assertRaises(PulpCodedException) as assertion:
+            main.process_main()
+            self.assertEqual(assertion.exception.error_code, errors.OST0006)
 
     @patch(MODULE + '.get_unit_model_querysets')
     def test_get_units(self, find):
