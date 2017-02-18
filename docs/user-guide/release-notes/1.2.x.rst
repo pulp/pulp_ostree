@@ -31,7 +31,7 @@ API Changes
 Bugs Fixed
 ----------
 
-You can see the :fixedbugs:`list of bugs fixed<1.2.0>`.
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.2.0>`.
 
 
 Pulp OSTree 1.2.1
@@ -57,4 +57,4 @@ API Changes
 Bugs Fixed
 ----------
 
-You can see the :fixedbugs:`list of bugs fixed<1.2.1>`.
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.2.1>`.
