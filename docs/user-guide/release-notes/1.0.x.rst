@@ -27,4 +27,4 @@ API Changes
 Bugs Fixed
 ----------
 
-You can see the :fixedbugs:`list of bugs fixed<1.0.0>`.
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.0.0>`.
