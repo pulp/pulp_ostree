@@ -31,4 +31,30 @@ API Changes
 Bugs Fixed
 ----------
 
-You can see the :fixedbugs:`list of bugs fixed<1.2.0>`.
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.2.0>`.
+
+
+Pulp OSTree 1.2.1
+=================
+
+New Features
+------------
+
+- Support has been added to `repair` a corrupted :term:`local` repository.
+  Using the optional `--repair` or `-r` option, the importer will repair corrupted :term:`storage`.
+  The repair may require that the `storage` be deleted and recreated. This option
+  should only be used as a last resort.
+
+
+API Changes
+-----------
+
+- A ``repair`` property has been added to the importer configuration. When true, the importer
+  will repair a corrupted :term:`local` repository.
+
+
+
+Bugs Fixed
+----------
+
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.2.1>`.
