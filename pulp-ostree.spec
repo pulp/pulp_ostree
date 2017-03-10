@@ -139,6 +139,16 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Fri Mar 10 2017 Sean Myers <sean.myers@redhat.com> 1.2.1-0.1.beta
+- Bumping version to 1.2.1-0.1.beta (sean.myers@redhat.com)
+- Fix unit copy. closes #2544 (jortel@redhat.com)
+- Modify directive name to generate docs correctly using platfrom config
+  (ttereshc@redhat.com)
+- Support local repository repair. closes #2552 (jortel@redhat.com)
+- Bumping version to 1.2.1-0.1.alpha (sean.myers@redhat.com)
+- Update dist_list: fc23 removed, fc25 added (sean.myers@redhat.com)
+- 1.2.0 release notes. (jortel@redhat.com)
+
 * Tue Oct 25 2016 Sean Myers <sean.myers@redhat.com> 1.2.0-0.1.beta
 - Bumping version to 1.2.0-0.1.beta (sean.myers@redhat.com)
 - Build latest plugin upstream version for f24 (sean.myers@redhat.com)
