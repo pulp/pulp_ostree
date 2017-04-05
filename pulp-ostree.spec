@@ -6,8 +6,8 @@
 
 
 Name: pulp-ostree
-Version: 1.2.0
-Release: 1%{?dist}
+Version: 1.2.1
+Release: 0.2.beta%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -139,17 +139,20 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
-* Wed Dec 14 2016 Patrick Creech <pcreech@redhat.com> 1.2.0-1
-- Bumping version to 1.2.0-1 (pcreech@redhat.com)
+* Wed Apr 05 2017 werwty <bihan.zh@gmail.com> 1.2.1-0.2.beta
+- Bumping version to 1.2.1-0.2.beta (bihan.zh@gmail.com)
+- Modify directive name to generate docs correctly using platfrom config
+  (ttereshc@redhat.com)
+- Bumping version to 1.2.2-0.1.alpha (sean.myers@redhat.com)
 
-* Fri Dec 09 2016 Patrick Creech <pcreech@redhat.com> 1.2.0-0.4.rc
-- Bumping version to 1.2.0-0.4.rc (pcreech@redhat.com)
-
-* Wed Nov 23 2016 Sean Myers <sean.myers@redhat.com> 1.2.0-0.3.beta
-- Bumping version to 1.2.0-0.3.beta (sean.myers@redhat.com)
-
-* Thu Nov 03 2016 Sean Myers <sean.myers@redhat.com> 1.2.0-0.2.beta
-- Bumping version to 1.2.0-0.2.beta (sean.myers@redhat.com)
+* Fri Mar 10 2017 Sean Myers <sean.myers@redhat.com> 1.2.1-0.1.beta
+- Bumping version to 1.2.1-0.1.beta (sean.myers@redhat.com)
+- Fix unit copy. closes #2544 (jortel@redhat.com)
+- Modify directive name to generate docs correctly using platfrom config
+  (ttereshc@redhat.com)
+- Support local repository repair. closes #2552 (jortel@redhat.com)
+- Bumping version to 1.2.1-0.1.alpha (sean.myers@redhat.com)
+- Update dist_list: fc23 removed, fc25 added (sean.myers@redhat.com)
 - 1.2.0 release notes. (jortel@redhat.com)
 
 * Tue Oct 25 2016 Sean Myers <sean.myers@redhat.com> 1.2.0-0.1.beta
