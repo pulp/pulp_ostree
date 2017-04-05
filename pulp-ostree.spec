@@ -139,6 +139,12 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Wed Apr 05 2017 werwty <bihan.zh@gmail.com> 1.2.1-0.2.beta
+- Bumping version to 1.2.1-0.2.beta (bihan.zh@gmail.com)
+- Modify directive name to generate docs correctly using platfrom config
+  (ttereshc@redhat.com)
+- Bumping version to 1.2.2-0.1.alpha (sean.myers@redhat.com)
+
 * Fri Mar 10 2017 Sean Myers <sean.myers@redhat.com> 1.2.1-0.1.beta
 - Bumping version to 1.2.1-0.1.beta (sean.myers@redhat.com)
 - Fix unit copy. closes #2544 (jortel@redhat.com)
