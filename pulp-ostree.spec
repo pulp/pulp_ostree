@@ -69,6 +69,7 @@ rm -rf %{buildroot}
 %package -n python-pulp-ostree-common
 Summary: Pulp OSTree support common library
 Group: Development/Languages
+Provides: python2-pulp-ostree-common
 Requires: python-pulp-common >= %{platform_version}
 Requires: python-setuptools
 
