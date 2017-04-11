@@ -138,7 +138,7 @@ class WebImporter(Importer):
         :rtype:  list
         """
         added = []
-        for unit in conduit.get_source_units():
+        for unit in units or conduit.get_source_units():
             conduit.associate_unit(unit)
             added.append(unit)
         return added

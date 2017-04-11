@@ -48,6 +48,23 @@ class TestImporter(TestCase):
             Mock()
         ]
         conduit = Mock()
+
+        # test
+        importer = WebImporter()
+        report = importer.import_units(None, None, conduit, None, units)
+
+        # validation
+        self.assertFalse(conduit.get_source_units.called)
+        self.assertEqual(conduit.associate_unit.call_args_list, [((u,), {}) for u in units])
+        self.assertEqual(report, units)
+
+    def test_import_all(self):
+        units = [
+            Mock(),
+            Mock(),
+            Mock()
+        ]
+        conduit = Mock()
         conduit.get_source_units.return_value = units
 
         # test

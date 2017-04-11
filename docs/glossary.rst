@@ -8,6 +8,9 @@ Glossary
   local
     A ``local`` ostree repository is stored in Pulp's content storage location.
 
+  storage
+    The :term:`local` ostree repository used for content storage.
+
   remote
     A ``remote`` repository is external to Pulp and is identified by its URL.
 
