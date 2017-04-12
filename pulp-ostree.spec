@@ -139,6 +139,9 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
+* Wed Apr 12 2017 werwty <bihan.zh@gmail.com> 1.2.1-1
+- Bumping version to 1.2.1-1 (bihan.zh@gmail.com)
+
 * Wed Apr 05 2017 werwty <bihan.zh@gmail.com> 1.2.1-0.2.beta
 - Bumping version to 1.2.1-0.2.beta (bihan.zh@gmail.com)
 - Modify directive name to generate docs correctly using platfrom config
