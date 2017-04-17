@@ -31,6 +31,10 @@ LINKS = (
      '/etc/pulp/server/plugins.conf.d/ostree_importer.json'),
 )
 
+OLD_LINKS = (
+    ('plugins/types/ostree.json', DIR_PLUGINS + '/types/ostree.json'),
+)
+
 
 def parse_cmdline():
     """
@@ -82,9 +86,9 @@ def create_dirs(opts):
         os.makedirs(d, 0777)
 
 
-def getlinks():
+def getlinks(list_links):
     links = []
-    for l in LINKS:
+    for l in list_links:
         if isinstance(l, (list, tuple)):
             src = l[0]
             dst = l[1]
@@ -105,7 +109,7 @@ def install(opts):
     os.system('chown -R apache:apache /var/lib/pulp/published/ostree')
 
     currdir = os.path.abspath(os.path.dirname(__file__))
-    for src, dst in getlinks():
+    for src, dst in getlinks(LINKS):
         warning_msg = create_link(opts, os.path.join(currdir, src), dst)
         if warning_msg:
             warnings.append(warning_msg)
@@ -114,17 +118,12 @@ def install(opts):
         print "\n***\nPossible problems:  Please read below\n***"
         for w in warnings:
             warning(w)
+    remove_links(OLD_LINKS)
     return os.EX_OK
 
 
 def uninstall(opts):
-    for src, dst in getlinks():
-        debug(opts, 'removing link: %s' % dst)
-        if not os.path.islink(dst):
-            debug(opts, '%s does not exist, skipping' % dst)
-            continue
-        os.unlink(dst)
-
+    remove_links(LINKS)
     # Uninstall the packages
     environment.manage_setup_pys('uninstall', ROOT_DIR)
 
@@ -157,6 +156,15 @@ def create_link(opts, src, dst):
         msg = "[%s] is pointing to [%s] which is different than the intended target [%s]"\
               % (dst, os.readlink(dst), src)
         return msg
+
+
+def remove_links(links):
+    for src, dst in getlinks(links):
+        debug(opts, 'removing link: %s' % dst)
+        if not os.path.islink(dst):
+            debug(opts, '%s does not exist, skipping' % dst)
+            continue
+        os.unlink(dst)
 
 
 def _create_link(opts, src, dst):
