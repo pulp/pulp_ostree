@@ -7,7 +7,7 @@
 
 Name: pulp-ostree
 Version: 1.2.1
-Release: 1%{?dist}
+Release: 1.2.rc%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -69,6 +69,7 @@ rm -rf %{buildroot}
 %package -n python-pulp-ostree-common
 Summary: Pulp OSTree support common library
 Group: Development/Languages
+Provides: python2-pulp-ostree-common
 Requires: python-pulp-common >= %{platform_version}
 Requires: python-setuptools
 
@@ -139,9 +140,6 @@ pulp-admin extensions for OSTree support.
 
 
 %changelog
-* Wed Apr 12 2017 werwty <bihan.zh@gmail.com> 1.2.1-1
-- Bumping version to 1.2.1-1 (bihan.zh@gmail.com)
-
 * Wed Apr 05 2017 werwty <bihan.zh@gmail.com> 1.2.1-0.2.beta
 - Bumping version to 1.2.1-0.2.beta (bihan.zh@gmail.com)
 - Modify directive name to generate docs correctly using platfrom config
