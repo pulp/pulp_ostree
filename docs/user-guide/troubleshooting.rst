@@ -14,7 +14,7 @@ exception during publishing::
 The recommended remedy is to pass the `repair` option to the sync API call. Or, when using
 CLI, the `--repair|-r` option may be specified::
 
- pulp-admin ostree sync run -r --repo-id=f25
+ pulp-admin ostree repo sync run -r --repo-id=f25
 
 The repair may require that the importer delete and recreated the storage. Repositories configured
 with limited tree traversal depth or a subset of branches to be pulled should use caution. If the
