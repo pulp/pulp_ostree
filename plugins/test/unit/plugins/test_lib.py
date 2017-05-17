@@ -6,6 +6,7 @@ from pulp_ostree.plugins.lib import (
     Lib,
     LibError,
     ProgressReport,
+    Commit,
     Ref,
     Remote,
     Variant,
@@ -518,6 +519,88 @@ class TestRepository(TestCase):
         # validation
         self.assertRaises(LibError, repo.pull, '', [], None)
         progress.finish.assert_called_once_with()
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_history(self, lib):
+        commit_id = '123'
+        parents = [
+            '456',
+            '789',
+            None
+        ]
+        variants = [
+            (True, ({'version': 1},)),
+            (True, ({'version': 2},)),
+            (True, ({'version': 3},)),
+        ]
+        _repo = Mock()
+        _repo.load_variant.side_effect = variants
+        _lib = Mock()
+        _lib.OSTree.Repo.new.return_value = _repo
+        _lib.GLib.GError = GError
+        _lib.OSTree.ObjectType.COMMIT = 'COMMIT'
+        _lib.OSTree.commit_get_parent.side_effect = parents
+        lib.return_value = _lib
+
+        # test
+        repo = Repository('')
+        history = repo.history(commit_id)
+
+        # validation
+        self.assertEqual(history, [
+            Commit('123', {'version': 1}),
+            Commit('456', {'version': 2}),
+            Commit('789', {'version': 3}),
+        ])
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_history_not_pulled(self, lib):
+        # Depending on tree traversal depth, the entire commit
+        # hierarchy may not have been pulled.
+        commit_id = '123'
+        parents = [
+            '456',
+            '789',
+            None
+        ]
+        variants = [
+            (True, ({'version': 1},)),
+            (True, ({'version': 2},)),
+            GError,
+        ]
+        _repo = Mock()
+        _repo.load_variant.side_effect = variants
+        _lib = Mock()
+        _lib.OSTree.Repo.new.return_value = _repo
+        _lib.GLib.GError = GError
+        _lib.OSTree.ObjectType.COMMIT = 'COMMIT'
+        _lib.OSTree.commit_get_parent.side_effect = parents
+        lib.return_value = _lib
+
+        # test
+        repo = Repository('')
+        history = repo.history(commit_id)
+
+        # validation
+        self.assertEqual(history, [
+            Commit('123', {'version': 1}),
+            Commit('456', {'version': 2}),
+        ])
+
+    @patch('pulp_ostree.plugins.lib.Lib')
+    def test_history_failed(self, lib):
+        commit_id = '123'
+        _repo = Mock()
+        _repo.load_variant.side_effect = GError
+        _lib = Mock()
+        _lib.OSTree.Repo.new.return_value = _repo
+        _lib.GLib.GError = GError
+        _lib.OSTree.ObjectType.COMMIT = 'COMMIT'
+        lib.return_value = _lib
+
+        # test
+        repo = Repository('')
+        self.assertRaises(GError, repo.history, commit_id)
 
 
 class TestRemote(TestCase):

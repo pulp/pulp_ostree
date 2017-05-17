@@ -49,11 +49,12 @@ class TestConfigurationGetters(unittest.TestCase):
         self.assertEquals(directory, relative_path[1:])
 
 
-@mock.patch('pulp_ostree.plugins.distributors.configuration.model.Distributor.objects')
 class TestValidateConfig(unittest.TestCase):
 
-    def test_server_url_fully_qualified(self, mock_dist_qs):
+    def test_server_url_fully_qualified(self):
         m_repo = mock.MagicMock()
+        conduit = mock.MagicMock()
+        conduit.get_repo_distributors_by_relative_url.return_value = []
         config = PluginCallConfiguration({}, {})
         self.assertEquals(
-            (True, None), configuration.validate_config(m_repo, config))
+            (True, None), configuration.validate_config(m_repo, config, conduit))

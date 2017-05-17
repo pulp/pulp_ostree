@@ -1,3 +1,4 @@
+from collections import namedtuple
 from logging import getLogger
 
 log = getLogger(__name__)
@@ -125,6 +126,12 @@ class Ref(object):
         :rtype: dict
         """
         return dict(self.__dict__)
+
+
+# OSTree commit.
+# id (str): The commit hash.
+# metadata (dict): The commit metadata.
+Commit = namedtuple('Commit', ['id', 'metadata'])
 
 
 class Variant(object):
@@ -384,6 +391,36 @@ class Repository(object):
 
         self.open()
         self.impl.pull_with_options(url, Variant.opt_dict(options), None, None)
+
+    def history(self, commit_id):
+        """
+        Get commit history.
+        Traversal of the commit hierarchy.
+        Depending on the traversal 'depth' setting, the entire commit
+        hierarchy may not have been pulled.  This is detected when GError
+        is raised.  Unfortunately, a more specific exception is not raised.
+
+        :param commit_id: A commit (hash) used as the starting point for the traversal.
+        :type  commit_id: str
+        :return: A list of: Commit.
+        :rtype: list
+        """
+        lib = Lib()
+        self.open()
+        history = []
+        while commit_id:
+            try:
+                _, commit = self.impl.load_variant(lib.OSTree.ObjectType.COMMIT, commit_id)
+            except lib.GLib.GError as le:
+                if history:
+                    # parent not pulled.
+                    log.debug(le)
+                    break
+                else:
+                    raise
+            history.append(Commit(id=commit_id, metadata=commit[0]))
+            commit_id = lib.OSTree.commit_get_parent(commit)
+        return history
 
 
 class Remote(object):
