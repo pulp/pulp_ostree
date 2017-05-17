@@ -38,6 +38,10 @@ description = _("the absolute path to an exported GPG key. This option "
 OPT_GPG_KEY = PulpCliOption(
     '--gpg-key', description, aliases=['-k'], required=False, allow_multiple=True)
 
+description = _('Tree traversal depth. Default: 0')
+
+OPT_DEPTH = PulpCliOption('--depth', description, aliases=['-d'], required=False)
+
 
 IMPORTER_CONFIGURATION_FLAGS = dict(
     include_ssl=True,
@@ -75,6 +79,7 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         self.add_option(OPT_RELATIVE_PATH)
         self.add_option(OPT_BRANCH)
         self.add_option(OPT_GPG_KEY)
+        self.add_option(OPT_DEPTH)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def _describe_distributors(self, user_input):
@@ -108,6 +113,11 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
             constants.DISTRIBUTOR_CONFIG_KEY_RELATIVE_PATH: relative_path
         }
 
+        # traversal depth
+        depth = user_input.get(OPT_DEPTH.keyword)
+        if depth is not None:
+            config[constants.DISTRIBUTOR_CONFIG_KEY_DEPTH] = depth
+
         data = [
             dict(distributor_type_id=constants.WEB_DISTRIBUTOR_TYPE_ID,
                  distributor_config=config,
@@ -135,6 +145,9 @@ class CreateOSTreeRepositoryCommand(CreateAndConfigureRepositoryCommand, Importe
         paths = user_input.pop(OPT_GPG_KEY.keyword, None)
         if paths:
             config[constants.IMPORTER_CONFIG_KEY_GPG_KEYS] = map(read, paths)
+        depth = user_input.get(OPT_DEPTH.keyword)
+        if depth is not None:
+            config[constants.IMPORTER_CONFIG_KEY_DEPTH] = depth
         return config
 
 
@@ -146,12 +159,18 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
         self.add_option(OPT_AUTO_PUBLISH)
         self.add_option(OPT_BRANCH)
         self.add_option(OPT_GPG_KEY)
+        self.add_option(OPT_DEPTH)
         self.options_bundle.opt_feed.description = DESC_FEED
 
     def run(self, **kwargs):
         arg_utils.convert_removed_options(kwargs)
 
         importer_config = self.parse_user_input(kwargs)
+
+        # traversal depth
+        if OPT_DEPTH.keyword in kwargs:
+            value = kwargs.get(OPT_DEPTH.keyword)
+            importer_config[constants.IMPORTER_CONFIG_KEY_DEPTH] = value
 
         # branch list
         if OPT_BRANCH.keyword in kwargs:
@@ -171,7 +190,8 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
 
         # Remove importer specific keys
         for key in importer_config.keys():
-            kwargs.pop(key, None)
+            if key not in (OPT_DEPTH.keyword,):
+                kwargs.pop(key, None)
 
         if importer_config:
             kwargs['importer_config'] = importer_config
@@ -182,6 +202,11 @@ class UpdateOSTreeRepositoryCommand(UpdateRepositoryCommand, ImporterConfigMixin
         value = kwargs.pop(OPT_AUTO_PUBLISH.keyword, None)
         if value is not None:
             web_config['auto_publish'] = value
+
+        # traversal depth
+        depth = kwargs.pop(OPT_DEPTH.keyword, None)
+        if depth is not None:
+            web_config[constants.DISTRIBUTOR_CONFIG_KEY_DEPTH] = depth
 
         if web_config:
             kwargs['distributor_configs'] = {}

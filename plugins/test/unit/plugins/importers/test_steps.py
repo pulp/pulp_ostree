@@ -2,14 +2,14 @@ import os
 
 from pulp.common.compat import unittest
 
-from mock import patch, Mock, PropertyMock, ANY
+from mock import patch, Mock, PropertyMock, ANY, call
 
 from pulp.common.plugins import importer_constants
 from pulp.server.exceptions import PulpCodedException
 
 from mongoengine import NotUniqueError
 
-from pulp_ostree.plugins.lib import LibError
+from pulp_ostree.plugins.lib import LibError, Commit
 from pulp_ostree.plugins.importers.steps import (
     Main, Create, Summary, Pull, Add, Clean, Remote, Repair)
 from pulp_ostree.common import constants, errors
@@ -275,6 +275,12 @@ class TestAdd(unittest.TestCase):
     @patch(MODULE + '.model')
     @patch(MODULE + '.associate_single_unit')
     def test_process_main(self, fake_associate, fake_model, fake_lib):
+        def history(commit_id):
+            return [
+                Commit(id='{}head'.format(commit_id), metadata={'md': 0}),
+                Commit(id='{}parent-1'.format(commit_id), metadata={'md': 1}),
+                Commit(id='{}parent-2'.format(commit_id), metadata={'md': 2}),
+            ]
         repo_id = 'r-1234'
         remote_id = 'remote-1'
         refs = [
@@ -284,7 +290,15 @@ class TestAdd(unittest.TestCase):
             Mock(path='branch:4', commit='commit:4', metadata='md:4'),
             Mock(path='branch:5', commit='commit:5', metadata='md:5'),
         ]
-        units = [Mock(ref=r, unit_key={}) for r in refs]
+
+        units = [
+            Mock(remote_id=remote_id,
+                 branch=r.path.split(':')[-1],
+                 commit=c.id,
+                 metadata=c.metadata,
+                 unit_key={}) for r in refs[:-1] for c in reversed(history(r.commit))
+        ]
+
         units[0].save.side_effect = NotUniqueError  # duplicate
 
         fake_model.Branch.side_effect = units
@@ -294,6 +308,7 @@ class TestAdd(unittest.TestCase):
 
         repository = Mock()
         repository.list_refs.return_value = refs
+        repository.history.side_effect = history
         fake_lib.Repository.return_value = repository
 
         parent = Mock(remote_id=remote_id, storage_dir='/tmp/xyz', branches=branches)
@@ -312,17 +327,15 @@ class TestAdd(unittest.TestCase):
         self.assertEqual(
             fake_model.Branch.call_args_list,
             [
-                ((), dict(
-                    remote_id=remote_id,
-                    branch=r.path.split(':')[-1],
-                    commit=r.commit,
-                    metadata=r.metadata))
-                for r in refs[:-1]
+                call(remote_id=u.remote_id,
+                     branch=u.branch,
+                     commit=u.commit,
+                     metadata=u.metadata) for u in units
             ])
         self.assertEqual(
             fake_associate.call_args_list,
             [
-                ((parent.get_repo.return_value.repo_obj, u), {}) for u in units[:-1]
+                ((parent.get_repo.return_value.repo_obj, u), {}) for u in units
             ])
 
 

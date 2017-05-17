@@ -1,0 +1,31 @@
+=============================
+Pulp OSTree 1.3 Release Notes
+=============================
+
+Pulp OSTree 1.3.0
+=================
+
+New Features
+------------
+
+- The importer's algorithm for creating content units has been enhanced.
+  A content unit is created for each branch HEAD commit. The importer then walks up
+  the commit ancestry and creates content units for each parent commit. This ensure there
+  are no gaps in the branch history. The tree traversal ``depth`` may limit how much of the
+  history is available.  The importer does not support cases where the remote repository has
+  used ``ostree reset`` to update a branch HEAD.
+
+- The CLI now supports the ``depth`` option which is used to configure the tree traversal
+  depth for both the importer and distributor.
+
+
+API Changes
+-----------
+
+None
+
+
+Bugs Fixed
+----------
+
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.3.0>`.

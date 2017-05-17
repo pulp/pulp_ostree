@@ -161,4 +161,4 @@ class WebDistributor(Distributor):
 
         :raises: PulpCodedValidationException if any validations failed
         """
-        return configuration.validate_config(repo, config)
+        return configuration.validate_config(repo, config, config_conduit)

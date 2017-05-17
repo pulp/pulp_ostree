@@ -246,7 +246,7 @@ class Add(SaveUnitsStep):
     def process_main(self, item=None):
         """
         Find all branch (heads) in the local repository and
-        create content units for them.
+        create content units for each branch and commit in the history.
         """
         lib_repository = lib.Repository(self.parent.storage_dir)
         for ref in lib_repository.list_refs():
@@ -257,16 +257,17 @@ class Add(SaveUnitsStep):
                     # not listed
                     log.debug('skipping non-selected branch: {0}'.format(branch))
                     continue
-            unit = model.Branch(
-                remote_id=self.parent.remote_id,
-                branch=branch,
-                commit=ref.commit,
-                metadata=ref.metadata)
-            try:
-                unit.save()
-            except NotUniqueError:
-                unit = model.Branch.objects.get(**unit.unit_key)
-            associate_single_unit(self.get_repo().repo_obj, unit)
+            for commit in reversed(lib_repository.history(ref.commit)):
+                unit = model.Branch(
+                    remote_id=self.parent.remote_id,
+                    branch=branch,
+                    commit=commit.id,
+                    metadata=commit.metadata)
+                try:
+                    unit.save()
+                except NotUniqueError:
+                    unit = model.Branch.objects.get(**unit.unit_key)
+                associate_single_unit(self.get_repo().repo_obj, unit)
 
 
 class Clean(PluginStep):

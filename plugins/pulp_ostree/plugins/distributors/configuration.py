@@ -4,13 +4,11 @@ import os
 
 from pulp_ostree.common import constants
 
-from mongoengine import Q
-from pulp.server.db import model
 
 _LOG = logging.getLogger(__name__)
 
 
-def validate_config(repo, config):
+def validate_config(repo, config, conduit):
     """
     Validate a configuration
 
@@ -18,12 +16,14 @@ def validate_config(repo, config):
     :type  repo: pulp.plugins.model.Repository
     :param config: Pulp configuration for the distributor
     :type  config: pulp.plugins.config.PluginCallConfiguration
+    :param conduit: A configuration conduit.
+    :type conduit: pulp.plugins.conduits.repo_config.RepoConfigConduit
     :return: tuple of (bool, str) to describe the result
     :rtype:  tuple
     """
     repo_obj = repo.repo_obj
     relative_path = get_repo_relative_path(repo_obj, config)
-    error_msgs = _check_for_relative_path_conflicts(repo_obj.repo_id, relative_path)
+    error_msgs = _check_for_relative_path_conflicts(repo_obj.repo_id, relative_path, conduit)
 
     if error_msgs:
         return False, '\n'.join(error_msgs)
@@ -98,7 +98,7 @@ def get_repo_relative_path(repo, config):
     return path
 
 
-def _check_for_relative_path_conflicts(repo_id, relative_path):
+def _check_for_relative_path_conflicts(repo_id, relative_path, conduit):
     """
     Check that a relative path does not conflict with existing distributors' relative paths.
 
@@ -106,32 +106,22 @@ def _check_for_relative_path_conflicts(repo_id, relative_path):
     :type  repo_id: basestring
     :param relative_path: relative path of the repository
     :type  relative_path: basestring
-    :return error_messages: a list of validation errors
+    :param conduit: A configuration conduit.
+    :type conduit: pulp.plugins.conduits.repo_config.RepoConfigConduit
+    :return: A list of validation error messages.
     :rtype: list
     """
-    current_url_pieces = [x for x in relative_path.split('/') if x]
-    matching_url_list = []
-    working_url = ''
-    for piece in current_url_pieces:
-        working_url = os.path.join(working_url, piece)
-        matching_url_list.append(working_url)
-        matching_url_list.append('/' + working_url)
-
-    # Search for all the sub urls as well as any url that would fall within the specified url.
-    # The regex here basically matches the a url if it starts with (optional preceding slash)
-    # the working url. Anything can follow as long as it is separated by a slash.
-    rel_url_match = Q(config__relative_path={'$regex': '^/?' + working_url + '(/.*|/?\z)'})
-    rel_url_in_list = Q(config__relative_path__in=matching_url_list)
-
-    conflicts = model.Distributor.objects(rel_url_match | rel_url_in_list).only('repo_id', 'config')
-    error_messages = []
-    for distributor in conflicts:
+    messages = []
+    distributors = conduit.get_repo_distributors_by_relative_url(relative_path, repo_id)
+    for distributor in distributors:
         conflicting_repo_id = distributor['repo_id']
-        conflicting_relative_url = None
         conflicting_relative_url = distributor['config']['relative_path']
-        msg = _('Relative path [{relative_path}] for repository [{repo_id}] conflicts with '
-                'existing relative path [{conflict_url}] for repository [{conflict_repo}]')
-        error_messages.append(msg.format(relative_path=relative_path, repo_id=repo_id,
-                                         conflict_url=conflicting_relative_url,
-                                         conflict_repo=conflicting_repo_id))
-    return error_messages
+        description = _('Relative path [{relative_path}] for repository [{repo_id}] conflicts '
+                        'with relative path [{conflict_url}] for repository [{conflict_repo}]')
+        msg = description.format(
+            relative_path=relative_path,
+            repo_id=repo_id,
+            conflict_url=conflicting_relative_url,
+            conflict_repo=conflicting_repo_id)
+        messages.append(msg)
+    return messages
