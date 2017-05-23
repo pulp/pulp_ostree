@@ -112,10 +112,11 @@ def _check_for_relative_path_conflicts(repo_id, relative_path, conduit):
     :rtype: list
     """
     messages = []
-    distributors = conduit.get_repo_distributors_by_relative_url(relative_path, repo_id)
+    distributors = conduit.get_repo_distributors_by_relative_url(
+        relative_path, repo_id=repo_id, field='relative_path')
     for distributor in distributors:
         conflicting_repo_id = distributor['repo_id']
-        conflicting_relative_url = distributor['config']['relative_path']
+        conflicting_relative_url = distributor['config'].get('relative_path', conflicting_repo_id)
         description = _('Relative path [{relative_path}] for repository [{repo_id}] conflicts '
                         'with relative path [{conflict_url}] for repository [{conflict_repo}]')
         msg = description.format(
