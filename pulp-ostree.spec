@@ -2,12 +2,12 @@
 %{!?python_sitearch: %global python_sitearch %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib(1))")}
 
 # Required platform version
-%global platform_version 2.8
+%global platform_version 2.10
 
 
 Name: pulp-ostree
 Version: 1.2.1
-Release: 2%{?dist}
+Release: 2.1.beta%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
 License: GPLv2
@@ -70,6 +70,7 @@ rm -rf %{buildroot}
 Summary: Pulp OSTree support common library
 Group: Development/Languages
 Provides: python2-pulp-ostree-common
+Obsoletes: python2-pulp-ostree-common < %{version}
 Requires: python-pulp-common >= %{platform_version}
 Requires: python-setuptools
 
