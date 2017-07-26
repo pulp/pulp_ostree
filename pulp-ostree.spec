@@ -29,7 +29,7 @@ Provides a collection of platform plugins and admin client extensions to
 provide OSTree support.
 
 %prep
-%setup -q -n pulp_ostree-%{git_tag}
+%setup -q
 
 %build
 pushd common
