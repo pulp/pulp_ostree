@@ -5,7 +5,7 @@
 %global platform_version 2.10
 
 # The release number
-%global release_number 0.1.alpha
+%global release_number 0.1.beta
 
 # Create tag for the Source0 and setup
 %global git_tag %{name}-%{version}-%{release_number}
