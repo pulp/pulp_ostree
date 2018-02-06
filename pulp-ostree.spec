@@ -11,7 +11,7 @@
 %global git_tag %{name}-%{version}-%{release_number}
 
 Name: pulp-ostree
-Version: 1.3.0
+Version: 1.4.0
 Release: %{release_number}%{?dist}
 Summary: Support for OSTree content in the Pulp platform
 Group: Development/Languages
