@@ -9,7 +9,7 @@ from pulp.server.exceptions import PulpCodedException
 
 from mongoengine import NotUniqueError
 
-from pulp_ostree.plugins.lib import LibError, Commit
+from pulp_ostree.plugins.lib import LibError, Commit, Ref
 from pulp_ostree.plugins.importers.steps import (
     Main, Create, Summary, Pull, Add, Clean, Remote, Repair)
 from pulp_ostree.common import constants, errors
@@ -277,18 +277,18 @@ class TestAdd(unittest.TestCase):
     def test_process_main(self, fake_associate, fake_model, fake_lib):
         def history(commit_id):
             return [
-                Commit(id='{}head'.format(commit_id), metadata={'md': 0}),
-                Commit(id='{}parent-1'.format(commit_id), metadata={'md': 1}),
-                Commit(id='{}parent-2'.format(commit_id), metadata={'md': 2}),
+                Commit(id='{}head'.format(commit_id), metadata={'version': 1}),
+                Commit(id='{}parent-1'.format(commit_id), metadata={'version': 2}),
+                Commit(id='{}parent-2'.format(commit_id), metadata={'version': 3}),
             ]
         repo_id = 'r-1234'
         remote_id = 'remote-1'
         refs = [
-            Mock(path='branch:1', commit='commit:1', metadata='md:1'),
-            Mock(path='branch:2', commit='commit:2', metadata='md:2'),
-            Mock(path='branch:3', commit='commit:3', metadata='md:3'),
-            Mock(path='branch:4', commit='commit:4', metadata='md:4'),
-            Mock(path='branch:5', commit='commit:5', metadata='md:5'),
+            Mock(path='branch:1', commit='commit:1', metadata={'version': 1}),
+            Mock(path='branch:2', commit='commit:2', metadata={'version': 2}),
+            Mock(path='branch:3', commit='commit:3', metadata={'version': 3}),
+            Mock(path='branch:4', commit='commit:4', metadata={'version': 4}),
+            Mock(path='branch:5', commit='commit:5', metadata={'version': 5}),
         ]
 
         units = [
@@ -344,17 +344,10 @@ class TestSummary(unittest.TestCase):
     @patch(MODULE + '.lib')
     def test_process_main(self, fake_lib):
         refs = [
-            Mock(),
-            Mock(),
-            Mock(),
+            Ref(commit='abc', name='foo', metadata={'version': 1}),
+            Ref(commit='def', name='bar', metadata={'version': 2}),
+            Ref(commit='hij', name='baz', metadata={'version': 3}),
         ]
-        ref_dicts = [
-            {'commit': 'abc', 'name': 'foo', 'metadata': {'a.b': 'x'}},
-            {'commit': 'def', 'name': 'bar', 'metadata': {'a.b': 'y'}},
-            {'commit': 'hij', 'name': 'baz', 'metadata': {'a.b': 'z'}},
-        ]
-        for ref, d in zip(refs, ref_dicts):
-            ref.dict.return_value = d
         remote = Mock()
         remote.list_refs.return_value = refs
         lib_repository = Mock()
@@ -376,9 +369,9 @@ class TestSummary(unittest.TestCase):
             {
                 constants.REMOTE: {
                     constants.SUMMARY: [
-                        {'commit': 'abc', 'name': 'foo', 'metadata': {'a-b': 'x'}},
-                        {'commit': 'def', 'name': 'bar', 'metadata': {'a-b': 'y'}},
-                        {'commit': 'hij', 'name': 'baz', 'metadata': {'a-b': 'z'}},
+                        {'commit': 'abc', 'name': 'foo', 'metadata': {'version': 1}},
+                        {'commit': 'def', 'name': 'bar', 'metadata': {'version': 2}},
+                        {'commit': 'hij', 'name': 'baz', 'metadata': {'version': 3}},
                     ]
                 }
             })
@@ -403,33 +396,31 @@ class TestSummary(unittest.TestCase):
             step.process_main()
             self.assertEqual(assertion.exception.error_code, errors.OST0005)
 
-    def test_clean_metadata(self):
-        commit = 'abc'
+    def test_build_summary(self):
         name = 'foo'
+        commit = 'abc'
         metadata = {
             'a.b': '123',
             'a.b.c': '456',
-            'created': '2016-02-23T22:49:05Z'
+            'version': '7.6',
         }
-        ref = {
-            'commit': commit,
-            'name': name,
-            'metadata': metadata
-        }
-
-        cleaned = dict((k.replace('.', '-'), v) for k, v in metadata.items())
+        refs = [
+            Ref(name=name, metadata=metadata, commit=commit)
+        ]
 
         # test
-        Summary.clean_metadata(ref)
+        summary = Summary.build_summary(refs)
 
         # validation
-        self.assertDictEqual(
-            ref,
-            {
-                'commit': commit,
-                'name': name,
-                'metadata': cleaned
-            })
+        self.assertEqual(
+            summary,
+            [
+                {
+                    'name': name,
+                    'metadata': {'version': '7.6'},
+                    'commit': commit,
+                }
+            ])
 
 
 class TestClean(unittest.TestCase):
