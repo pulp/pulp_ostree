@@ -23,7 +23,10 @@ from pulp_ostree.plugins import lib
 log = getLogger(__name__)
 
 
-ALL = None  # all branches (refs)
+# all branches (refs)
+ALL = None
+# Supported metadata fields.
+METADATA = ('version',)
 
 
 class Main(PluginStep):
@@ -154,31 +157,36 @@ class Summary(PluginStep):
         try:
             lib_repository = lib.Repository(self.parent.storage_dir)
             remote = lib.Remote(self.parent.repo_id, lib_repository)
-            refs = [r.dict() for r in remote.list_refs()]
+            refs = remote.list_refs()
         except lib.LibError as le:
             pe = PulpCodedException(errors.OST0005, reason=str(le))
             raise pe
         repository = self.get_repo().repo_obj
-        map(self.clean_metadata, refs)
         repository.scratchpad.update({
             constants.REMOTE: {
-                constants.SUMMARY: refs
+                constants.SUMMARY: self.build_summary(refs)
             }
         })
         repository.save()
 
     @staticmethod
-    def clean_metadata(ref):
+    def build_summary(refs):
         """
-        Updates the metadata part of the specified ref by replacing
-        keys containing dot (.) with underscores (-).  This ensures the
-        keys can be stored in the DB.
+        Build the summary stored in the Repository scratchpad.
 
-        :param ref: A dictionary retrieved with lib.Remote().list_refs()
-        :type  ref: dict
+        :param refs: Collection of remote Ref.
+        :type refs: list
+        :return: The summary.
+        :rtype: list
         """
-        key = 'metadata'
-        ref[key] = dict((k.replace('.', '-'), v) for k, v in ref[key].items())
+        summary = []
+        for ref in refs:
+            summary.append({
+                'name': ref.name,
+                'metadata': dict((k, ref.metadata.get(k)) for k in METADATA),
+                'commit': ref.commit,
+            })
+        return summary
 
 
 class Pull(PluginStep):
@@ -261,8 +269,9 @@ class Add(SaveUnitsStep):
                 unit = model.Branch(
                     remote_id=self.parent.remote_id,
                     branch=branch,
+                    metadata=dict((k, commit.metadata.get(k)) for k in METADATA),
                     commit=commit.id,
-                    metadata=commit.metadata)
+                )
                 try:
                     unit.save()
                 except NotUniqueError:
