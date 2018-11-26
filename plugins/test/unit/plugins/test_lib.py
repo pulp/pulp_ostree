@@ -23,7 +23,7 @@ class Import(object):
     def __init__(self):
         self.mod = Mock()
 
-    def __call__(self, ignored, fromlist):
+    def __call__(self, ignored, fromlist=()):
         for name in fromlist:
             setattr(self.mod, name, hash(name))
         return self.mod
@@ -64,7 +64,7 @@ class TestLoad(TestCase):
         lib = Lib()
 
         # validation
-        self.assertEqual(_import.call_count, len(lib.__dict__))
+        self.assertEqual(_import.call_count, 1 + len(lib.__dict__))
         for name in lib.__dict__.keys():
             _import.assert_any_call(G_OBJECT, fromlist=[name])
             self.assertEqual(getattr(lib, name), hash(name))
@@ -548,9 +548,9 @@ class TestRepository(TestCase):
 
         # validation
         self.assertEqual(history, [
-            Commit('123', {'version': 1}),
-            Commit('456', {'version': 2}),
-            Commit('789', {'version': 3}),
+            Commit(id='123', parent_id='456', metadata={'version': 1}),
+            Commit(id='456', parent_id='789', metadata={'version': 2}),
+            Commit(id='789', parent_id=None, metadata={'version': 3}),
         ])
 
     @patch('pulp_ostree.plugins.lib.Lib')
@@ -560,7 +560,6 @@ class TestRepository(TestCase):
         commit_id = '123'
         parents = [
             '456',
-            '789',
             None
         ]
         variants = [
@@ -583,8 +582,8 @@ class TestRepository(TestCase):
 
         # validation
         self.assertEqual(history, [
-            Commit('123', {'version': 1}),
-            Commit('456', {'version': 2}),
+            Commit(id='123', parent_id='456', metadata={'version': 1}),
+            Commit(id='456', parent_id=None, metadata={'version': 2}),
         ])
 
     @patch('pulp_ostree.plugins.lib.Lib')

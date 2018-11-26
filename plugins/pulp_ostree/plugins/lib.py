@@ -45,6 +45,8 @@ class Lib(object):
         """
         Load libraries using gnome object inspection API.
         """
+        gi = __import__('gi')
+        gi.require_version('OSTree', '1.0')
         for name in self.__dict__.keys():
             lib = getattr(__import__('gi.repository', fromlist=[name]), name)
             setattr(self, name, lib)
@@ -54,6 +56,13 @@ class Lib(object):
         self.Gio = None
         self.OSTree = None
         self.load()
+
+    def __enter__(self):
+        self.load()
+        return self
+
+    def __exit__(self, *unused):
+        pass
 
 
 class ProgressReport(object):
@@ -130,8 +139,15 @@ class Ref(object):
 
 # OSTree commit.
 # id (str): The commit hash.
+# parent_id (): The commit parent hash.
 # metadata (dict): The commit metadata.
-Commit = namedtuple('Commit', ['id', 'metadata'])
+Commit = namedtuple(
+    'Commit',
+    [
+        'id',
+        'parent_id',
+        'metadata'
+    ])
 
 
 class Variant(object):
@@ -304,6 +320,8 @@ class Repository(object):
         """
         Close the repository.
         """
+        if self.impl:
+            del self.impl
         self.impl = None
 
     @wrapped
@@ -418,9 +436,21 @@ class Repository(object):
                     break
                 else:
                     raise
-            history.append(Commit(id=commit_id, metadata=commit[0]))
-            commit_id = lib.OSTree.commit_get_parent(commit)
+            parent_id = lib.OSTree.commit_get_parent(commit)
+            h = Commit(
+                id=commit_id,
+                parent_id=parent_id,
+                metadata=commit[0])
+            history.append(h)
+            commit_id = parent_id
         return history
+
+    def __enter__(self):
+        self.open()
+        return self
+
+    def __exit__(self, *unused):
+        self.close()
 
 
 class Remote(object):

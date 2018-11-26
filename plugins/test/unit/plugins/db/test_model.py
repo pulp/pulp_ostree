@@ -1,7 +1,6 @@
 from hashlib import sha256
 from unittest import TestCase
 
-from mock import patch, Mock
 import mongoengine
 
 from pulp_ostree.common import constants
@@ -56,20 +55,6 @@ class TestMetadataField(TestCase):
 
 
 class TestBranch(TestCase):
-
-    @patch('pulp_ostree.plugins.db.model.datetime')
-    def test_pre_save_signal(self, datetime):
-        sender = Mock()
-        kwargs = {'a': 1, 'b': 2}
-
-        # test
-        unit = Branch()
-        with patch('pulp.server.db.model.SharedContentUnit.pre_save_signal') as base:
-            unit.pre_save_signal(sender, unit, **kwargs)
-
-        # validation
-        base.assert_called_once_with(sender, unit, **kwargs)
-        self.assertEqual(unit.created, datetime.utcnow.return_value)
 
     def test_storage_provider(self):
         unit = Branch()

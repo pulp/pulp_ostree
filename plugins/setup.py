@@ -21,6 +21,9 @@ setup(
         ],
         'pulp.unit_models': [
             'ostree=pulp_ostree.plugins.db.model:Branch'
-        ]
+        ],
+        'pulp.server.db.migrations': [
+            'pulp_ostree = pulp_ostree.plugins.migrations'
+        ],
     }
 )
