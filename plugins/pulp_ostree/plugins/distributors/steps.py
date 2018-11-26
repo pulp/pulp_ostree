@@ -2,6 +2,7 @@ import itertools
 import os
 import logging
 
+from collections import OrderedDict
 from gettext import gettext as _
 
 from pulp.plugins.util.misc import mkdir
@@ -84,14 +85,34 @@ class MainStep(PluginStep):
         repository = lib.Repository(path)
         repository.create()
         for unit in self._get_units():
+            depth = self._max_depth(unit)
             try:
-                repository.pull_local(unit.storage_path, [unit.commit], self.depth)
+                repository.pull_local(unit.storage_path, [unit.commit], depth)
                 MainStep._add_ref(path, unit.branch, unit.commit)
             except lib.LibError as le:
                 pe = PulpCodedException(errors.OST0006, reason=str(le))
                 raise pe
         summary = lib.Summary(repository)
         summary.generate()
+
+    def _max_depth(self, unit):
+        """
+        Determine the available publishing depth.
+
+        :param unit: A branch content (unit).
+        :type: unit: pulp_ostree.plugins.db.model.Branch
+        :return: The available publishing depth.
+        :rtype: int
+        """
+        if self.depth < 1:
+            return self.depth
+        with lib.Repository(unit.storage_path) as repository:
+            history = repository.history(unit.commit)
+            depth = len(history)
+        if depth < self.depth:
+            return depth
+        else:
+            return self.depth
 
     def _get_units(self):
         """
@@ -100,11 +121,15 @@ class MainStep(PluginStep):
         :return: An iterable of units to publish.
         :rtype: iterable
         """
-        units_by_branch = {}
-        units = itertools.chain(*get_unit_model_querysets(self.get_repo().id, Branch))
-        for unit in sorted(units, key=lambda u: u.created):
-            units_by_branch[unit.branch] = unit
-        return units_by_branch.values()
+        collated = {}
+        q_sets = get_unit_model_querysets(self.get_repo().id, Branch)
+        units = itertools.chain(*q_sets)
+        for unit in units:
+            _list = collated.setdefault(unit.branch, [])
+            _list.append(unit)
+        for units in collated.values():
+            head = self._sort(units)[0]
+            yield head
 
     @staticmethod
     def _add_ref(path, branch, commit):
@@ -122,3 +147,64 @@ class MainStep(PluginStep):
         path = os.path.join(path, os.path.basename(branch))
         with open(path, 'w+') as fp:
             fp.write(commit)
+
+    @staticmethod
+    def _sort(branches):
+        """
+        Sort the branch content (units) based on the commit history for the branch.
+
+        :param branches: A list of branch content (units).
+        :type branches: list
+        :return: A list of branch content (units) sorted
+            by commit history.
+        """
+        root = []
+        unsorted = branches[:]
+        history = OrderedDict()
+        inventory = {}
+        stack = []
+
+        def unsorted_parent(parent_id):
+            for br in unsorted:
+                if br.commit == parent_id:
+                    unsorted.remove(br)
+                    return br
+
+        def push(br):
+            stack.append(br)
+            parent_id = inventory[br.commit].parent_id
+            if parent_id:
+                if parent_id in history:
+                    return
+                p = unsorted_parent(parent_id)
+                if not p:
+                    if root:
+                        raise ValueError('Too many branch HEADs.')
+                    else:
+                        root.append(br)
+                return p
+
+        for branch in branches:
+            with lib.Repository(branch.storage_path) as repository:
+                for commit in repository.history(branch.commit):
+                    inventory[commit.id] = commit
+
+        try:
+            parent = unsorted.pop()
+        except IndexError:
+            return
+
+        while True:
+            if not parent:
+                for branch in reversed(stack):
+                    history[branch.commit] = branch
+                stack = []
+                try:
+                    parent = unsorted.pop()
+                except IndexError:
+                    break
+            else:
+                parent = push(parent)
+
+        _sorted = list(reversed(history.values()))
+        return _sorted

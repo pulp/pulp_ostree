@@ -1,7 +1,6 @@
-from datetime import datetime
 from hashlib import sha256
 
-from mongoengine import DateTimeField, StringField, DictField
+from mongoengine import StringField, DictField
 from pulp.server.db.model import SharedContentUnit
 
 from pulp_ostree.common import constants
@@ -61,10 +60,8 @@ class Branch(SharedContentUnit):
     :type remote_id: str
     :cvar branch: The branch path.
     :type branch: str
-    :cvar commit: A commit.
+    :cvar commit: A commit ID.
     :type commit: str
-    :cvar created: The created (UTC) timestamp.
-    :type created: datetime
     :cvar metadata: The commit metadata.
     :type metadata: dict
     """
@@ -74,7 +71,6 @@ class Branch(SharedContentUnit):
     branch = StringField(required=True)
     commit = StringField(required=True)
     # other
-    created = DateTimeField(db_field='_created', required=True)
     metadata = MetadataField()
 
     unit_key_fields = (
@@ -94,20 +90,6 @@ class Branch(SharedContentUnit):
     _content_type_id = StringField(
         required=True,
         default=constants.OSTREE_TYPE_ID)
-
-    @classmethod
-    def pre_save_signal(cls, sender, document, **kwargs):
-        """
-        The signal that is triggered before a unit is saved.
-        Set the storage_path on the document and add the symbolic link.
-
-        :param sender: sender class
-        :type sender: object
-        :param document: Document that sent the signal
-        :type document: SharedContentUnit
-        """
-        super(Branch, cls).pre_save_signal(sender, document, **kwargs)
-        document.created = datetime.utcnow()
 
     @property
     def storage_provider(self):
