@@ -9,7 +9,7 @@ from pulp.server.exceptions import PulpCodedException
 from pulp_ostree.common import constants, errors
 from pulp_ostree.plugins.db import model
 from pulp_ostree.plugins.distributors import steps
-from pulp_ostree.plugins.lib import LibError
+from pulp_ostree.plugins.lib import LibError, Commit
 
 
 MODULE = 'pulp_ostree.plugins.distributors.steps'
@@ -52,9 +52,10 @@ class TestMainStep(unittest.TestCase):
         main = steps.MainStep()
         self.assertEqual(main.step_id, constants.PUBLISH_STEP_MAIN)
 
+    @patch(MODULE + '.MainStep._max_depth')
     @patch(MODULE + '.MainStep._add_ref')
     @patch(MODULE + '.lib')
-    def test_process_main(self, lib, add_ref):
+    def test_process_main(self, lib, add_ref, max_depth):
         depth = 3
         units = [
             Mock(branch='branch:1', commit='commit:1', storage_path='path:1'),
@@ -66,6 +67,7 @@ class TestMainStep(unittest.TestCase):
             constants.DISTRIBUTOR_CONFIG_KEY_DEPTH: depth
         }
         parent = Mock(publish_dir='/tmp/dir-1234', config=config)
+        max_depth.return_value = depth
 
         # test
         main = steps.MainStep()
@@ -128,7 +130,8 @@ class TestMainStep(unittest.TestCase):
         # test
         main = steps.MainStep()
         main.parent = parent
-        unit_list = main._get_units()
+        main._sort = lambda l: l
+        unit_list = list(main._get_units())
 
         # validation
         find.assert_called_once_with(
@@ -165,3 +168,120 @@ class TestMainStep(unittest.TestCase):
         fp.write.assert_called_once_with(commit)
         self.assertTrue(fp.__enter__.called)
         self.assertTrue(fp.__exit__.called)
+
+    @patch(MODULE + '.lib')
+    def test_max_depth(self, lib):
+        history = [
+            Commit(id='3', parent_id='2', metadata={}),
+            Commit(id='2', parent_id='1', metadata={}),
+            Commit(id='1', parent_id=None, metadata={})
+        ]
+        repository = Mock()
+        repository.__enter__ = Mock(return_value=repository)
+        repository.__exit__ = Mock()
+        repository.history.return_value = history
+        lib.Repository.return_value = repository
+
+        branch = model.Branch(remote_id='', branch='br', commit='3')
+
+        parent = Mock(
+            publish_dir='/tmp/dir-1234',
+            config={
+                constants.IMPORTER_CONFIG_KEY_DEPTH: len(history)
+            })
+
+        # test
+        main = steps.MainStep()
+        main.parent = parent
+        depth = main._max_depth(branch)
+
+        # validation
+        self.assertEqual(len(history), depth)
+
+    @patch(MODULE + '.lib')
+    def test_max_depth_limited(self, lib):
+        history = [
+            Commit(id='3', parent_id='2', metadata={}),
+            Commit(id='2', parent_id='1', metadata={}),
+            Commit(id='1', parent_id=None, metadata={})
+        ]
+        repository = Mock()
+        repository.__enter__ = Mock(return_value=repository)
+        repository.__exit__ = Mock()
+        repository.history.return_value = history
+        lib.Repository.return_value = repository
+
+        branch = model.Branch(remote_id='', branch='br', commit='3')
+
+        parent = Mock(
+            publish_dir='/tmp/dir-1234',
+            config={
+                constants.IMPORTER_CONFIG_KEY_DEPTH: 10
+            })
+
+        # test
+        main = steps.MainStep()
+        main.parent = parent
+        depth = main._max_depth(branch)
+
+        # validation
+        self.assertEqual(depth, len(history))
+
+    @patch(MODULE + '.lib')
+    def test_sort(self, lib):
+        branches = [
+            model.Branch(remote_id='', branch='br', commit='1'),
+            model.Branch(remote_id='', branch='br', commit='2'),
+            model.Branch(remote_id='', branch='br', commit='3'),
+        ]
+        history = [
+            Commit(id='3', parent_id='2', metadata={}),
+            Commit(id='2', parent_id='1', metadata={}),
+            Commit(id='1', parent_id=None, metadata={})
+        ]
+        repository = Mock()
+        repository.__enter__ = Mock(return_value=repository)
+        repository.__exit__ = Mock()
+        repository.history.return_value = history
+        lib.Repository.return_value = repository
+        parent = Mock(
+            publish_dir='/tmp/dir-1234',
+            config={
+                constants.IMPORTER_CONFIG_KEY_DEPTH: 10
+            })
+
+        # test
+        main = steps.MainStep()
+        main.parent = parent
+        _sorted = main._sort(branches)
+
+        # validation
+        self.assertEqual(_sorted, list(reversed(branches)))
+
+    @patch(MODULE + '.lib')
+    def test_sort_ambigious_head(self, lib):
+        branches = [
+            model.Branch(remote_id='', branch='br', commit='1'),
+            model.Branch(remote_id='', branch='br', commit='2'),
+            model.Branch(remote_id='', branch='br', commit='3'),
+        ]
+        history = [
+            Commit(id='3', parent_id=1, metadata={}),
+            Commit(id='2', parent_id=1, metadata={}),
+            Commit(id='1', parent_id=None, metadata={})
+        ]
+        repository = Mock()
+        repository.__enter__ = Mock(return_value=repository)
+        repository.__exit__ = Mock()
+        repository.history.return_value = history
+        lib.Repository.return_value = repository
+        parent = Mock(
+            publish_dir='/tmp/dir-1234',
+            config={
+                constants.IMPORTER_CONFIG_KEY_DEPTH: 8
+            })
+
+        # test
+        main = steps.MainStep()
+        main.parent = parent
+        self.assertRaises(ValueError, main._sort, branches)

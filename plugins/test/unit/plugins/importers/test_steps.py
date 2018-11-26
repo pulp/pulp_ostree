@@ -277,9 +277,15 @@ class TestAdd(unittest.TestCase):
     def test_process_main(self, fake_associate, fake_model, fake_lib):
         def history(commit_id):
             return [
-                Commit(id='{}head'.format(commit_id), metadata={'version': 1}),
-                Commit(id='{}parent-1'.format(commit_id), metadata={'version': 2}),
-                Commit(id='{}parent-2'.format(commit_id), metadata={'version': 3}),
+                Commit(id='{}head'.format(commit_id),
+                       parent_id='unused',
+                       metadata={'version': 1}),
+                Commit(id='{}parent-1'.format(commit_id),
+                       parent_id='unused',
+                       metadata={'version': 2}),
+                Commit(id='{}parent-2'.format(commit_id),
+                       parent_id='unused',
+                       metadata={'version': 3}),
             ]
         repo_id = 'r-1234'
         remote_id = 'remote-1'
