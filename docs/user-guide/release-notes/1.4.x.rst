@@ -1,0 +1,24 @@
+=============================
+Pulp OSTree 1.4 Release Notes
+=============================
+
+
+Pulp OSTree 1.4.0
+=================
+
+You can see the :fixedbugs_pulp_ostree:`list of bugs fixed<1.4.0>`.
+
+New Features
+------------
+
+- The publishing algorithm has been enhanced to better determine each branch
+  HEAD. Rather than ordering the branch commits (content units) by the date
+  `created`, the publisher inspects the commit history. This is a more reliable
+  method that also supports rebased commits.
+
+- The model removed the `created` field because it is no longer used.
+
+API Changes
+-----------
+
+None
