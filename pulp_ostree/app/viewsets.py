@@ -19,7 +19,6 @@ from pulpcore.plugin.serializers import (
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import dispatch
-from pulpcore.plugin.models import ContentArtifact
 
 from . import models, serializers, tasks
 

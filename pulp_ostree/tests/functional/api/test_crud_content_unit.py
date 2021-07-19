@@ -1,12 +1,10 @@
 """Tests that perform actions over content unit."""
 import unittest
 
-from pulp_smash import utils
 from pulp_smash.pulp3.utils import delete_orphans
 from pulp_smash.pulp3.bindings import monitor_task
 
 from pulp_ostree.tests.functional.utils import (
-    core_client,
     gen_artifact,
     gen_ostree_client,
     gen_ostree_content_attrs,
@@ -14,7 +12,6 @@ from pulp_ostree.tests.functional.utils import (
 )
 from pulp_ostree.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
-from pulpcore.client.pulpcore import ArtifactsApi
 from pulpcore.client.pulp_ostree import ContentOstreeApi
 
 

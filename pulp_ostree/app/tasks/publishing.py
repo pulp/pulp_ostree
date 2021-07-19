@@ -4,9 +4,6 @@ from gettext import gettext as _
 
 from pulpcore.plugin.models import (
     RepositoryVersion,
-    PublishedArtifact,
-    PublishedMetadata,
-    RemoteArtifact,
 )
 
 from pulp_ostree.app.models import OstreePublication

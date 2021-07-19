@@ -7,11 +7,8 @@ Check `Plugin Writer's Guide`_ for more details.
 
 from logging import getLogger
 
-from django.db import models
-
 from pulpcore.plugin.models import (
     Content,
-    ContentArtifact,
     Remote,
     Repository,
     Publication,
