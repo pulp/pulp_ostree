@@ -6,8 +6,6 @@ Check `Plugin Writer's Guide`_ for more details.
 """
 from gettext import gettext as _
 
-from rest_framework import serializers
-
 from pulpcore.plugin import serializers as platform
 
 from . import models
