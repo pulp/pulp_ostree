@@ -9,12 +9,13 @@ Create a Repository
 
 Start by creating a new repository named "foo"::
 
-    $ http POST $BASE_ADDR/pulp/api/v3/repositories/ostree/ostree/ name=foo
+    $ http POST ${BASE_ADDR}/pulp/api/v3/repositories/ostree/ostree/ name=foo
 
 Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/repositories/ostree/ostree/9b19ceb7-11e1-4309-9f97-bcbab2ae38b6/",
+        ...
+        "pulp_href": "/pulp/api/v3/repositories/ostree/ostree/dfca3ec4-b5cf-474f-b561-25a9cb58f260/",
         ...
     }
 
@@ -22,14 +23,15 @@ Response::
 Create a Remote
 ---------------
 
-Creating a remote object informs Pulp about an external content source.
+Creating a remote object informs Pulp about an external content source::
 
-``$ http POST $BASE_ADDR/pulp/pulp/api/v3/remotes/ostree/ostree/ name='bar' url='http://some.url/somewhere/'``
+    $ http POST ${BASE_ADDR}/pulp/api/v3/remotes/ostree/ostree/ name='bar' url='https://www.redhat.com/'
 
-.. code:: json
+Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/pulp/api/v3/remotes/ostree/ostree/ 9c757d65-3007-4884-ac5b-c2fd93873289/",
+        ...
+        "pulp_href": "/pulp/api/v3/remotes/ostree/ostree/e54203d8-afd5-4091-9fae-dad6419f8bfd/",
         ...
     }
 
@@ -40,49 +42,55 @@ Sync repository foo with remote
 Use the remote object to kick off a synchronize task by specifying the repository to
 sync with. You are telling pulp to fetch content from the remote and add to the repository::
 
-    $ http POST $BASE_ADDR/pulp/api/v3/repositories/ostree/ostree/9b19ceb7-11e1-4309-9f97-bcbab2ae38b6/sync/' remote=$REMOTE_HREF
+    $ http POST ${BASE_ADDR}${REPO_HREF}sync/ remote=${REMOTE_HREF}
 
 Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
-        "task_id": "3896447a-2799-4818-a3e5-df8552aeb903"
+        "task": "/pulp/api/v3/tasks/88071cc2-10a7-4544-83ec-15f272cc28b1/"
     }
 
 You can follow the progress of the task with a GET request to the task href. Notice that when the
 synchroinze task completes, it creates a new version, which is specified in ``created_resources``::
 
-    $  http GET $BASE_ADDR/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/
+    $  http GET ${BASE_ADDR}${TASK_HREF}
 
 Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/tasks/3896447a-2799-4818-a3e5-df8552aeb903/",
-        "pulp_created": "2018-05-01T17:17:46.558997Z",
-        "created_resources": [
-            "http://localhost:24817/pulp/api/v3/repositories/ostree/ostree/9b19ceb7-11e1-4309-9f97-bcbab2ae38b6/versions/6/"
-        ],
+        "child_tasks": [],
+        "created_resources": [],
         "error": null,
-        "finished_at": "2018-05-01T17:17:47.149123Z",
-        "parent": null,
+        "finished_at": "2021-07-20T10:27:16.922875Z",
+        "logging_cid": "014ba45a05514fb798b8475cd0c53c39",
+        "name": "pulp_ostree.app.tasks.synchronizing.synchronize",
+        "parent_task": null,
         "progress_reports": [
             {
+                "code": "sync.downloading.artifacts",
                 "done": 0,
-                "message": "Add Content",
+                "message": "Downloading Artifacts",
                 "state": "completed",
-                "suffix": "",
-                "total": 0
+                "suffix": null,
+                "total": null
             },
             {
+                "code": "associating.content",
                 "done": 0,
-                "message": "Remove Content",
+                "message": "Associating Content",
                 "state": "completed",
-                "suffix": "",
-                "total": 0
+                "suffix": null,
+                "total": null
             }
         ],
-        "spawned_tasks": [],
-        "started_at": "2018-05-01T17:17:46.644801Z",
+        "pulp_created": "2021-07-20T10:27:14.874408Z",
+        "pulp_href": "/pulp/api/v3/tasks/88071cc2-10a7-4544-83ec-15f272cc28b1/",
+        "reserved_resources_record": [
+            "/pulp/api/v3/repositories/ostree/ostree/dfca3ec4-b5cf-474f-b561-25a9cb58f260/",
+            "/pulp/api/v3/remotes/ostree/ostree/e54203d8-afd5-4091-9fae-dad6419f8bfd/"
+        ],
+        "started_at": "2021-07-20T10:27:14.937455Z",
         "state": "completed",
-        "worker": "http://localhost:24817/pulp/api/v3/workers/eaffe1be-111a-421d-a127-0b8fa7077cf7/"
+        "task_group": null,
+        "worker": "/pulp/api/v3/workers/32cdd2a4-40a0-4b36-872d-4209cdfd1aef/"
     }

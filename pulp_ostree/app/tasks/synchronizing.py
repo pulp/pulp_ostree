@@ -93,4 +93,4 @@ class OstreeFirstStage(Stage):
         Args:
             path: Path to the metadata file
         """
-        pass
+        return []

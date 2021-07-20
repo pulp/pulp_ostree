@@ -59,7 +59,8 @@ class OstreeContentViewSet(core.ContentViewSet):
         "Artifacts" need to be popped off and saved indpendently, as they are not actually part
         of the Content model.
         """
-        raise NotImplementedError("FIXME")
+        return Response({}, status=status.HTTP_501_NOT_IMPLEMENTED)
+
         # This requires some choice. Depending on the properties of your content type - whether it
         # can have zero, one, or many artifacts associated with it, and whether any properties of
         # the artifact bleed into the content type (such as the digest), you may want to make
@@ -159,11 +160,16 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         remote = serializer.validated_data.get("remote")
+        mirror = serializer.validated_data.get("mirror")
 
         result = dispatch(
             tasks.synchronize,
             [repository, remote],
-            kwargs={"remote_pk": str(remote.pk), "repository_pk": str(repository.pk)},
+            kwargs={
+                "remote_pk": str(remote.pk),
+                "repository_pk": str(repository.pk),
+                "mirror": mirror,
+            },
         )
         return core.OperationPostponedResponse(result, request)
 

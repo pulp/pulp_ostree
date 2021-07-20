@@ -7,15 +7,14 @@ This section assumes that you have a repository with content in it. To do this, 
 Create a Publication
 --------------------
 
-Publications contain extra settings for how to publish.::
+Publications contain extra settings for how to publish::
 
-$ http POST $BASE_ADDR/pulp/api/v3/publications/ostree/ostree/ name=bar
+    $ http POST ${BASE_ADDR}/pulp/api/v3/publications/ostree/ostree/ repository=${REPO_HREF}
 
 Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/publications/ostree/ostree/bar/",
-        ...
+        "task": "/pulp/api/v3/tasks/e66fb408-5dce-42df-90ac-45580a0a78be/"
     }
 
 
@@ -25,12 +24,11 @@ Host a Publication (Create a Distribution)
 To host a publication, (which makes it consumable by a package manager), users create a distribution which
 will serve the associated publication at ``/pulp/content/<distribution.base_path>``::
 
-$ http POST $BASE_ADDR/pulp/api/v3/distributions/ostree/ostree/ name='baz' base_path='foo' publication=$BASE_ADDR/publications/5fcb3a98-1bd1-445f-af94-801a1d563b9f/
+    $ http POST ${BASE_ADDR}/pulp/api/v3/distributions/ostree/ostree/ name='baz' base_path='foo' publication=${PUBLICATION_HREF}
 
 Response::
 
     {
-        "pulp_href": "http://localhost:24817/pulp/api/v3/distributions/2ac41454-931c-41c7-89eb-a9d11e19b02a/",
-       ...
+        "task": "/pulp/api/v3/tasks/1974aa50-d862-4eb7-84a3-1dc4000f34bf/"
     }
 
