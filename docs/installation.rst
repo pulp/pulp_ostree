@@ -19,14 +19,14 @@ Install ``pulpcore``
 --------------------
 
 Follow the `installation
-instructions <docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`__
+instructions <https://docs.pulpproject.org/pulpcore/installation/instructions.html>`__
 provided with pulpcore.
 
 Install plugin
 --------------
 
 This document assumes that you have
-`installed pulpcore <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`_
+`installed pulpcore <https://docs.pulpproject.org/pulpcore/installation/instructions.html>`_
 into a the virtual environment ``pulpvenv``.
 
 Users should install from **either** PyPI or source.
