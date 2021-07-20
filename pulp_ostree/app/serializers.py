@@ -128,7 +128,7 @@ class OstreeDistributionSerializer(platform.DistributionSerializer):
     publication = platform.DetailRelatedField(
         required=False,
         help_text=_("Publication to be served"),
-        view_name="publications-/-detail",
+        view_name_pattern=r"publications(-.*/.*)?-detail",
         queryset=models.Publication.objects.exclude(complete=False),
         allow_null=True,
     )
