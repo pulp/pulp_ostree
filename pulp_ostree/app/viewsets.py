@@ -5,13 +5,10 @@ Check `Plugin Writer's Guide`_ for more details.
     https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
 """
 
-from django.db import transaction
 from drf_spectacular.utils import extend_schema
-from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.response import Response
 
-from pulpcore.plugin.viewsets import RemoteFilter
+from pulpcore.plugin.viewsets import RemoteFilter, ReadOnlyContentViewSet
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.serializers import (
@@ -21,90 +18,6 @@ from pulpcore.plugin.serializers import (
 from pulpcore.plugin.tasking import dispatch
 
 from . import models, serializers, tasks
-
-
-class OstreeContentFilter(core.ContentFilter):
-    """
-    FilterSet for OstreeContent.
-    """
-
-    class Meta:
-        model = models.OstreeContent
-        fields = [
-            # ...
-        ]
-
-
-class OstreeContentViewSet(core.ContentViewSet):
-    """
-    A ViewSet for OstreeContent.
-
-    Define endpoint name which will appear in the API endpoint for this content type.
-    For example::
-        https://pulp.example.com/pulp/api/v3/content/ostree/units/
-
-    Also specify queryset and serializer for OstreeContent.
-    """
-
-    endpoint_name = "ostree"
-    queryset = models.OstreeContent.objects.all()
-    serializer_class = serializers.OstreeContentSerializer
-    filterset_class = OstreeContentFilter
-
-    @transaction.atomic
-    def create(self, request):
-        """
-        Perform bookkeeping when saving Content.
-
-        "Artifacts" need to be popped off and saved indpendently, as they are not actually part
-        of the Content model.
-        """
-        return Response({}, status=status.HTTP_501_NOT_IMPLEMENTED)
-
-        # This requires some choice. Depending on the properties of your content type - whether it
-        # can have zero, one, or many artifacts associated with it, and whether any properties of
-        # the artifact bleed into the content type (such as the digest), you may want to make
-        # those changes here.
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # A single artifact per content, serializer subclasses SingleArtifactContentSerializer
-        # ======================================
-        # _artifact = serializer.validated_data.pop("_artifact")
-        # # you can save model fields directly, e.g. .save(digest=_artifact.sha256)
-        # content = serializer.save()
-        #
-        # if content.pk:
-        #     ContentArtifact.objects.create(
-        #         artifact=artifact,
-        #         content=content,
-        #         relative_path= ??
-        #     )
-        # =======================================
-
-        # Many artifacts per content, serializer subclasses MultipleArtifactContentSerializer
-        # =======================================
-        # _artifacts = serializer.validated_data.pop("_artifacts")
-        # content = serializer.save()
-        #
-        # if content.pk:
-        #   # _artifacts is a dictionary of {"relative_path": "artifact"}
-        #   for relative_path, artifact in _artifacts.items():
-        #       ContentArtifact.objects.create(
-        #           artifact=artifact,
-        #           content=content,
-        #           relative_path=relative_path
-        #       )
-        # ========================================
-
-        # No artifacts, serializer subclasses NoArtifactContentSerialier
-        # ========================================
-        # content = serializer.save()
-        # ========================================
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class OstreeRemoteFilter(RemoteFilter):
@@ -173,6 +86,35 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         )
         return core.OperationPostponedResponse(result, request)
 
+    @extend_schema(
+        description="Trigger an asynchronous task to create a new OSTree repository version.",
+        summary="Create a new OSTree repository version",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=serializers.OstreeRepoUploadSerializer)
+    def commit(self, request, pk):
+        """Upload and parse a tarball consisting of one or more OSTree commits."""
+        repository = self.get_object()
+
+        serializer = serializers.OstreeRepoUploadSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        artifact = serializer.validated_data["artifact"]
+        repository_name = serializer.validated_data["repository_name"]
+
+        async_result = dispatch(
+            tasks.import_ostree_repository,
+            [artifact, repository],
+            kwargs={
+                "artifact_pk": str(artifact.pk),
+                "repository_pk": str(repository.pk),
+                "repository_name": repository_name,
+            },
+        )
+        return core.OperationPostponedResponse(async_result, request)
+
 
 class OstreeRepositoryVersionViewSet(core.RepositoryVersionViewSet):
     """
@@ -231,3 +173,35 @@ class OstreeDistributionViewSet(core.DistributionViewSet):
     endpoint_name = "ostree"
     queryset = models.OstreeDistribution.objects.all()
     serializer_class = serializers.OstreeDistributionSerializer
+
+
+class OstreeRefsHeadViewSet(ReadOnlyContentViewSet):
+    """A ViewSet class for OSTree head commits."""
+
+    endpoint_name = "refsheads"
+    queryset = models.OstreeRefsHead.objects.all()
+    serializer_class = serializers.OstreeRefsHeadSerializer
+
+
+class OstreeCommitViewSet(ReadOnlyContentViewSet):
+    """A ViewSet class for OSTree commits."""
+
+    endpoint_name = "commits"
+    queryset = models.OstreeCommit.objects.all()
+    serializer_class = serializers.OstreeCommitSerializer
+
+
+class OstreeObjectViewSet(ReadOnlyContentViewSet):
+    """A ViewSet class for OSTree objects (e.g., dirtree, dirmeta, file)."""
+
+    endpoint_name = "objects"
+    queryset = models.OstreeObject.objects.all()
+    serializer_class = serializers.OstreeObjectSerializer
+
+
+class OstreeConfigViewSet(ReadOnlyContentViewSet):
+    """A ViewSet class for OSTree repository configurations."""
+
+    endpoint_name = "configs"
+    queryset = models.OstreeConfig.objects.all()
+    serializer_class = serializers.OstreeConfigSerializer

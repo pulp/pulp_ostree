@@ -1,8 +1,6 @@
 """Utilities for tests for the ostree plugin."""
 from functools import partial
-import requests
 from unittest import SkipTest
-from tempfile import NamedTemporaryFile
 
 from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.utils import (
@@ -21,7 +19,6 @@ from pulp_ostree.tests.functional.constants import (
     OSTREE_PUBLICATION_PATH,
     OSTREE_REMOTE_PATH,
     OSTREE_REPO_PATH,
-    OSTREE_URL,
 )
 
 from pulpcore.client.pulpcore import (
@@ -43,7 +40,7 @@ def set_up_module():
 
 
 def gen_ostree_client():
-    """Return an OBJECT for ostree client."""
+    """Return an ostree client object."""
     return OstreeApiClient(configuration)
 
 
@@ -139,11 +136,7 @@ core_client = CoreApiClient(configuration)
 tasks = TasksApi(core_client)
 
 
-def gen_artifact(url=OSTREE_URL):
-    """Creates an artifact."""
-    response = requests.get(url)
-    with NamedTemporaryFile() as temp_file:
-        temp_file.write(response.content)
-        temp_file.flush()
-        artifact = ArtifactsApi(core_client).create(file=temp_file.name)
-        return artifact.to_dict()
+def gen_artifact(filepath):
+    """Create an artifact from the file identified by the filepath."""
+    artifact = ArtifactsApi(core_client).create(file=filepath)
+    return artifact.to_dict()

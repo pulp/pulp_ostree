@@ -41,10 +41,6 @@ OSTREE_FIXTURE_COUNT = 3
 OSTREE_FIXTURE_SUMMARY = {OSTREE_CONTENT_NAME: OSTREE_FIXTURE_COUNT}
 """The desired content summary after syncing :data:`OSTREE_FIXTURE_URL`."""
 
-# FIXME: replace this with the location of one specific content unit of your choosing
-OSTREE_URL = urljoin(OSTREE_FIXTURE_URL, "")
-"""The URL to an ostree file at :data:`OSTREE_FIXTURE_URL`."""
-
 # FIXME: replace this with your own fixture repository URL and metadata
 OSTREE_INVALID_FIXTURE_URL = urljoin(PULP_FIXTURES_BASE_URL, "ostree-invalid/")
 """The URL to an invalid ostree repository."""
