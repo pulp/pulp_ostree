@@ -12,7 +12,7 @@ from pulp_ostree.tests.functional.utils import (
 )
 from pulp_ostree.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
-from pulpcore.client.pulp_ostree import ContentOstreeApi
+from pulpcore.client.pulp_ostree import ContentCommitsApi
 
 
 # Read the instructions provided below for the steps needed to enable this test (see: FIXME's).
@@ -32,7 +32,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """Create class-wide variable."""
         delete_orphans()
         cls.content_unit = {}
-        cls.ostree_content_api = ContentOstreeApi(gen_ostree_client())
+        cls.ostree_content_api = ContentCommitsApi(gen_ostree_client())
         cls.artifact = gen_artifact()
 
     @classmethod

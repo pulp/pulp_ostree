@@ -1,15 +1,13 @@
 from gettext import gettext as _
 import logging
 
-from pulpcore.plugin.models import Artifact, Remote, Repository
+from pulpcore.plugin.models import Remote, Repository
 from pulpcore.plugin.stages import (
-    DeclarativeArtifact,
-    DeclarativeContent,
     DeclarativeVersion,
     Stage,
 )
 
-from pulp_ostree.app.models import OstreeContent, OstreeRemote
+from pulp_ostree.app.models import OstreeRemote
 
 
 log = logging.getLogger(__name__)
@@ -73,18 +71,8 @@ class OstreeFirstStage(Stage):
         downloader = self.remote.get_downloader(url=self.remote.url)
         result = await downloader.run()
         # Use ProgressReport to report progress
-        for entry in self.read_my_metadata_file_somehow(result.path):
-            unit = OstreeContent(entry)  # make the content unit in memory-only
-            artifact = Artifact(entry)  # make Artifact in memory-only
-            da = DeclarativeArtifact(
-                artifact,
-                entry.url,
-                entry.relative_path,
-                self.remote,
-                deferred_download=self.deferred_download,
-            )
-            dc = DeclarativeContent(content=unit, d_artifacts=[da])
-            await self.put(dc)
+        for data in self.read_my_metadata_file_somehow(result.path):
+            pass
 
     def read_my_metadata_file_somehow(self, path):
         """

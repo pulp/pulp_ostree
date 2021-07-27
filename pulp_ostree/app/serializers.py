@@ -5,41 +5,98 @@ Check `Plugin Writer's Guide`_ for more details.
     https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
 """
 from gettext import gettext as _
+from tarfile import is_tarfile
+
+from rest_framework import serializers
 
 from pulpcore.plugin import serializers as platform
+from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.viewsets import NamedModelViewSet
 
 from . import models
 
 
-# FIXME: SingleArtifactContentSerializer might not be the right choice for you.
-# If your content type has no artifacts per content unit, use "NoArtifactContentSerializer".
-# If your content type has many artifacts per content unit, use "MultipleArtifactContentSerializer"
-# If you want create content through upload, use "SingleArtifactContentUploadSerializer"
-# If you change this, make sure to do so on "fields" below, also.
-# Make sure your choice here matches up with the create() method of your viewset.
-class OstreeContentSerializer(platform.SingleArtifactContentSerializer):
-    """
-    A Serializer for OstreeContent.
+class OstreeRepoUploadSerializer(serializers.Serializer):
+    """A Serializer class for uploading tarballs to a Pulp OSTree repository."""
 
-    Add serializers for the new fields defined in OstreeContent and
-    add those fields to the Meta class keeping fields from the parent class as well.
+    artifact = platform.RelatedField(
+        many=False,
+        lookup_field="pk",
+        view_name="artifacts-detail",
+        queryset=Artifact.objects.all(),
+        help_text=_("Artifact representing an OSTree commit."),
+    )
+    repository_name = serializers.CharField()
 
-    For example::
+    def validate(self, data):
+        """Check if the uploaded artifact is a tarball."""
+        new_data = {}
+        new_data.update(self.initial_data)
 
-    field1 = serializers.TextField()
-    field2 = serializers.IntegerField()
-    field3 = serializers.CharField()
+        artifact = NamedModelViewSet.get_resource(new_data["artifact"])
+        if not is_tarfile(artifact.file.path):
+            raise serializers.ValidationError(_("The uploaded artifact is not a tar archive file"))
+        new_data["artifact"] = artifact
+
+        return new_data
+
+
+class OstreeCommitSerializer(platform.SingleArtifactContentSerializer):
+    """A Serializer class for OSTree commits."""
+
+    parent_commit = platform.DetailRelatedField(
+        many=False,
+        view_name="ostree-commits-detail",
+        queryset=models.OstreeCommit.objects.all(),
+        allow_null=True,
+        default=None,
+    )
+    checksum = serializers.CharField()
 
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields + (
-            'field1', 'field2', 'field3'
+            "parent_commit",
+            "checksum",
         )
-        model = models.OstreeContent
-    """
+        model = models.OstreeCommit
+
+
+class OstreeRefsHeadSerializer(platform.SingleArtifactContentSerializer):
+    """A Serializer class for OSTree head commits."""
+
+    commit = platform.DetailRelatedField(
+        many=False,
+        view_name="ostree-commits-detail",
+        queryset=models.OstreeCommit.objects.all(),
+    )
+    name = serializers.CharField()
+
+    class Meta:
+        fields = platform.SingleArtifactContentSerializer.Meta.fields + ("commit", "name")
+        model = models.OstreeRefsHead
+
+
+class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
+    """A Serializer class for OSTree objects (e.g., dirtree, dirmeta, file)."""
+
+    commit = platform.DetailRelatedField(
+        many=False,
+        view_name="ostree-commits-detail",
+        queryset=models.OstreeCommit.objects.all(),
+    )
+    checksum = serializers.CharField()
+
+    class Meta:
+        fields = platform.SingleArtifactContentSerializer.Meta.fields + ("commit", "checksum")
+        model = models.OstreeObject
+
+
+class OstreeConfigSerializer(platform.SingleArtifactContentSerializer):
+    """A Serializer class for OSTree repository configuration files."""
 
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields
-        model = models.OstreeContent
+        model = models.OstreeConfig
 
 
 class OstreeRemoteSerializer(platform.RemoteSerializer):
