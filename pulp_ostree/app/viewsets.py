@@ -1,14 +1,7 @@
-"""
-Check `Plugin Writer's Guide`_ for more details.
-
-.. _Plugin Writer's Guide:
-    https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
-"""
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 
-from pulpcore.plugin.viewsets import RemoteFilter, ReadOnlyContentViewSet
+from pulpcore.plugin.viewsets import ReadOnlyContentViewSet
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.serializers import (
@@ -20,25 +13,8 @@ from pulpcore.plugin.tasking import dispatch
 from . import models, serializers, tasks
 
 
-class OstreeRemoteFilter(RemoteFilter):
-    """
-    A FilterSet for OstreeRemote.
-    """
-
-    class Meta:
-        model = models.OstreeRemote
-        fields = [
-            # ...
-        ]
-
-
 class OstreeRemoteViewSet(core.RemoteViewSet):
-    """
-    A ViewSet for OstreeRemote.
-
-    Similar to the OstreeContentViewSet above, define endpoint_name,
-    queryset and serializer, at a minimum.
-    """
+    """A ViewSet class for OSTree remote repositories."""
 
     endpoint_name = "ostree"
     queryset = models.OstreeRemote.objects.all()
@@ -46,19 +22,12 @@ class OstreeRemoteViewSet(core.RemoteViewSet):
 
 
 class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixin):
-    """
-    A ViewSet for OstreeRepository.
-
-    Similar to the OstreeContentViewSet above, define endpoint_name,
-    queryset and serializer, at a minimum.
-    """
+    """A ViewSet class for OSTree repositories."""
 
     endpoint_name = "ostree"
     queryset = models.OstreeRepository.objects.all()
     serializer_class = serializers.OstreeRepositorySerializer
 
-    # This decorator is necessary since a sync operation is asyncrounous and returns
-    # the id and href of the sync task.
     @extend_schema(
         description="Trigger an asynchronous task to sync content.",
         summary="Sync from remote",
@@ -66,9 +35,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
     )
     @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
-        """
-        Dispatches a sync task.
-        """
+        """Dispatch a sync task."""
         repository = self.get_object()
         serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
@@ -117,58 +84,13 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
 
 
 class OstreeRepositoryVersionViewSet(core.RepositoryVersionViewSet):
-    """
-    A ViewSet for a OstreeRepositoryVersion represents a single
-    Ostree repository version.
-    """
+    """A ViewSet class that represents a single OSTree repository version."""
 
     parent_viewset = OstreeRepositoryViewSet
 
 
-class OstreePublicationViewSet(core.PublicationViewSet):
-    """
-    A ViewSet for OstreePublication.
-
-    Similar to the OstreeContentViewSet above, define endpoint_name,
-    queryset and serializer, at a minimum.
-    """
-
-    endpoint_name = "ostree"
-    queryset = models.OstreePublication.objects.exclude(complete=False)
-    serializer_class = serializers.OstreePublicationSerializer
-
-    # This decorator is necessary since a publish operation is asyncrounous and returns
-    # the id and href of the publish task.
-    @extend_schema(
-        description="Trigger an asynchronous task to publish content",
-        responses={202: AsyncOperationResponseSerializer},
-    )
-    def create(self, request):
-        """
-        Publishes a repository.
-
-        Either the ``repository`` or the ``repository_version`` fields can
-        be provided but not both at the same time.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get("repository_version")
-
-        result = dispatch(
-            tasks.publish,
-            [repository_version.repository],
-            kwargs={"repository_version_pk": str(repository_version.pk)},
-        )
-        return core.OperationPostponedResponse(result, request)
-
-
 class OstreeDistributionViewSet(core.DistributionViewSet):
-    """
-    A ViewSet for OstreeDistribution.
-
-    Similar to the OstreeContentViewSet above, define endpoint_name,
-    queryset and serializer, at a minimum.
-    """
+    """A ViewSet class for OSTree distributions."""
 
     endpoint_name = "ostree"
     queryset = models.OstreeDistribution.objects.all()
@@ -205,3 +127,11 @@ class OstreeConfigViewSet(ReadOnlyContentViewSet):
     endpoint_name = "configs"
     queryset = models.OstreeConfig.objects.all()
     serializer_class = serializers.OstreeConfigSerializer
+
+
+class OstreeSummaryViewSet(ReadOnlyContentViewSet):
+    """A ViewSet class for OSTree repository summary files."""
+
+    endpoint_name = "summaries"
+    queryset = models.OstreeSummary.objects.all()
+    serializer_class = serializers.OstreeSummarySerializer

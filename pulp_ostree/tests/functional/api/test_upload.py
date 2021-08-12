@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
 
-from pulp_smash import api, config
+from pulp_smash import config
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import gen_repo, gen_distribution, utils
 
@@ -19,7 +19,12 @@ from pulpcore.client.pulp_ostree import (
     RepositoriesOstreeVersionsApi,
 )
 
-from pulp_ostree.tests.functional.utils import gen_ostree_client, gen_artifact
+from pulp_ostree.tests.functional.utils import (
+    gen_ostree_client,
+    gen_artifact,
+    init_local_repo,
+    validate_repo_integrity,
+)
 
 
 class UploadCommitTestCase(unittest.TestCase):
@@ -31,21 +36,19 @@ class UploadCommitTestCase(unittest.TestCase):
         cls.cfg = config.get_config()
         cls.registry_name = urlparse(cls.cfg.get_base_url()).netloc
 
-        cls.client = api.Client(cls.cfg, api.code_handler)
         client_api = gen_ostree_client()
         cls.repositories_api = RepositoriesOstreeApi(client_api)
         cls.versions_api = RepositoriesOstreeVersionsApi(client_api)
         cls.distributions_api = DistributionsOstreeApi(client_api)
 
-        cls.teardown_cleanups = []
-
-        delete_orphans()
-
     @classmethod
     def tearDownClass(cls):
-        """Clean the class-wide variables."""
-        for cleanup_function, args in reversed(cls.teardown_cleanups):
-            cleanup_function(args)
+        """Clean orphaned content after finishing the tests."""
+        delete_orphans()
+
+    def setUp(self):
+        """Clean orphaned content before each test."""
+        delete_orphans()
 
     def test_simple_tarball_upload(self):
         """Upload a repository consisting of three commit, publish it, and pull it from Pulp."""
@@ -57,12 +60,12 @@ class UploadCommitTestCase(unittest.TestCase):
 
         # 1. create a first file
         sample_dir.mkdir()
-        self.teardown_cleanups.append((shutil.rmtree, sample_dir))
+        self.addCleanup(shutil.rmtree, sample_dir)
         sample_file1.touch()
 
         # 2. initialize a local OSTree repository and commit the created file
         subprocess.run(["ostree", f"--repo={repo_name1}", "init", "--mode=archive"])
-        self.teardown_cleanups.append((shutil.rmtree, Path(repo_name1)))
+        self.addCleanup(shutil.rmtree, repo_name1)
         subprocess.run(
             ["ostree", f"--repo={repo_name1}", "commit", "--branch=foo", f"{sample_dir}/"]
         )
@@ -80,14 +83,14 @@ class UploadCommitTestCase(unittest.TestCase):
 
         # 5. create a tarball of the repository
         subprocess.run(["tar", "-cvf", f"{repo_name1}.tar", f"{repo_name1}/"])
-        self.teardown_cleanups.append((os.unlink, f"{repo_name1}.tar"))
+        self.addCleanup(os.unlink, f"{repo_name1}.tar")
 
         # 6. create an artifact from the tarball
         artifact = gen_artifact(f"{repo_name1}.tar")
 
         # 7. commit the tarball to a Pulp repository
         repo = self.repositories_api.create(OstreeOstreeRepository(**gen_repo()))
-        self.teardown_cleanups.append((self.repositories_api.delete, repo.pulp_href))
+        self.addCleanup(self.repositories_api.delete, repo.pulp_href)
         commit_data = OstreeRepoUpload(artifact["pulp_href"], repo_name1)
         response = self.repositories_api.commit(repo.pulp_href, commit_data)
         repo_version = monitor_task(response.task).created_resources[0]
@@ -104,38 +107,11 @@ class UploadCommitTestCase(unittest.TestCase):
         distribution_data = OstreeOstreeDistribution(**gen_distribution(repository=repo.pulp_href))
         response = self.distributions_api.create(distribution_data)
         distribution = monitor_task(response.task).created_resources[0]
-        self.teardown_cleanups.append((self.distributions_api.delete, distribution))
+        self.addCleanup(self.distributions_api.delete, distribution)
 
         ostree_repo_path = urljoin(self.distributions_api.read(distribution).base_url, repo_name1)
 
-        # 10. initialize a second local OSTree repository
-        subprocess.run(["ostree", f"--repo={repo_name2}", "init", "--mode=archive"])
-        self.teardown_cleanups.append((shutil.rmtree, Path(repo_name2)))
-        subprocess.run(
-            ["ostree", f"--repo={repo_name2}", "remote", "add", "pulpos", ostree_repo_path]
-        )
-
-        subprocess.run(
-            [
-                "ostree",
-                "config",
-                f"--repo={repo_name2}",
-                "set",
-                'remote "pulpos".gpg-verify',
-                "false",
-            ]
-        )
-
-        self.validate_repo_integrity(repo_name2, "pulpos:foo")
-
-    def validate_repo_integrity(self, repo_name, mirror):
-        """Test the validity of the Pulp OSTree repository by pulling it to the local repository."""
-        try:
-            subprocess.check_output(["ostree", f"--repo={repo_name}", "pull", "--mirror", mirror])
-        except subprocess.CalledProcessError as exc:
-            self.fail(exc.output)
-
-        try:
-            subprocess.check_output(["ostree", "fsck", f"--repo={repo_name}"])
-        except subprocess.CalledProcessError as exc:
-            self.fail(exc.output)
+        # 10. initialize a second local OSTree repository and pull the content from Pulp
+        init_local_repo(repo_name2, ostree_repo_path)
+        self.addCleanup(shutil.rmtree, Path(repo_name2))
+        validate_repo_integrity(repo_name2, "pulpos:foo")

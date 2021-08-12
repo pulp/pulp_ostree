@@ -1,16 +1,10 @@
-"""
-Check `Plugin Writer's Guide`_ for more details.
-
-.. _Plugin Writer's Guide:
-    https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
-"""
 from gettext import gettext as _
 from tarfile import is_tarfile
 
 from rest_framework import serializers
 
 from pulpcore.plugin import serializers as platform
-from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.models import Artifact, Remote
 from pulpcore.plugin.viewsets import NamedModelViewSet
 
 from . import models
@@ -84,10 +78,22 @@ class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
         view_name="ostree-commits-detail",
         queryset=models.OstreeCommit.objects.all(),
     )
+    typ = serializers.IntegerField(
+        help_text=_(
+            """
+            The type of an object. All values are described by the mapping declared at
+            https://lazka.github.io/pgi-docs/OSTree-1.0/enums.html#OSTree.ObjectType
+            """
+        ),
+    )
     checksum = serializers.CharField()
 
     class Meta:
-        fields = platform.SingleArtifactContentSerializer.Meta.fields + ("commit", "checksum")
+        fields = platform.SingleArtifactContentSerializer.Meta.fields + (
+            "commit",
+            "checksum",
+            "typ",
+        )
         model = models.OstreeObject
 
 
@@ -99,102 +105,53 @@ class OstreeConfigSerializer(platform.SingleArtifactContentSerializer):
         model = models.OstreeConfig
 
 
+class OstreeSummarySerializer(platform.SingleArtifactContentSerializer):
+    """A Serializer class for an OSTree summary file."""
+
+    class Meta:
+        fields = platform.SingleArtifactContentSerializer.Meta.fields
+        model = models.OstreeSummary
+
+
 class OstreeRemoteSerializer(platform.RemoteSerializer):
-    """
-    A Serializer for OstreeRemote.
+    """A Serializer class for a remote OSTree repository."""
 
-    Add any new fields if defined on OstreeRemote.
-    Similar to the example above, in OstreeContentSerializer.
-    Additional validators can be added to the parent validators list
-
-    For example::
-
-    class Meta:
-        validators = platform.RemoteSerializer.Meta.validators + [myValidator1, myValidator2]
-
-    By default the 'policy' field in platform.RemoteSerializer only validates the choice
-    'immediate'. To add on-demand support for more 'policy' options, e.g. 'streamed' or 'on_demand',
-    re-define the 'policy' option as follows::
-
-    policy = serializers.ChoiceField(
-        help_text="The policy to use when downloading content. The possible values include: "
-                  "'immediate', 'on_demand', and 'streamed'. 'immediate' is the default.",
-        choices=models.Remote.POLICY_CHOICES,
-        default=models.Remote.IMMEDIATE
+    depth = serializers.IntegerField(
+        default=0,
+        min_value=0,
+        required=False,
+        help_text=_("An option to specify how many commits to traverse."),
     )
-    """
+    policy = serializers.ChoiceField(
+        help_text="""
+        immediate - All OSTree objects are downloaded and saved during synchronization.
+        on_demand - Only commits, dirtrees, and refs heads are downloaded. Other OSTree objects
+                    are not downloaded until they are requested for the first time by a client.
+        """,
+        choices=[Remote.IMMEDIATE, Remote.ON_DEMAND],
+        default=Remote.IMMEDIATE,
+    )
 
     class Meta:
-        fields = platform.RemoteSerializer.Meta.fields
+        fields = platform.RemoteSerializer.Meta.fields + ("depth",)
         model = models.OstreeRemote
 
 
 class OstreeRepositorySerializer(platform.RepositorySerializer):
-    """
-    A Serializer for OstreeRepository.
-
-    Add any new fields if defined on OstreeRepository.
-    Similar to the example above, in OstreeContentSerializer.
-    Additional validators can be added to the parent validators list
-
-    For example::
-
-    class Meta:
-        validators = platform.RepositorySerializer.Meta.validators + [myValidator1, myValidator2]
-    """
+    """A Serializer class for an OSTree repository."""
 
     class Meta:
         fields = platform.RepositorySerializer.Meta.fields
         model = models.OstreeRepository
 
 
-class OstreePublicationSerializer(platform.PublicationSerializer):
-    """
-    A Serializer for OstreePublication.
-
-    Add any new fields if defined on OstreePublication.
-    Similar to the example above, in OstreeContentSerializer.
-    Additional validators can be added to the parent validators list
-
-    For example::
-
-    class Meta:
-        validators = platform.PublicationSerializer.Meta.validators + [myValidator1, myValidator2]
-    """
-
-    class Meta:
-        fields = platform.PublicationSerializer.Meta.fields
-        model = models.OstreePublication
-
-
 class OstreeDistributionSerializer(platform.DistributionSerializer):
-    """
-    A Serializer for OstreeDistribution.
+    """A Serializer class for an OSTree distribution."""
 
-    Add any new fields if defined on OstreeDistribution.
-    Similar to the example above, in OstreeContentSerializer.
-    Additional validators can be added to the parent validators list
-
-    For example::
-
-    class Meta:
-        validators = platform.DistributionSerializer.Meta.validators + [
-            myValidator1, myValidator2]
-    """
-
-    publication = platform.DetailRelatedField(
-        required=False,
-        help_text=_("Publication to be served"),
-        view_name_pattern=r"publications(-.*/.*)?-detail",
-        queryset=models.Publication.objects.exclude(complete=False),
-        allow_null=True,
+    repository_version = platform.RepositoryVersionRelatedField(
+        required=False, help_text=_("RepositoryVersion to be served"), allow_null=True
     )
 
-    # uncomment these lines and remove the publication field if not using publications
-    # repository_version = RepositoryVersionRelatedField(
-    #     required=False, help_text=_("RepositoryVersion to be served"), allow_null=True
-    # )
-
     class Meta:
-        fields = platform.DistributionSerializer.Meta.fields + ("publication",)
+        fields = platform.DistributionSerializer.Meta.fields + ("repository_version",)
         model = models.OstreeDistribution
