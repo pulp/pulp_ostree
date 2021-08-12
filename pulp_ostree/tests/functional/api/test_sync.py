@@ -1,136 +1,106 @@
-"""Tests that sync ostree plugin repositories."""
+import shutil
 import unittest
 
-from pulp_smash import config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
-from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary
+from urllib.parse import urlparse, urljoin
 
-from pulp_ostree.tests.functional.constants import (
-    OSTREE_FIXTURE_SUMMARY,
-    OSTREE_INVALID_FIXTURE_URL,
-)
+from pulp_smash import config
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
+from pulp_smash.pulp3.utils import gen_repo, gen_distribution
+
 from pulp_ostree.tests.functional.utils import (
     gen_ostree_client,
     gen_ostree_remote,
+    init_local_repo,
+    validate_repo_integrity,
 )
 from pulp_ostree.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from pulpcore.client.pulp_ostree import (
+    DistributionsOstreeApi,
+    OstreeOstreeDistribution,
     RepositoriesOstreeApi,
+    RepositoriesOstreeVersionsApi,
     RepositorySyncURL,
     RemotesOstreeApi,
 )
 
 
-# Implement sync support before enabling this test.
-@unittest.skip("FIXME: plugin writer action required")
 class BasicSyncTestCase(unittest.TestCase):
-    """Sync a repository with the ostree plugin."""
+    """A test case that verifies the syncing scenario."""
 
     @classmethod
     def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.cfg = config.get_config()
-        cls.client = gen_ostree_client()
+        """Initialize class-wide variables."""
+        cfg = config.get_config()
+        cls.registry_name = urlparse(cfg.get_base_url()).netloc
 
-    def test_sync(self):
-        """Sync repositories with the ostree plugin.
+        client_api = gen_ostree_client()
+        cls.repositories_api = RepositoriesOstreeApi(client_api)
+        cls.versions_api = RepositoriesOstreeVersionsApi(client_api)
+        cls.remotes_api = RemotesOstreeApi(client_api)
+        cls.distributions_api = DistributionsOstreeApi(client_api)
 
-        In order to sync a repository a remote has to be associated within
-        this repository. When a repository is created this version field is set
-        as None. After a sync the repository version is updated.
+    @classmethod
+    def tearDownClass(cls):
+        """Clean orphaned content after finishing the tests."""
+        delete_orphans()
 
-        Do the following:
+    def setUp(self):
+        """Clean orphaned content before each test."""
+        delete_orphans()
 
-        1. Create a repository, and a remote.
-        2. Assert that repository version is None.
-        3. Sync the remote.
-        4. Assert that repository version is not None.
-        5. Assert that the correct number of units were added and are present
-           in the repo.
-        6. Sync the remote one more time.
-        7. Assert that repository version is different from the previous one.
-        8. Assert that the same number of are present and that no units were
-           added.
-        """
-        repo_api = RepositoriesOstreeApi(self.client)
-        remote_api = RemotesOstreeApi(self.client)
+    def test_on_demand_sync(self):
+        """Test on_demand synchronization."""
+        self.sync("on_demand")
 
-        repo = repo_api.create(gen_repo())
-        self.addCleanup(repo_api.delete, repo.pulp_href)
+    def test_immediate_sync(self):
+        """Test immediate synchronization."""
+        self.sync("immediate")
 
-        body = gen_ostree_remote()
-        remote = remote_api.create(body)
-        self.addCleanup(remote_api.delete, remote.pulp_href)
+    def sync(self, policy):
+        """Synchronize content from a remote repository and check validity of a Pulp repository."""
+        repo = self.repositories_api.create(gen_repo())
+        self.addCleanup(self.repositories_api.delete, repo.pulp_href)
 
-        # Sync the repository.
+        body = gen_ostree_remote(depth=0, policy=policy)
+        remote = self.remotes_api.create(body)
+        self.addCleanup(self.remotes_api.delete, remote.pulp_href)
+
+        # 1. synchronize content from the remote
         self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
         repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        repo = repo_api.read(repo.pulp_href)
+        response = self.repositories_api.sync(repo.pulp_href, repository_sync_data)
+        repo_version = monitor_task(response.task).created_resources[0]
 
-        self.assertIsNotNone(repo.latest_version_href)
-        self.assertDictEqual(get_content_summary(repo.to_dict()), OSTREE_FIXTURE_SUMMARY)
-        self.assertDictEqual(get_added_content_summary(repo.to_dict()), OSTREE_FIXTURE_SUMMARY)
+        repository_version = self.versions_api.read(repo_version)
+        added_content = repository_version.content_summary.added
 
-        # Sync the repository again.
-        latest_version_href = repo.latest_version_href
+        # 2. validate newly added content
+        self.assertEqual(added_content["ostree.config"]["count"], 1)
+        self.assertEqual(added_content["ostree.refs"]["count"], 2)
+        self.assertEqual(added_content["ostree.commit"]["count"], 2)
+        self.assertEqual(added_content["ostree.object"]["count"], 3)
+        self.assertEqual(added_content["ostree.summary"]["count"], 1)
+
+        # 3. synchronize from the same remote once again
+        previous_version_href = repo_version
         repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
+        sync_response = self.repositories_api.sync(repo.pulp_href, repository_sync_data)
         monitor_task(sync_response.task)
-        repo = repo_api.read(repo.pulp_href)
+        repo = self.repositories_api.read(repo.pulp_href)
 
-        self.assertEqual(latest_version_href, repo.latest_version_href)
-        self.assertDictEqual(get_content_summary(repo.to_dict()), OSTREE_FIXTURE_SUMMARY)
+        self.assertEqual(previous_version_href, repo.latest_version_href)
 
+        # 4. publish the synced content
+        distribution_data = OstreeOstreeDistribution(**gen_distribution(repository=repo.pulp_href))
+        response = self.distributions_api.create(distribution_data)
+        distribution = monitor_task(response.task).created_resources[0]
+        self.addCleanup(self.distributions_api.delete, distribution)
 
-# Implement sync support before enabling this test.
-@unittest.skip("FIXME: plugin writer action required")
-class SyncInvalidTestCase(unittest.TestCase):
-    """Sync a repository with a given url on the remote."""
+        ostree_repo_path = urljoin(self.distributions_api.read(distribution).base_url, remote.name)
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variables."""
-        cls.client = gen_ostree_client()
-
-    def test_invalid_url(self):
-        """Sync a repository using a remote url that does not exist.
-
-        Test that we get a task failure. See :meth:`do_test`.
-        """
-        with self.assertRaises(PulpTaskError) as cm:
-            task = self.do_test("http://i-am-an-invalid-url.com/invalid/")
-        task = cm.exception.task.to_dict()
-        self.assertIsNotNone(task["error"]["description"])
-
-    # Provide an invalid repository and specify keywords in the anticipated error message
-    @unittest.skip("FIXME: Plugin writer action required.")
-    def test_invalid_ostree_content(self):
-        """Sync a repository using an invalid plugin_content repository.
-
-        Assert that an exception is raised, and that error message has
-        keywords related to the reason of the failure. See :meth:`do_test`.
-        """
-        with self.assertRaises(PulpTaskError) as cm:
-            task = self.do_test(OSTREE_INVALID_FIXTURE_URL)
-        task = cm.exception.task.to_dict()
-        for key in ("mismached", "empty"):
-            self.assertIn(key, task["error"]["description"])
-
-    def do_test(self, url):
-        """Sync a repository given ``url`` on the remote."""
-        repo_api = RepositoriesOstreeApi(self.client)
-        remote_api = RemotesOstreeApi(self.client)
-
-        repo = repo_api.create(gen_repo())
-        self.addCleanup(repo_api.delete, repo.pulp_href)
-
-        body = gen_ostree_remote(url=url)
-        remote = remote_api.create(body)
-        self.addCleanup(remote_api.delete, remote.pulp_href)
-
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = repo_api.sync(repo.pulp_href, repository_sync_data)
-        return monitor_task(sync_response.task)
+        # 5. initialize a local OSTree repository and pull the content from Pulp
+        init_local_repo(remote.name, ostree_repo_path)
+        self.addCleanup(shutil.rmtree, remote.name)
+        validate_repo_integrity(remote.name, "pulpos:rawhide")
+        validate_repo_integrity(remote.name, "pulpos:stable")

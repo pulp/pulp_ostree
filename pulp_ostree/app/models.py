@@ -1,10 +1,3 @@
-"""
-Check `Plugin Writer's Guide`_ for more details.
-
-.. _Plugin Writer's Guide:
-    https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/index.html
-"""
-
 from logging import getLogger
 
 from django.db import models
@@ -13,7 +6,6 @@ from pulpcore.plugin.models import (
     Content,
     Remote,
     Repository,
-    Publication,
     Distribution,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_duplicate_content
@@ -83,62 +75,54 @@ class OstreeConfig(Content):
 
     TYPE = "config"
 
-    class Meta:
-        default_related_name = "%(app_label)s_%(model_name)s"
-
-
-class OstreePublication(Publication):
-    """
-    A Publication for OstreeContent.
-
-    Define any additional fields for your new publication if needed.
-    """
-
-    TYPE = "ostree"
+    sha256 = models.CharField(max_length=64, db_index=True)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("sha256",)
+
+
+class OstreeSummary(Content):
+    """A content model for an OSTree summary file."""
+
+    TYPE = "summary"
+
+    sha256 = models.CharField(max_length=64, db_index=True)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("sha256",)
 
 
 class OstreeRemote(Remote):
-    """
-    A Remote for OstreeContent.
-
-    Define any additional fields for your new remote if needed.
-    """
+    """A remote model for OSTree content."""
 
     TYPE = "ostree"
+
+    depth = models.IntegerField(default=0)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
 class OstreeRepository(Repository):
-    """
-    A Repository for OstreeContent.
-
-    Define any additional fields for your new repository if needed.
-    """
+    """A repository model for OSTree content."""
 
     TYPE = "ostree"
 
-    CONTENT_TYPES = [OstreeCommit, OstreeRefsHead, OstreeObject, OstreeConfig]
+    CONTENT_TYPES = [OstreeCommit, OstreeRefsHead, OstreeObject, OstreeConfig, OstreeSummary]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
     def finalize_new_version(self, new_version):
-        """Handle RefsHead duplicates."""
+        """Handle repository duplicates."""
         remove_duplicates(new_version)
         validate_duplicate_content(new_version)
 
 
 class OstreeDistribution(Distribution):
-    """
-    A Distribution for OstreeContent.
-
-    Define any additional fields for your new distribution if needed.
-    """
+    """A distribution model for OSTree content."""
 
     TYPE = "ostree"
 
