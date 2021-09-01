@@ -1,2 +1,2 @@
 from .synchronizing import synchronize  # noqa
-from .uploading import import_ostree_repository  # noqa
+from .importing import import_ostree_content  # noqa

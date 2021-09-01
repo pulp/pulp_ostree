@@ -55,29 +55,33 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
 
     @extend_schema(
         description="Trigger an asynchronous task to create a new OSTree repository version.",
-        summary="Create a new OSTree repository version",
+        summary="Import commits to a repository",
         responses={202: AsyncOperationResponseSerializer},
     )
-    @action(detail=True, methods=["post"], serializer_class=serializers.OstreeRepoUploadSerializer)
-    def commit(self, request, pk):
-        """Upload and parse a tarball consisting of one or more OSTree commits."""
+    @action(detail=True, methods=["post"], serializer_class=serializers.OstreeRepoImportSerializer)
+    def import_commits(self, request, pk):
+        """Add new commits to a repository."""
         repository = self.get_object()
 
-        serializer = serializers.OstreeRepoUploadSerializer(
+        serializer = serializers.OstreeRepoImportSerializer(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
         artifact = serializer.validated_data["artifact"]
         repository_name = serializer.validated_data["repository_name"]
+        ref = serializer.validated_data["ref"]
+        parent_commit = serializer.validated_data["parent_commit"]
 
         async_result = dispatch(
-            tasks.import_ostree_repository,
+            tasks.import_ostree_content,
             [artifact, repository],
             kwargs={
                 "artifact_pk": str(artifact.pk),
                 "repository_pk": str(repository.pk),
                 "repository_name": repository_name,
+                "ref": ref,
+                "parent_commit": parent_commit,
             },
         )
         return core.OperationPostponedResponse(async_result, request)
@@ -97,12 +101,12 @@ class OstreeDistributionViewSet(core.DistributionViewSet):
     serializer_class = serializers.OstreeDistributionSerializer
 
 
-class OstreeRefsHeadViewSet(ReadOnlyContentViewSet):
+class OstreeRefViewSet(ReadOnlyContentViewSet):
     """A ViewSet class for OSTree head commits."""
 
-    endpoint_name = "refsheads"
-    queryset = models.OstreeRefsHead.objects.all()
-    serializer_class = serializers.OstreeRefsHeadSerializer
+    endpoint_name = "refs"
+    queryset = models.OstreeRef.objects.all()
+    serializer_class = serializers.OstreeRefSerializer
 
 
 class OstreeCommitViewSet(ReadOnlyContentViewSet):

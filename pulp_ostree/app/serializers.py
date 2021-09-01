@@ -10,29 +10,60 @@ from pulpcore.plugin.viewsets import NamedModelViewSet
 from . import models
 
 
-class OstreeRepoUploadSerializer(serializers.Serializer):
-    """A Serializer class for uploading tarballs to a Pulp OSTree repository."""
+class OstreeRepoImportSerializer(serializers.Serializer):
+    """A Serializer class for importing commits to a Pulp OSTree repository."""
 
     artifact = platform.RelatedField(
         many=False,
         lookup_field="pk",
         view_name="artifacts-detail",
         queryset=Artifact.objects.all(),
-        help_text=_("Artifact representing an OSTree commit."),
+        help_text=_("An artifact representing OSTree content compressed as a tarball."),
     )
-    repository_name = serializers.CharField()
+    repository_name = serializers.CharField(
+        help_text=_("The name of a repository that contains the compressed OSTree content.")
+    )
+
+    ref = serializers.CharField(
+        required=False,
+        help_text=_("The name of a ref branch that holds the reference to the last commit."),
+    )
+    parent_commit = serializers.CharField(
+        required=False,
+        help_text=_(
+            "The checksum of a parent commit with which the content needs to be associated."
+        ),
+    )
 
     def validate(self, data):
-        """Check if the uploaded artifact is a tarball."""
+        """Validate the passed tarball and optional ref attributes."""
         new_data = {}
         new_data.update(self.initial_data)
 
-        artifact = NamedModelViewSet.get_resource(new_data["artifact"])
-        if not is_tarfile(artifact.file.path):
-            raise serializers.ValidationError(_("The uploaded artifact is not a tar archive file"))
-        new_data["artifact"] = artifact
+        self.validate_tarball(new_data)
+        self.validate_ref_and_parent_commit(new_data)
 
         return new_data
+
+    def validate_tarball(self, data):
+        """Check if the artifact is a tarball."""
+        artifact = NamedModelViewSet.get_resource(data["artifact"])
+        if not is_tarfile(artifact.file.path):
+            raise serializers.ValidationError(_("The artifact is not a tar archive file"))
+        data["artifact"] = artifact
+
+    def validate_ref_and_parent_commit(self, data):
+        """Check if a user provided a ref and parent when adding commits to a repository."""
+        ref = data.get("ref")
+        parent_commit = data.get("parent_commit")
+
+        if all([ref, parent_commit]) or not any([ref, parent_commit]):
+            data["ref"] = ref
+            data["parent_commit"] = parent_commit
+        else:
+            raise serializers.ValidationError(
+                _("Both the parent commit and ref should be specified when adding new content")
+            )
 
 
 class OstreeCommitSerializer(platform.SingleArtifactContentSerializer):
@@ -55,7 +86,7 @@ class OstreeCommitSerializer(platform.SingleArtifactContentSerializer):
         model = models.OstreeCommit
 
 
-class OstreeRefsHeadSerializer(platform.SingleArtifactContentSerializer):
+class OstreeRefSerializer(platform.SingleArtifactContentSerializer):
     """A Serializer class for OSTree head commits."""
 
     commit = platform.DetailRelatedField(
@@ -67,7 +98,7 @@ class OstreeRefsHeadSerializer(platform.SingleArtifactContentSerializer):
 
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields + ("commit", "name")
-        model = models.OstreeRefsHead
+        model = models.OstreeRef
 
 
 class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
@@ -125,8 +156,8 @@ class OstreeRemoteSerializer(platform.RemoteSerializer):
     policy = serializers.ChoiceField(
         help_text="""
         immediate - All OSTree objects are downloaded and saved during synchronization.
-        on_demand - Only commits, dirtrees, and refs heads are downloaded. Other OSTree objects
-                    are not downloaded until they are requested for the first time by a client.
+        on_demand - Only commits, dirtrees, and refs are downloaded. Other OSTree objects are
+                    not downloaded until they are requested for the first time by a client.
         """,
         choices=[Remote.IMMEDIATE, Remote.ON_DEMAND],
         default=Remote.IMMEDIATE,

@@ -77,6 +77,8 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
         self.repo = None
         self.repo_path = None
 
+        self.commit_dcs = []
+
         self.create_object_dc_func = self.create_remote_artifact_dc
 
     async def run(self):
@@ -90,11 +92,11 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
             _, refs = self.repo.remote_list_refs(self.repo_name)
             for name, _ in refs.items():
-                refs_head_relative_path = os.path.join("refs/heads/", name)
-                await self.download_remote_object(refs_head_relative_path)
-                local_refs_head_path = os.path.join(self.repo_path, refs_head_relative_path)
+                ref_relative_path = os.path.join("refs/heads/", name)
+                await self.download_remote_object(ref_relative_path)
+                local_ref_path = os.path.join(self.repo_path, ref_relative_path)
 
-                with open(local_refs_head_path, "r") as f:
+                with open(local_ref_path, "r") as f:
                     ref_commit_checksum = f.read().strip()
 
                 relative_path = get_checksum_filepath(
@@ -112,14 +114,14 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
                     await self.submit_related_objects(commit)
 
-                    await self.submit_refshead_object(name, local_refs_head_path, commit)
+                    await self.submit_ref_object(name, local_ref_path, commit)
 
                     continue
 
                 checksum = ref_commit_checksum
-                headrefs_commit = OstreeCommit(checksum=checksum)
-                headrefs_commit_dc = self.create_dc(relative_path, headrefs_commit)
-                commit_dcs = [headrefs_commit_dc]
+                ref_commit = OstreeCommit(checksum=checksum)
+                ref_commit_dc = self.create_dc(relative_path, ref_commit)
+                self.commit_dcs.append(ref_commit_dc)
 
                 relative_path = get_checksum_filepath(
                     parent_checksum, OstreeObjectType.OSTREE_OBJECT_TYPE_COMMIT
@@ -133,7 +135,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                 while parent_checksum and max_depth > 0:
                     commit = OstreeCommit(checksum=checksum)
                     commit_dc = self.create_dc(relative_path, commit)
-                    commit_dcs.append(commit_dc)
+                    self.commit_dcs.append(commit_dc)
 
                     checksum = parent_checksum
                     relative_path = get_checksum_filepath(
@@ -147,16 +149,14 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
                 commit = OstreeCommit(checksum=checksum)
                 commit_dc = self.create_dc(relative_path, commit)
-                commit_dcs.append(commit_dc)
+                self.commit_dcs.append(commit_dc)
 
                 await self.put(commit_dc)
                 await self.submit_related_objects(commit)
 
-                await self.submit_previous_commits_and_related_objects(commit_dcs)
+                await self.submit_previous_commits_and_related_objects()
 
-                await self.submit_refshead_object(
-                    name, local_refs_head_path, headrefs_commit_dc.content
-                )
+                await self.submit_ref_object(name, local_ref_path, ref_commit_dc.content)
 
             pb.increment()
 
