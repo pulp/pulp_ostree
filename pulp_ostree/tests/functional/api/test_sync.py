@@ -10,7 +10,7 @@ from pulp_smash.pulp3.utils import gen_repo, gen_distribution
 from pulp_ostree.tests.functional.utils import (
     gen_ostree_client,
     gen_ostree_remote,
-    init_local_repo,
+    init_local_repo_with_remote,
     validate_repo_integrity,
 )
 from pulp_ostree.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -100,7 +100,7 @@ class BasicSyncTestCase(unittest.TestCase):
         ostree_repo_path = urljoin(self.distributions_api.read(distribution).base_url, remote.name)
 
         # 5. initialize a local OSTree repository and pull the content from Pulp
-        init_local_repo(remote.name, ostree_repo_path)
+        init_local_repo_with_remote(remote.name, ostree_repo_path)
         self.addCleanup(shutil.rmtree, remote.name)
         validate_repo_integrity(remote.name, "pulpos:rawhide")
         validate_repo_integrity(remote.name, "pulpos:stable")

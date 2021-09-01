@@ -26,14 +26,14 @@ class OstreeCommit(Content):
         unique_together = ("checksum",)
 
 
-class OstreeRefsHead(Content):
+class OstreeRef(Content):
     """A content model for an OSTree head commit."""
 
     TYPE = "refs"
     repo_key_fields = ("name",)
 
     commit = models.ForeignKey(
-        OstreeCommit, related_name="refshead_commit", null=True, on_delete=models.CASCADE
+        OstreeCommit, related_name="refs_commit", null=True, on_delete=models.CASCADE
     )
     name = models.CharField(max_length=255, db_index=True)
 
@@ -110,7 +110,7 @@ class OstreeRepository(Repository):
 
     TYPE = "ostree"
 
-    CONTENT_TYPES = [OstreeCommit, OstreeRefsHead, OstreeObject, OstreeConfig, OstreeSummary]
+    CONTENT_TYPES = [OstreeCommit, OstreeRef, OstreeObject, OstreeConfig, OstreeSummary]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

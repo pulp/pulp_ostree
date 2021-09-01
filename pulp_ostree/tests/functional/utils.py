@@ -58,7 +58,7 @@ def gen_artifact(filepath):
     return artifact.to_dict()
 
 
-def init_local_repo(repo_name, remote_url):
+def init_local_repo_with_remote(repo_name, remote_url):
     """Initialize a local OSTree repository by leveraging the ostree utility."""
     repo_opt = f"--repo={repo_name}"
 
@@ -68,10 +68,12 @@ def init_local_repo(repo_name, remote_url):
     subprocess.run(["ostree", "config", repo_opt, "set", 'remote "pulpos".gpg-verify', "false"])
 
 
-def validate_repo_integrity(repo_name, mirror):
+def validate_repo_integrity(repo_name, remote_branch, commits_to_check=None):
     """Test the validity of the Pulp OSTree repository by pulling it to the local repository."""
     try:
-        subprocess.check_output(["ostree", f"--repo={repo_name}", "pull", "--mirror", mirror])
+        subprocess.check_output(
+            ["ostree", f"--repo={repo_name}", "pull", "--mirror", remote_branch, "--depth=-1"]
+        )
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(exc.output)
 
@@ -79,3 +81,11 @@ def validate_repo_integrity(repo_name, mirror):
         subprocess.check_output(["ostree", "fsck", f"--repo={repo_name}"])
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(exc.output)
+
+    if commits_to_check is not None:
+        _, ref = remote_branch.split(":")
+        output = subprocess.check_output(
+            ["ostree", f"--repo={repo_name}", "log", ref], encoding="utf-8"
+        )
+        commits = {line.split()[1] for line in output.splitlines() if line.startswith("commit")}
+        assert commits == commits_to_check

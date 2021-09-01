@@ -10,7 +10,7 @@ from pulp_smash.pulp3.constants import (
 )
 
 OSTREE_COMMIT_PATH = urljoin(BASE_CONTENT_PATH, "ostree/commits/")
-OSTREE_REFSHEAD_PATH = urljoin(BASE_CONTENT_PATH, "ostree/refsheads/")
+OSTREE_REFSHEAD_PATH = urljoin(BASE_CONTENT_PATH, "ostree/refs/")
 OSTREE_OBJECTS_PATH = urljoin(BASE_CONTENT_PATH, "ostree/objects/")
 OSTREE_CONFIG_PATH = urljoin(BASE_CONTENT_PATH, "ostree/configs/")
 OSTREE_SUMMARY_PATH = urljoin(BASE_CONTENT_PATH, "ostree/summaries/")

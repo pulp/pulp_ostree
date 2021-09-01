@@ -10,7 +10,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 
-from pulp_ostree.app.models import OstreeCommit, OstreeObject, OstreeRefsHead
+from pulp_ostree.app.models import OstreeCommit, OstreeObject, OstreeRef
 from pulp_ostree.app.tasks.utils import get_checksum_filepath
 
 
@@ -29,12 +29,12 @@ class DeclarativeContentCreatorMixin:
             object_dc = self.create_object_dc_func(obj_relative_path, obj)
             await self.put(object_dc)
 
-    async def submit_refshead_object(self, name, relative_path, commit):
-        """Queue a DeclarativeContent object for a branch."""
-        refshead = OstreeRefsHead(name=name)
-        refshead_dc = self.create_dc(relative_path, refshead)
-        refshead_dc.extra_data["head_commit"] = commit
-        await self.put(refshead_dc)
+    async def submit_ref_object(self, name, relative_path, commit):
+        """Queue a DeclarativeContent object for a ref object."""
+        ref = OstreeRef(name=name)
+        ref_dc = self.create_dc(relative_path, ref)
+        ref_dc.extra_data["head_commit"] = commit
+        await self.put(ref_dc)
 
     async def submit_metafile_object(self, name, metafile_obj):
         """Queue a DeclarativeContent object for either summary or config."""
@@ -42,13 +42,13 @@ class DeclarativeContentCreatorMixin:
         metafile_dc.content.sha256 = metafile_dc.d_artifacts[0].artifact.sha256
         await self.put(metafile_dc)
 
-    async def submit_previous_commits_and_related_objects(self, commit_dcs):
+    async def submit_previous_commits_and_related_objects(self):
         """Associate parent and child commits while submitting all related objects to the queue."""
-        for i in range(len(commit_dcs) - 1):
-            commit_dcs[i].extra_data["parent_commit"] = commit_dcs[i + 1]
+        for i in range(len(self.commit_dcs) - 1):
+            self.commit_dcs[i].extra_data["parent_commit"] = self.commit_dcs[i + 1].content
 
-            await self.put(commit_dcs[i])
-            await self.submit_related_objects(commit_dcs[i].content)
+            await self.put(self.commit_dcs[i])
+            await self.submit_related_objects(self.commit_dcs[i].content)
 
     def create_dc(self, relative_file_path, content):
         """Create a DeclarativeContent object describing a single OSTree object (e.g., commit)."""
@@ -102,16 +102,16 @@ class OstreeAssociateContent(Stage):
     def associate_parent_commit(self, dc):
         """Assign the parent commit to its child commit."""
         parent_commit_dc = dc.extra_data.get("parent_commit")
-        dc.content.parent_commit = parent_commit_dc.content
+        dc.content.parent_commit = parent_commit_dc
         return dc.content
 
     def associate_head_commit(self, dc):
-        """Assign the head commit to its branch."""
+        """Assign the head commit to its ref."""
         related_commit = dc.extra_data.get("head_commit")
         dc.content.commit = related_commit
         try:
             dc.content.save()
         except (IntegrityError, ValueError):
-            existing_head = OstreeRefsHead.objects.get(name=dc.content.name, commit=related_commit)
+            existing_head = OstreeRef.objects.get(name=dc.content.name, commit=related_commit)
             dc.content.delete()
             dc.content = existing_head
