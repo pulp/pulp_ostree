@@ -61,11 +61,8 @@ def gen_artifact(filepath):
 def init_local_repo_with_remote(repo_name, remote_url):
     """Initialize a local OSTree repository by leveraging the ostree utility."""
     repo_opt = f"--repo={repo_name}"
-
     subprocess.run(["ostree", repo_opt, "init", "--mode=archive"])
-    subprocess.run(["ostree", repo_opt, "remote", "add", "pulpos", remote_url])
-
-    subprocess.run(["ostree", "config", repo_opt, "set", 'remote "pulpos".gpg-verify', "false"])
+    subprocess.run(["ostree", repo_opt, "remote", "--no-gpg-verify", "add", "pulpos", remote_url])
 
 
 def validate_repo_integrity(repo_name, remote_branch, commits_to_check=None):
