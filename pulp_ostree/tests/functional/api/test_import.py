@@ -1,4 +1,5 @@
 import os
+import requests
 import shutil
 import subprocess
 import unittest
@@ -6,7 +7,7 @@ import unittest
 from pathlib import Path
 from urllib.parse import urlparse, urljoin
 
-from pulp_smash import config
+from pulp_smash import config, api
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import gen_repo, gen_distribution, utils
 
@@ -37,6 +38,7 @@ class ImportCommitTestCase(unittest.TestCase):
         """Initialize class-wide variables."""
         cls.cfg = config.get_config()
         cls.registry_name = urlparse(cls.cfg.get_base_url()).netloc
+        cls.client = api.Client(cls.cfg, api.json_handler)
 
         client_api = gen_ostree_client()
         cls.repositories_api = RepositoriesOstreeApi(client_api)
@@ -193,7 +195,7 @@ class ImportCommitTestCase(unittest.TestCase):
 
         # 8. import data from the second repository
         created_commits = self.commits_api.list(repository_version_added=repo_version)
-        parent_commit = created_commits.to_dict()["results"][0]["checksum"]
+        parent_commit = created_commits.to_dict()["results"][0]
 
         add_data = OstreeRepoImport(
             self.commit_repo2_artifact["pulp_href"],
@@ -216,11 +218,12 @@ class ImportCommitTestCase(unittest.TestCase):
         # the old ref should be removed from the repository
         self.assertEqual(removed_content["ostree.refs"]["count"], 1)
 
-        # 9. verify the latest commit's checksum
+        # 9. verify the latest commit's fields (the checksum and reference to the parent commit)
         created_refs = self.refs_api.list(repository_version_added=repo_version)
         latest_commit_href = created_refs.to_dict()["results"][0]["commit"]
-        latest_commit = self.commits_api.read(latest_commit_href).checksum
-        self.assertNotEqual(latest_commit, parent_commit)
+        latest_commit = self.commits_api.read(latest_commit_href)
+        self.assertEqual(latest_commit.parent_commit, parent_commit["pulp_href"])
+        self.assertNotEqual(latest_commit.checksum, parent_commit["checksum"])
 
         # 10. publish the parsed commits
         distribution_data = OstreeOstreeDistribution(**gen_distribution(repository=repo.pulp_href))
@@ -237,3 +240,23 @@ class ImportCommitTestCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, Path(self.repo_name2))
         commits_to_check = {commit_checksum1, commit_checksum2}
         validate_repo_integrity(self.repo_name2, "pulpos:foo", commits_to_check)
+
+    def test_version_removal(self):
+        """Test the repository version removal functionality by removing two adjacent versions."""
+        self.test_single_ref_import()
+
+        repo_href = self.repositories_api.list().to_dict()["results"][0]["pulp_href"]
+        repo_version1_href = self.versions_api.read(f"{repo_href}versions/1/").pulp_href
+        repo_version2_href = self.versions_api.read(f"{repo_href}versions/2/").pulp_href
+
+        response = self.versions_api.delete(repo_version1_href)
+        monitor_task(response.task)
+        with self.assertRaises(requests.HTTPError) as exc:
+            self.client.get(repo_version1_href)
+        self.assertEqual(exc.exception.response.status_code, 404, repo_version2_href)
+
+        response = self.versions_api.delete(repo_version2_href)
+        monitor_task(response.task)
+        with self.assertRaises(requests.HTTPError) as exc:
+            self.client.get(repo_version2_href)
+        self.assertEqual(exc.exception.response.status_code, 404, repo_version2_href)
