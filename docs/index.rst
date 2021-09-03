@@ -1,16 +1,21 @@
 Pulp OSTree Plugin
 ==================
 
-The ``ostree`` plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`__ to support
-hosting OSTree packages. This plugin is a part of the `Pulp Project
-<http://www.pulpproject.org>`_, and assumes some familiarity with the `pulpcore documentation
+The OSTree plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`__ to support
+hosting OSTree packages. This plugin is a part of the `Pulp Project <http://www.pulpproject.org>`_,
+and assumes some familiarity with the `pulpcore documentation
 <https://docs.pulpproject.org/pulpcore/>`_.
 
 If you are just getting started, we recommend getting to know the :doc:`basic
 workflows<workflows/index>`.
 
-The REST API documentation for ``pulp_ostree`` is available `here <restapi.html>`_.
+Features
+--------
 
+* :ref:`Synchronize <sync-workflow>` a remote OSTree repository and serve it via Pulp.
+* :ref:`Import <import-workflow>` new OSTree commits to an existing repository.
+* :ref:`Consume <publish-workflow>` OSTree content imported to Pulp by leveraging the
+  `ostree` utility.
 
 Table of Contents
 -----------------
@@ -20,6 +25,7 @@ Table of Contents
 
    installation
    workflows/index
+   restapi
    changes
    contributing
 
