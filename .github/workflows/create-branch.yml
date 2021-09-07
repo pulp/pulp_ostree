@@ -64,7 +64,7 @@ jobs:
       - name: Bump version on master branch
         run: |
           git checkout master
-          bump2version --no-commit minor
+          bump2version --no-commit patch
 
       - name: Make a PR with version bump
         uses: peter-evans/create-pull-request@v3
