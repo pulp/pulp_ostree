@@ -81,7 +81,7 @@ commit in the existing repository::
     """ > vim.toml
 
     sudo composer-cli blueprints push vim.toml
-    sudo composer-cli compose start vim-commit fedora-iot-commit
+    sudo composer-cli compose start-ostree vim-commit fedora-iot-commit --parent 50aeff7f74c66041ffc9e197887bfd5e427248ff1405e0e61e2cff4d3a1cecc7
     sudo composer-cli compose status
 
 Download the result from the server by issuing::
