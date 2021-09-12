@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-13-gccbd668
+# generated with plugin_template@2021.08.26-14-g7edf776
 
 additional_repos: []
 black: true
@@ -49,6 +49,7 @@ python_version: '3.8'
 redmine_project: null
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
+single_commit_check: true
 sync_ci: true
 test_bindings: false
 test_cli: false

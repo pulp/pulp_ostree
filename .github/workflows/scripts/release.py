@@ -29,7 +29,7 @@ import json
 REDMINE_API_KEY = os.environ["REDMINE_API_KEY"]
 REDMINE_URL = "https://pulp.plan.io"
 REDMINE_QUERY_URL = f"{REDMINE_URL}/issues?set_filter=1&status_id=*&issue_id="
-REDMINE_PROJECT = "pulp_ostree"
+REDMINE_PROJECT = "None"
 
 
 def validate_and_update_redmine_data(redmine_query_url, redmine_issues, release_version):
