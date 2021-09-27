@@ -193,6 +193,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
         """Create a declarative artifact that will have associated a remote artifact with it."""
         content_url = urljoin(self.remote.url, relative_path)
         publication_path = os.path.join(self.repo_name, relative_path)
+        content.relative_path = publication_path
 
         da = DeclarativeArtifact(
             artifact=Artifact(),
