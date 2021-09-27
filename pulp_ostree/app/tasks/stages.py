@@ -55,6 +55,8 @@ class DeclarativeContentCreatorMixin:
         artifact = self.init_artifact(relative_file_path)
 
         publication_filepath = os.path.join(self.repo_name, relative_file_path)
+        content.relative_path = publication_filepath
+
         # DeclarativeArtifact requires a URL to be passed to its constructor even though it will
         # never be used; specifying the URL is a requirement for standard downloading pipeline that
         # we are not utilizing right now

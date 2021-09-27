@@ -20,10 +20,11 @@ class OstreeCommit(Content):
 
     parent_commit = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
     checksum = models.CharField(max_length=64, db_index=True)
+    relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("checksum",)
+        unique_together = [["checksum", "relative_path"]]
 
 
 class OstreeRef(Content):
@@ -36,10 +37,11 @@ class OstreeRef(Content):
         OstreeCommit, related_name="refs_commit", null=True, on_delete=models.CASCADE
     )
     name = models.CharField(max_length=255, db_index=True)
+    relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("name", "commit")
+        unique_together = [["name", "commit", "relative_path"]]
 
 
 class OstreeObjectType(models.IntegerChoices):
@@ -64,10 +66,11 @@ class OstreeObject(Content):
     )
     typ = models.IntegerField(choices=OstreeObjectType.choices)
     checksum = models.CharField(max_length=64, db_index=True)
+    relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("checksum",)
+        unique_together = [["checksum", "relative_path"]]
 
 
 class OstreeConfig(Content):
@@ -76,10 +79,11 @@ class OstreeConfig(Content):
     TYPE = "config"
 
     sha256 = models.CharField(max_length=64, db_index=True)
+    relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("sha256",)
+        unique_together = [["sha256", "relative_path"]]
 
 
 class OstreeSummary(Content):
@@ -88,10 +92,11 @@ class OstreeSummary(Content):
     TYPE = "summary"
 
     sha256 = models.CharField(max_length=64, db_index=True)
+    relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("sha256",)
+        unique_together = [["sha256", "relative_path"]]
 
 
 class OstreeRemote(Remote):
