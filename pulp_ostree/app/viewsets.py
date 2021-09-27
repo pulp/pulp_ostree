@@ -44,7 +44,8 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
 
         result = dispatch(
             tasks.synchronize,
-            [repository, remote],
+            shared_resources=[remote],
+            exclusive_resources=[repository],
             kwargs={
                 "remote_pk": str(remote.pk),
                 "repository_pk": str(repository.pk),
@@ -75,7 +76,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
 
         async_result = dispatch(
             tasks.import_ostree_content,
-            [artifact, repository],
+            exclusive_resources=[artifact, repository],
             kwargs={
                 "artifact_pk": str(artifact.pk),
                 "repository_pk": str(repository.pk),
