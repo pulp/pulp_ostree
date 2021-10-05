@@ -22,7 +22,7 @@ deploy_to_pypi: true
 docker_fixtures: false
 docs_test: true
 flake8: true
-issue_tracker: redmine
+issue_tracker: github
 noissue_marker: '[noissue]'
 plugin_app_label: ostree
 plugin_camel: PulpOstree
