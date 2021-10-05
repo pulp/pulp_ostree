@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-13-gccbd668
+# generated with plugin_template@2021.08.26-20-gefc11dd
 
 additional_repos: []
 black: true
@@ -39,8 +39,8 @@ pre_job_template: null
 publish_docs_to_pulpprojectdotorg: true
 pulp_scheme: https
 pulp_settings: null
-pulpcore_branch: '3.15'
-pulpcore_pip_version_specifier: '>=3.15.0,<3.16.0'
+pulpcore_branch: master
+pulpcore_pip_version_specifier: null
 pulpcore_revision: null
 pulpprojectdotorg_key_id: null
 pydocstyle: true
@@ -49,7 +49,10 @@ python_version: '3.8'
 redmine_project: null
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
+single_commit_check: false
 sync_ci: true
+tasking_allow_async_unsafe: false
+test_azure: false
 test_bindings: false
 test_cli: false
 test_performance: false
