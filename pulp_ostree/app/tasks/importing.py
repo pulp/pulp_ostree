@@ -3,6 +3,8 @@ import tarfile
 
 from gettext import gettext
 
+from asgiref.sync import sync_to_async
+
 from pulpcore.plugin.models import Artifact, Repository, ProgressReport
 from pulpcore.plugin.stages import (
     ArtifactSaver,
@@ -10,6 +12,7 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     QueryExistingArtifacts,
     QueryExistingContents,
+    ResolveContentFutures,
     Stage,
 )
 
@@ -76,7 +79,7 @@ class OstreeSingleBranchParserMixin:
 
             await self.submit_related_objects(commit)
 
-            await self.submit_ref_object(name, ref_path, commit)
+            self.init_ref_object(name, ref_path, commit_dc)
 
             return commit_dc
 
@@ -85,7 +88,7 @@ class OstreeSingleBranchParserMixin:
         ref_commit_dc = self.create_dc(relative_path, ref_commit)
         self.commit_dcs.append(ref_commit_dc)
 
-        await self.submit_ref_object(name, ref_path, ref_commit_dc.content)
+        self.init_ref_object(name, ref_path, ref_commit_dc)
 
         try:
             _, parent_commit, _ = self.repo.load_commit(parent_checksum)
@@ -141,6 +144,7 @@ class OstreeImportStage(Stage):
         self.repo_path = None
 
         self.commit_dcs = []
+        self.refs_dcs = []
 
     def init_repository(self):
         """Initialize new OSTree repository objects."""
@@ -173,44 +177,49 @@ class OstreeImportSingleRefFirstStage(
 
     async def run(self):
         """Create OSTree content units and associate them with the parent commit."""
-        with tarfile.open(self.tarball_artifact.file.path) as tar, ProgressReport(
-            message="Adding the child commits", code="adding.commits", total=1
-        ) as pb:
-            tar.extractall(path=os.getcwd())
-            self.init_repository()
+        with tarfile.open(self.tarball_artifact.file.path) as tar:
+            async with ProgressReport(
+                message="Adding the child commits", code="adding.commits", total=1
+            ) as pb:
+                tar.extractall(path=os.getcwd())
+                self.init_repository()
 
-            last_commit_dc = None
-            _, refs = self.repo.list_refs()
-            for name, ref_commit_checksum in refs.items():
-                if self.ref == name:
-                    last_commit_dc = await self.parse_ref(
-                        name, ref_commit_checksum, self.parent_commit
+                last_commit_dc = None
+                _, refs = self.repo.list_refs()
+                for name, ref_commit_checksum in refs.items():
+                    if self.ref == name:
+                        last_commit_dc = await self.parse_ref(
+                            name, ref_commit_checksum, self.parent_commit
+                        )
+
+                if last_commit_dc is None:
+                    raise ValueError(
+                        gettext("An invalid ref name in the repository was specified: {}").format(
+                            self.ref
+                        )
                     )
 
-            if last_commit_dc is None:
-                raise ValueError(
-                    gettext("An invalid ref name in the repository was specified: {}").format(
-                        self.ref
+                try:
+                    parent_commit = await sync_to_async(OstreeCommit.objects.get)(
+                        checksum=self.parent_commit
                     )
-                )
+                except OstreeCommit.DoesNotExist:
+                    pass
+                else:
+                    last_commit_dc.extra_data["parent_commit"] = parent_commit
+                    await self.put(last_commit_dc)
+                    await self.submit_related_objects(last_commit_dc.content)
 
-            try:
-                parent_commit = OstreeCommit.objects.get(checksum=self.parent_commit)
-            except OstreeCommit.DoesNotExist:
-                pass
-            else:
-                last_commit_dc.extra_data["parent_commit"] = parent_commit
-                await self.put(last_commit_dc)
-                await self.submit_related_objects(last_commit_dc.content)
+                await self.submit_ref_with_last_commit(last_commit_dc)
 
-            await self.submit_ref_with_last_commit(last_commit_dc.content)
+                await pb.aincrement()
 
-            pb.increment()
+            await self.submit_ref_objects()
 
-    async def submit_ref_with_last_commit(self, commit):
+    async def submit_ref_with_last_commit(self, commit_dc):
         """Update the corresponding ref with the newly imported head commit."""
         ref_relative_path = os.path.join("refs/heads/", self.ref)
-        await self.submit_ref_object(self.ref, ref_relative_path, commit)
+        self.init_ref_object(self.ref, ref_relative_path, commit_dc)
 
 
 class OstreeImportAllBranchesFirstStage(
@@ -227,19 +236,22 @@ class OstreeImportAllBranchesFirstStage(
 
     async def run(self):
         """Create OSTree content units and declare relations between them."""
-        with tarfile.open(self.tarball_artifact.file.path) as tar, ProgressReport(
-            message="Committing the tarball", code="committing.tarball", total=1
-        ) as pb:
-            tar.extractall(path=os.getcwd())
-            self.init_repository()
+        with tarfile.open(self.tarball_artifact.file.path) as tar:
+            async with ProgressReport(
+                message="Committing the tarball", code="committing.tarball", total=1
+            ) as pb:
+                tar.extractall(path=os.getcwd())
+                self.init_repository()
 
-            await self.submit_metafile_object("config", OstreeConfig())
+                await self.submit_metafile_object("config", OstreeConfig())
 
-            _, refs = self.repo.list_refs()
-            for name, ref_commit_checksum in refs.items():
-                await self.parse_ref(name, ref_commit_checksum)
+                _, refs = self.repo.list_refs()
+                for name, ref_commit_checksum in refs.items():
+                    await self.parse_ref(name, ref_commit_checksum)
 
-            pb.increment()
+                await pb.aincrement()
+
+            await self.submit_ref_objects()
 
 
 class OstreeImportDeclarativeVersion(DeclarativeVersion):
@@ -253,6 +265,7 @@ class OstreeImportDeclarativeVersion(DeclarativeVersion):
             ArtifactSaver(),
             QueryExistingContents(),
             ContentSaver(),
+            ResolveContentFutures(),
             OstreeAssociateContent(),
         ]
 
