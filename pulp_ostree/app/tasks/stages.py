@@ -24,9 +24,10 @@ class DeclarativeContentCreatorMixin:
             if obj_checksum == commit.checksum:
                 continue
 
-            obj = OstreeObject(commit=commit, typ=obj_type, checksum=obj_checksum)
+            obj = OstreeObject(typ=obj_type, checksum=obj_checksum)
             obj_relative_path = get_checksum_filepath(obj_checksum, obj_type)
             object_dc = self.create_object_dc_func(obj_relative_path, obj)
+            object_dc.extra_data["obj_commit"] = commit
             await self.put(object_dc)
 
     def init_ref_object(self, name, relative_path, commit_dc):
@@ -95,13 +96,20 @@ class OstreeAssociateContent(Stage):
         """Create relations between each OSTree object specified in DeclarativeContent objects."""
         async for batch in self.batches():
             updated_commits = []
+            updated_objs = []
             for dc in batch:
                 if dc.extra_data.get("parent_commit"):
                     updated_commits.append(self.associate_parent_commit(dc))
+                elif dc.extra_data.get("obj_commit"):
+                    updated_objs.append(self.associate_obj_commit(dc))
 
             await sync_to_async(OstreeCommit.objects.bulk_update)(
                 objs=updated_commits, fields=["parent_commit"], batch_size=1000
             )
+            await sync_to_async(OstreeObject.objects.bulk_update)(
+                objs=updated_objs, fields=["commit"], batch_size=1000
+            )
+
             for dc in batch:
                 await self.put(dc)
 
@@ -109,4 +117,10 @@ class OstreeAssociateContent(Stage):
         """Assign the parent commit to its child commit."""
         parent_commit = dc.extra_data.get("parent_commit")
         dc.content.parent_commit = parent_commit
+        return dc.content
+
+    def associate_obj_commit(self, dc):
+        """Assign the commit to its referenced object."""
+        commit_dc = dc.extra_data.get("obj_commit")
+        dc.content.commit = commit_dc
         return dc.content
