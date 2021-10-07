@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from django.db import IntegrityError
+from asgiref.sync import sync_to_async
 
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.stages import (
@@ -29,12 +29,19 @@ class DeclarativeContentCreatorMixin:
             object_dc = self.create_object_dc_func(obj_relative_path, obj)
             await self.put(object_dc)
 
-    async def submit_ref_object(self, name, relative_path, commit):
-        """Queue a DeclarativeContent object for a ref object."""
+    def init_ref_object(self, name, relative_path, commit_dc):
+        """Initialize a DeclarativeContent object for a ref object."""
         ref = OstreeRef(name=name)
         ref_dc = self.create_dc(relative_path, ref)
-        ref_dc.extra_data["head_commit"] = commit
-        await self.put(ref_dc)
+        ref_dc.extra_data["ref_commit"] = commit_dc
+        self.refs_dcs.append(ref_dc)
+
+    async def submit_ref_objects(self):
+        """Queue DeclarativeContent objects with proper reference to commits for all refs."""
+        for ref_dc in self.refs_dcs:
+            commit_dc = ref_dc.extra_data["ref_commit"]
+            ref_dc.content.commit = await commit_dc.resolution()
+            await self.put(ref_dc)
 
     async def submit_metafile_object(self, name, metafile_obj):
         """Queue a DeclarativeContent object for either summary or config."""
@@ -88,14 +95,11 @@ class OstreeAssociateContent(Stage):
         """Create relations between each OSTree object specified in DeclarativeContent objects."""
         async for batch in self.batches():
             updated_commits = []
-            updated_refs = []
             for dc in batch:
                 if dc.extra_data.get("parent_commit"):
                     updated_commits.append(self.associate_parent_commit(dc))
-                elif dc.extra_data.get("head_commit"):
-                    updated_refs.append(self.associate_head_commit(dc))
 
-            OstreeCommit.objects.bulk_update(
+            await sync_to_async(OstreeCommit.objects.bulk_update)(
                 objs=updated_commits, fields=["parent_commit"], batch_size=1000
             )
             for dc in batch:
@@ -103,17 +107,6 @@ class OstreeAssociateContent(Stage):
 
     def associate_parent_commit(self, dc):
         """Assign the parent commit to its child commit."""
-        parent_commit_dc = dc.extra_data.get("parent_commit")
-        dc.content.parent_commit = parent_commit_dc
+        parent_commit = dc.extra_data.get("parent_commit")
+        dc.content.parent_commit = parent_commit
         return dc.content
-
-    def associate_head_commit(self, dc):
-        """Assign the head commit to its ref."""
-        related_commit = dc.extra_data.get("head_commit")
-        dc.content.commit = related_commit
-        try:
-            dc.content.save()
-        except (IntegrityError, ValueError):
-            existing_head = OstreeRef.objects.get(name=dc.content.name, commit=related_commit)
-            dc.content.delete()
-            dc.content = existing_head
