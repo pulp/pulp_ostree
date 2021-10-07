@@ -16,6 +16,7 @@ from pulpcore.plugin.stages import (
     QueryExistingArtifacts,
     QueryExistingContents,
     RemoteArtifactSaver,
+    ResolveContentFutures,
     Stage,
 )
 
@@ -78,12 +79,13 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
         self.repo_path = None
 
         self.commit_dcs = []
+        self.refs_dcs = []
 
         self.create_object_dc_func = self.create_remote_artifact_dc
 
     async def run(self):
         """Create OSTree content units and declare relations between them."""
-        with ProgressReport(
+        async with ProgressReport(
             message="Parsing Metadata", code="sync.parsing_metadata", total=1
         ) as pb:
             self.init_repository()
@@ -114,7 +116,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
                     await self.submit_related_objects(commit)
 
-                    await self.submit_ref_object(name, local_ref_path, commit)
+                    self.init_ref_object(name, ref_relative_path, commit_dc)
 
                     continue
 
@@ -156,9 +158,11 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
                 await self.submit_previous_commits_and_related_objects()
 
-                await self.submit_ref_object(name, local_ref_path, ref_commit_dc.content)
+                self.init_ref_object(name, ref_relative_path, ref_commit_dc)
 
-            pb.increment()
+            await pb.aincrement()
+
+        await self.submit_ref_objects()
 
     def init_repository(self):
         """Initialize a new OSTree repository object."""
@@ -250,6 +254,7 @@ class OstreeSyncDeclarativeVersion(DeclarativeVersion):
             QueryExistingContents(),
             ContentSaver(),
             RemoteArtifactSaver(),
+            ResolveContentFutures(),
             OstreeAssociateContent(),
         ]
 
