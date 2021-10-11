@@ -5,7 +5,7 @@ import subprocess
 import unittest
 
 from pathlib import Path
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urljoin
 
 from pulp_smash import config, api
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
@@ -37,7 +37,6 @@ class ImportCommitTestCase(unittest.TestCase):
     def setUpClass(cls):
         """Initialize class-wide variables."""
         cls.cfg = config.get_config()
-        cls.registry_name = urlparse(cls.cfg.get_base_url()).netloc
         cls.client = api.Client(cls.cfg, api.json_handler)
 
         client_api = gen_ostree_client()
@@ -118,9 +117,9 @@ class ImportCommitTestCase(unittest.TestCase):
         ostree_repo_path = urljoin(self.distributions_api.read(distribution).base_url, repo_name1)
 
         # 10. initialize a second local OSTree repository and pull the content from Pulp
-        init_local_repo_with_remote(repo_name2, ostree_repo_path)
+        remote_name = init_local_repo_with_remote(repo_name2, ostree_repo_path)
         self.addCleanup(shutil.rmtree, Path(repo_name2))
-        validate_repo_integrity(repo_name2, "pulpos:foo")
+        validate_repo_integrity(repo_name2, f"{remote_name}:foo")
 
     def test_single_ref_import(self):
         """Import a new child commit, publish it, and pull it from Pulp."""
@@ -236,10 +235,10 @@ class ImportCommitTestCase(unittest.TestCase):
         )
 
         # 11. initialize a local OSTree repository and pull the content from Pulp
-        init_local_repo_with_remote(self.repo_name2, ostree_repo_path)
+        remote_name = init_local_repo_with_remote(self.repo_name2, ostree_repo_path)
         self.addCleanup(shutil.rmtree, Path(self.repo_name2))
         commits_to_check = {commit_checksum1, commit_checksum2}
-        validate_repo_integrity(self.repo_name2, "pulpos:foo", commits_to_check)
+        validate_repo_integrity(self.repo_name2, f"{remote_name}:foo", commits_to_check)
 
     def test_version_removal(self):
         """Test the repository version removal functionality by removing two adjacent versions."""
