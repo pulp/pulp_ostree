@@ -27,7 +27,7 @@ Create a Remote
 
 Creating a remote object informs Pulp about an external content source::
 
-    http POST ${BASE_ADDR}/pulp/api/v3/remotes/ostree/ostree/ name='bar' url='https://www.redhat.com/ostree/repo'
+    http POST ${BASE_ADDR}/pulp/api/v3/remotes/ostree/ostree/ name='bar' url='https://fixtures.pulpproject.org/ostree/small/'
 
 Response::
 

@@ -5,6 +5,7 @@ from functools import partial
 from unittest import SkipTest
 
 from pulp_smash import config, selectors
+from pulp_smash.utils import uuid4
 from pulp_smash.pulp3.utils import (
     gen_remote,
     require_pulp_3,
@@ -60,22 +61,34 @@ def gen_artifact(filepath):
 
 def init_local_repo_with_remote(repo_name, remote_url):
     """Initialize a local OSTree repository by leveraging the ostree utility."""
+    remote_repo_name = str(uuid4())
     repo_opt = f"--repo={repo_name}"
     subprocess.run(["ostree", repo_opt, "init", "--mode=archive"])
-    subprocess.run(["ostree", repo_opt, "remote", "--no-gpg-verify", "add", "pulpos", remote_url])
+    subprocess.run(
+        ["ostree", repo_opt, "remote", "--no-gpg-verify", "add", remote_repo_name, remote_url]
+    )
+    return remote_repo_name
 
 
-def validate_repo_integrity(repo_name, remote_branch, commits_to_check=None):
+def validate_repo_integrity(repo_name, remote_branch, commits_to_check=None, depth=-1):
     """Test the validity of the Pulp OSTree repository by pulling it to the local repository."""
     try:
         subprocess.check_output(
-            ["ostree", f"--repo={repo_name}", "pull", "--mirror", remote_branch, "--depth=-1"]
+            [
+                "ostree",
+                f"--repo={repo_name}",
+                "pull",
+                "--mirror",
+                remote_branch,
+                f"--depth={depth}",
+            ],
+            stderr=subprocess.STDOUT,
         )
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(exc.output)
 
     try:
-        subprocess.check_output(["ostree", "fsck", f"--repo={repo_name}"])
+        subprocess.check_output(["ostree", "fsck", f"--repo={repo_name}"], stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(exc.output)
 
