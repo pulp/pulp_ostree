@@ -44,4 +44,5 @@ the best user experience, some workflows utilize `Pulp CLI <https://docs.pulppro
 
    sync
    import
+   modify
    publish
