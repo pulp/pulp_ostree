@@ -114,7 +114,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                     commit_dc = self.create_dc(relative_path, commit)
                     await self.put(commit_dc)
 
-                    await self.submit_related_objects(commit)
+                    await self.submit_related_objects(commit_dc)
 
                     self.init_ref_object(name, ref_relative_path, commit_dc)
 
@@ -154,7 +154,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                 self.commit_dcs.append(commit_dc)
 
                 await self.put(commit_dc)
-                await self.submit_related_objects(commit)
+                await self.submit_related_objects(commit_dc)
 
                 await self.submit_previous_commits_and_related_objects()
 
@@ -209,9 +209,9 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
         return DeclarativeContent(content=content, d_artifacts=[da])
 
-    async def submit_related_objects(self, commit):
+    async def submit_related_objects(self, commit_dc):
         """Queue related DeclarativeContent objects and additionally download dirtree metadata."""
-        _, loaded_commit, _ = self.repo.load_commit(commit.checksum)
+        _, loaded_commit, _ = self.repo.load_commit(commit_dc.content.checksum)
 
         # it is necessary to download referenced dirtree objects; otherwise, the traversal cannot
         # be executed without errors; the traversing allows us to read all referenced checksums,
@@ -226,7 +226,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
         subtree_checksums = {bytes_to_checksum(subtree[1]) for subtree in dirtree_obj[1]}
         await self.download_dirtrees(subtree_checksums)
 
-        await super().submit_related_objects(commit)
+        await super().submit_related_objects(commit_dc)
 
     async def download_dirtrees(self, subtree_checksums):
         """Recursively download dirtree objects and their sub-dirtree objects."""

@@ -78,11 +78,17 @@ class OstreeCommitSerializer(platform.SingleArtifactContentSerializer):
         default=None,
     )
     checksum = serializers.CharField()
+    objs = platform.DetailRelatedField(
+        many=True,
+        view_name="ostree-objects-detail",
+        queryset=models.OstreeObject.objects.all(),
+    )
 
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields + (
             "parent_commit",
             "checksum",
+            "objs",
         )
         model = models.OstreeCommit
 
@@ -110,11 +116,6 @@ class OstreeRefSerializer(platform.SingleArtifactContentSerializer):
 class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
     """A Serializer class for OSTree objects (e.g., dirtree, dirmeta, file)."""
 
-    commit = platform.DetailRelatedField(
-        many=False,
-        view_name="ostree-commits-detail",
-        queryset=models.OstreeCommit.objects.all(),
-    )
     typ = serializers.IntegerField(
         help_text=_(
             """
@@ -127,7 +128,6 @@ class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
 
     class Meta:
         fields = platform.SingleArtifactContentSerializer.Meta.fields + (
-            "commit",
             "checksum",
             "typ",
         )
@@ -186,7 +186,10 @@ class OstreeRepositoryAddRemoveContentSerializer(platform.RepositoryAddRemoveCon
     """A Serializer class for modifying a repository from an existing repository."""
 
     ALLOWED_ADD_REMOVE_CONTENT_UNITS = [
-        models.OstreeCommit, models.OstreeRef, models.OstreeConfig, models.OstreeSummary
+        models.OstreeCommit,
+        models.OstreeRef,
+        models.OstreeConfig,
+        models.OstreeSummary,
     ]
 
     def validate(self, data):
@@ -203,9 +206,13 @@ class OstreeRepositoryAddRemoveContentSerializer(platform.RepositoryAddRemoveCon
         if units_modify_type in content:
             for unit_href in content[units_modify_type]:
                 unit_model = resolve(unit_href).func.cls.queryset.model
-                if not unit_model in self.ALLOWED_ADD_REMOVE_CONTENT_UNITS:
+                if unit_model not in self.ALLOWED_ADD_REMOVE_CONTENT_UNITS:
                     raise serializers.ValidationError(
-                        _("The unit {} is not allowed to be used in this endpoint".format(unit_href))
+                        _(
+                            "The unit {} is not allowed to be used in this endpoint".format(
+                                unit_href
+                            )
+                        )
                     )
 
 
