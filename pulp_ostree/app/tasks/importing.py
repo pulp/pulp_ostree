@@ -77,7 +77,7 @@ class OstreeSingleBranchParserMixin:
             commit_dc = self.create_dc(relative_path, commit)
             await self.put(commit_dc)
 
-            await self.submit_related_objects(commit)
+            await self.submit_related_objects(commit_dc)
 
             self.init_ref_object(name, ref_path, commit_dc)
 
@@ -125,7 +125,7 @@ class OstreeSingleBranchParserMixin:
         self.commit_dcs.append(commit_dc)
 
         await self.put(commit_dc)
-        await self.submit_related_objects(commit)
+        await self.submit_related_objects(commit_dc)
 
         await self.submit_previous_commits_and_related_objects()
 
@@ -208,7 +208,7 @@ class OstreeImportSingleRefFirstStage(
                 else:
                     last_commit_dc.extra_data["parent_commit"] = parent_commit
                     await self.put(last_commit_dc)
-                    await self.submit_related_objects(last_commit_dc.content)
+                    await self.submit_related_objects(last_commit_dc)
 
                 await self.submit_ref_with_last_commit(last_commit_dc)
 
