@@ -7,7 +7,6 @@ from pulpcore.plugin.models import Repository, RepositoryVersion, Content
 from pulp_ostree.app.models import (
     OstreeCommit,
     OstreeConfig,
-    OstreeObject,
     OstreeRef,
     OstreeSummary,
 )
@@ -80,11 +79,11 @@ def recursively_get_add_content(commit_data, ref_data):
     ref_commits_pks = ref_data.values_list("commit", flat=True)
 
     commit_data = commit_data.union(OstreeCommit.objects.filter(pk__in=ref_commits_pks))
+    objects_pks = commit_data.values_list("objs", flat=True)
     commit_data_pks = commit_data.values_list("pk", flat=True)
-    objects = OstreeObject.objects.filter(commit__in=commit_data_pks)
 
     return Content.objects.filter(
-        Q(pk__in=commit_data_pks) | Q(pk__in=ref_data) | Q(pk__in=objects)
+        Q(pk__in=commit_data_pks) | Q(pk__in=ref_data) | Q(pk__in=objects_pks)
     )
 
 
@@ -103,9 +102,11 @@ def recursively_get_remove_content(commit_data, ref_data, latest_content):
         remaining_objects_pks = OstreeCommit.objects.filter(
             ~Q(pk__in=remaining_commits_pks)
         ).values_list("objs", flat=True)
-        objects_pks = OstreeCommit.objects.filter(
-            pk__in=commit_data_pks
-        ).values_list("objs", flat=True).difference(remaining_objects_pks)
+        objects_pks = (
+            OstreeCommit.objects.filter(pk__in=commit_data_pks)
+            .values_list("objs", flat=True)
+            .difference(remaining_objects_pks)
+        )
     else:
         objects_pks = OstreeCommit.objects.filter(pk__in=commit_data_pks).values_list(
             "objs", flat=True
