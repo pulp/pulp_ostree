@@ -13,6 +13,32 @@ from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_dupli
 logger = getLogger(__name__)
 
 
+class OstreeObjectType(models.IntegerChoices):
+    """An enum of all possible OSTree repository objects."""
+
+    OSTREE_OBJECT_TYPE_FILE = 1
+    OSTREE_OBJECT_TYPE_DIR_TREE = 2
+    OSTREE_OBJECT_TYPE_DIR_META = 3
+    OSTREE_OBJECT_TYPE_COMMIT = 4
+    OSTREE_OBJECT_TYPE_TOMBSTONE_COMMIT = 5
+    OSTREE_OBJECT_TYPE_COMMIT_META = 6
+    OSTREE_OBJECT_TYPE_PAYLOAD_LINK = 7
+
+
+class OstreeObject(Content):
+    """A content model for a regular OSTree object (e.g., dirtree, dirmeta, file)."""
+
+    TYPE = "object"
+
+    typ = models.IntegerField(choices=OstreeObjectType.choices)
+    checksum = models.CharField(max_length=64, db_index=True)
+    relative_path = models.TextField(null=False)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = [["checksum", "relative_path"]]
+
+
 class OstreeCommit(Content):
     """A content model for an OSTree commit."""
 
@@ -21,6 +47,7 @@ class OstreeCommit(Content):
     parent_commit = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
     checksum = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
+    objs = models.ManyToManyField(OstreeObject, through="OstreeCommitObject")
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -44,33 +71,14 @@ class OstreeRef(Content):
         unique_together = [["name", "commit", "relative_path"]]
 
 
-class OstreeObjectType(models.IntegerChoices):
-    """An enum of all possible OSTree repository objects."""
+class OstreeCommitObject(models.Model):
+    """Many-to-many relationship between commits and objects."""
 
-    OSTREE_OBJECT_TYPE_FILE = 1
-    OSTREE_OBJECT_TYPE_DIR_TREE = 2
-    OSTREE_OBJECT_TYPE_DIR_META = 3
-    OSTREE_OBJECT_TYPE_COMMIT = 4
-    OSTREE_OBJECT_TYPE_TOMBSTONE_COMMIT = 5
-    OSTREE_OBJECT_TYPE_COMMIT_META = 6
-    OSTREE_OBJECT_TYPE_PAYLOAD_LINK = 7
-
-
-class OstreeObject(Content):
-    """A content model for a regular OSTree object (e.g., dirtree, dirmeta, file)."""
-
-    TYPE = "object"
-
-    commit = models.ForeignKey(
-        OstreeCommit, related_name="object_commit", null=True, on_delete=models.CASCADE
-    )
-    typ = models.IntegerField(choices=OstreeObjectType.choices)
-    checksum = models.CharField(max_length=64, db_index=True)
-    relative_path = models.TextField(null=False)
+    commit = models.ForeignKey(OstreeCommit, related_name="object_commit", on_delete=models.CASCADE)
+    obj = models.ForeignKey(OstreeObject, related_name="commit_object", on_delete=models.CASCADE)
 
     class Meta:
-        default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = [["checksum", "relative_path"]]
+        unique_together = [["commit", "obj"]]
 
 
 class OstreeConfig(Content):
