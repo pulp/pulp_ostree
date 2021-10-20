@@ -1,7 +1,7 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 
-from pulpcore.plugin.viewsets import ReadOnlyContentViewSet
+from pulpcore.plugin.viewsets import ReadOnlyContentViewSet, ContentFilter, NAME_FILTER_OPTIONS
 from pulpcore.plugin import viewsets as core
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.serializers import (
@@ -102,12 +102,29 @@ class OstreeDistributionViewSet(core.DistributionViewSet):
     serializer_class = serializers.OstreeDistributionSerializer
 
 
+class RefContentFilter(ContentFilter):
+    """A filterset class for refs."""
+
+    class Meta:
+        model = models.OstreeRef
+        fields = {"name": NAME_FILTER_OPTIONS}
+
+
 class OstreeRefViewSet(ReadOnlyContentViewSet):
     """A ViewSet class for OSTree head commits."""
 
     endpoint_name = "refs"
     queryset = models.OstreeRef.objects.all()
     serializer_class = serializers.OstreeRefSerializer
+    filterset_class = RefContentFilter
+
+
+class CommitContentFilter(ContentFilter):
+    """A filterset class for commits."""
+
+    class Meta:
+        model = models.OstreeCommit
+        fields = {"checksum": ["exact"]}
 
 
 class OstreeCommitViewSet(ReadOnlyContentViewSet):
@@ -116,6 +133,7 @@ class OstreeCommitViewSet(ReadOnlyContentViewSet):
     endpoint_name = "commits"
     queryset = models.OstreeCommit.objects.all()
     serializer_class = serializers.OstreeCommitSerializer
+    filterset_class = CommitContentFilter
 
 
 class OstreeObjectViewSet(ReadOnlyContentViewSet):
