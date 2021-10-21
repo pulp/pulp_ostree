@@ -95,9 +95,14 @@ class OstreeRefSerializer(platform.SingleArtifactContentSerializer):
         queryset=models.OstreeCommit.objects.all(),
     )
     name = serializers.CharField()
+    checksum = serializers.CharField(source="commit.checksum", read_only=True)
 
     class Meta:
-        fields = platform.SingleArtifactContentSerializer.Meta.fields + ("commit", "name")
+        fields = platform.SingleArtifactContentSerializer.Meta.fields + (
+            "commit",
+            "checksum",
+            "name",
+        )
         model = models.OstreeRef
 
 
