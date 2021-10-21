@@ -1,3 +1,4 @@
+from django_filters.filters import CharFilter
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 
@@ -102,8 +103,10 @@ class OstreeDistributionViewSet(core.DistributionViewSet):
     serializer_class = serializers.OstreeDistributionSerializer
 
 
-class RefContentFilter(ContentFilter):
+class OstreeRefFilter(ContentFilter):
     """A filterset class for refs."""
+
+    checksum = CharFilter(field_name="commit__checksum")
 
     class Meta:
         model = models.OstreeRef
@@ -116,10 +119,10 @@ class OstreeRefViewSet(ReadOnlyContentViewSet):
     endpoint_name = "refs"
     queryset = models.OstreeRef.objects.all()
     serializer_class = serializers.OstreeRefSerializer
-    filterset_class = RefContentFilter
+    filterset_class = OstreeRefFilter
 
 
-class CommitContentFilter(ContentFilter):
+class OstreeCommitFilter(ContentFilter):
     """A filterset class for commits."""
 
     class Meta:
@@ -133,7 +136,15 @@ class OstreeCommitViewSet(ReadOnlyContentViewSet):
     endpoint_name = "commits"
     queryset = models.OstreeCommit.objects.all()
     serializer_class = serializers.OstreeCommitSerializer
-    filterset_class = CommitContentFilter
+    filterset_class = OstreeCommitFilter
+
+
+class OstreeObjectFilter(ContentFilter):
+    """A filterset class for objects."""
+
+    class Meta:
+        model = models.OstreeObject
+        fields = {"checksum": ["exact"]}
 
 
 class OstreeObjectViewSet(ReadOnlyContentViewSet):
@@ -142,6 +153,7 @@ class OstreeObjectViewSet(ReadOnlyContentViewSet):
     endpoint_name = "objects"
     queryset = models.OstreeObject.objects.all()
     serializer_class = serializers.OstreeObjectSerializer
+    filterset_class = OstreeObjectFilter
 
 
 class OstreeConfigViewSet(ReadOnlyContentViewSet):
