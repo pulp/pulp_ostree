@@ -11,6 +11,30 @@ Changelog
 
 .. towncrier release notes start
 
+2.0.0a2 (2021-10-25)
+====================
+
+Features
+--------
+
+- Added support for modifying repository content via the Pulp API.
+  `#8929 <https://pulp.plan.io/issues/8929>`_
+- Added support for filtering refs and commits by names and checksums, respectively.
+  `#9493 <https://pulp.plan.io/issues/9493>`_
+
+
+Bugfixes
+--------
+
+- Fixed a bug that disallowed users from publishing the same content in different repositories.
+  `#9431 <https://pulp.plan.io/issues/9431>`_
+- Fixed an issue that disallowed users from saving imported content.
+  `#9490 <https://pulp.plan.io/issues/9490>`_
+
+
+----
+
+
 2.0.0a1 (2021-09-08)
 ====================
 
