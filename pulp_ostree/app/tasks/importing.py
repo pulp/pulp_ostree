@@ -54,12 +54,12 @@ def import_ostree_content(
             tarball_artifact, repository_name, parent_commit, ref
         )
     else:
-        first_stage = OstreeImportAllBranchesFirstStage(tarball_artifact, repository_name)
+        first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name)
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
     return dv.create()
 
 
-class OstreeSingleBranchParserMixin:
+class OstreeSingleRefParserMixin:
     """A mixin class that allows stages to share the same methods for parsing OSTree data."""
 
     async def parse_ref(self, name, ref_commit_checksum, ref_parent_checksum=None):
@@ -161,7 +161,7 @@ class OstreeImportStage(Stage):
 
 
 class OstreeImportSingleRefFirstStage(
-    DeclarativeContentCreatorMixin, OstreeSingleBranchParserMixin, OstreeImportStage
+    DeclarativeContentCreatorMixin, OstreeSingleRefParserMixin, OstreeImportStage
 ):
     """A first stage of the OSTree importing pipeline that appends child commits to a repository."""
 
@@ -222,8 +222,8 @@ class OstreeImportSingleRefFirstStage(
         self.init_ref_object(self.ref, ref_relative_path, commit_dc)
 
 
-class OstreeImportAllBranchesFirstStage(
-    DeclarativeContentCreatorMixin, OstreeSingleBranchParserMixin, OstreeImportStage
+class OstreeImportAllRefsFirstStage(
+    DeclarativeContentCreatorMixin, OstreeSingleRefParserMixin, OstreeImportStage
 ):
     """A first stage of the OSTree importing pipeline that handles creation of content units."""
 
