@@ -62,8 +62,7 @@ class DeclarativeContentCreatorMixin:
         """Create a DeclarativeContent object describing a single OSTree object (e.g., commit)."""
         artifact = self.init_artifact(relative_file_path)
 
-        publication_filepath = os.path.join(self.repo_name, relative_file_path)
-        content.relative_path = publication_filepath
+        content.relative_path = relative_file_path
 
         # DeclarativeArtifact requires a URL to be passed to its constructor even though it will
         # never be used; specifying the URL is a requirement for standard downloading pipeline that
@@ -71,7 +70,7 @@ class DeclarativeContentCreatorMixin:
         da = DeclarativeArtifact(
             artifact=artifact,
             url="hackathon",
-            relative_path=publication_filepath,
+            relative_path=relative_file_path,
         )
 
         return DeclarativeContent(content=content, d_artifacts=[da])

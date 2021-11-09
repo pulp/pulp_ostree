@@ -1,8 +1,6 @@
 import shutil
 import unittest
 
-from urllib.parse import urljoin
-
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import gen_repo, gen_distribution
 
@@ -92,7 +90,7 @@ class BasicSyncTestCase(unittest.TestCase):
         distribution = monitor_task(response.task).created_resources[0]
         self.addCleanup(self.distributions_api.delete, distribution)
 
-        ostree_repo_path = urljoin(self.distributions_api.read(distribution).base_url, remote.name)
+        ostree_repo_path = self.distributions_api.read(distribution).base_url
 
         # 5. initialize a local OSTree repository and pull the content from Pulp
         remote_name = init_local_repo_with_remote(remote.name, ostree_repo_path)

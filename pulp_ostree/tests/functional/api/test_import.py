@@ -5,7 +5,6 @@ import subprocess
 import unittest
 
 from pathlib import Path
-from urllib.parse import urljoin
 
 from pulp_smash import config, api
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
@@ -114,7 +113,7 @@ class ImportCommitTestCase(unittest.TestCase):
         distribution = monitor_task(response.task).created_resources[0]
         self.addCleanup(self.distributions_api.delete, distribution)
 
-        ostree_repo_path = urljoin(self.distributions_api.read(distribution).base_url, repo_name1)
+        ostree_repo_path = self.distributions_api.read(distribution).base_url
 
         # 10. initialize a second local OSTree repository and pull the content from Pulp
         remote_name = init_local_repo_with_remote(repo_name2, ostree_repo_path)
@@ -230,9 +229,7 @@ class ImportCommitTestCase(unittest.TestCase):
         distribution = monitor_task(response.task).created_resources[0]
         self.addCleanup(self.distributions_api.delete, distribution)
 
-        ostree_repo_path = urljoin(
-            self.distributions_api.read(distribution).base_url, self.repo_name1
-        )
+        ostree_repo_path = self.distributions_api.read(distribution).base_url
 
         # 11. initialize a local OSTree repository and pull the content from Pulp
         remote_name = init_local_repo_with_remote(self.repo_name2, ostree_repo_path)

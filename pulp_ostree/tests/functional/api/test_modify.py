@@ -1,7 +1,7 @@
 import shutil
 import unittest
 
-from urllib.parse import urlparse, urljoin
+from urllib.parse import urlparse
 
 from requests.exceptions import HTTPError
 
@@ -104,9 +104,7 @@ class ModifyRepositoryTestCase(unittest.TestCase):
         distribution = monitor_task(response.task).created_resources[0]
         self.addCleanup(self.distributions_api.delete, distribution)
 
-        ostree_repo_path = urljoin(
-            self.distributions_api.read(distribution).base_url, self.remote.name
-        )
+        ostree_repo_path = self.distributions_api.read(distribution).base_url
 
         remote_name = init_local_repo_with_remote(self.remote.name, ostree_repo_path)
         self.addCleanup(shutil.rmtree, self.remote.name)
@@ -151,9 +149,7 @@ class ModifyRepositoryTestCase(unittest.TestCase):
         distribution = monitor_task(response.task).created_resources[0]
         self.addCleanup(self.distributions_api.delete, distribution)
 
-        ostree_repo_path = urljoin(
-            self.distributions_api.read(distribution).base_url, self.remote.name
-        )
+        ostree_repo_path = self.distributions_api.read(distribution).base_url
 
         remote_name = init_local_repo_with_remote(self.remote.name, ostree_repo_path)
         self.addCleanup(shutil.rmtree, self.remote.name)
