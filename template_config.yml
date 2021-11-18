@@ -32,7 +32,7 @@ plugin_caps: PULP_OSTREE
 plugin_caps_short: OSTREE
 plugin_dash: pulp-ostree
 plugin_dash_short: ostree
-plugin_default_branch: master
+plugin_default_branch: main
 plugin_name: pulp_ostree
 plugin_snake: pulp_ostree
 post_job_template: null
@@ -40,7 +40,7 @@ pre_job_template: null
 publish_docs_to_pulpprojectdotorg: true
 pulp_scheme: https
 pulp_settings: null
-pulpcore_branch: master
+pulpcore_branch: main
 pulpcore_pip_version_specifier: null
 pulpcore_revision: null
 pulpprojectdotorg_key_id: null
