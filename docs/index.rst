@@ -14,6 +14,7 @@ Features
 
 * :ref:`Synchronize <sync-workflow>` a remote OSTree repository and serve it via Pulp.
 * :ref:`Import <import-workflow>` new OSTree commits to an existing repository.
+* :ref:`Modify <modify-workflow>` commits and refs within a published repository.
 * :ref:`Consume <publish-workflow>` OSTree content imported to Pulp by leveraging the
   `ostree` utility.
 
