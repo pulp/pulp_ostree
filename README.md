@@ -1,4 +1,4 @@
-![Pulp CI](https://github.com/pulp/pulp_ostree/workflows/Pulp%20CI/badge.svg)
+![Ostree Nightly CI/CD](https://github.com/pulp/pulp_ostree/actions/workflows/nightly.yml/badge.svg?branch=main)
 
 Pulp OSTree Plugin
 ==================
