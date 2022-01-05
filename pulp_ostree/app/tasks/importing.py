@@ -30,9 +30,7 @@ gi.require_version("OSTree", "1.0")
 from gi.repository import Gio, GLib, OSTree  # noqa: E402: module level not at top of file
 
 
-def import_ostree_content(
-    artifact_pk, repository_pk, repository_name, ref=None, parent_commit=None
-):
+def import_ostree_content(artifact_pk, repository_pk, repository_name, ref=None):
     """Import content to an OSTree repository.
 
     Args:
@@ -40,7 +38,6 @@ def import_ostree_content(
         repository_pk (str): The repository PK.
         repository_name (str): The name of an OSTree repository (e.g., "repo").
         ref (str): The name of a ref object that points to the last commit.
-        parent_commit (str): The checksum of a parent commit to associate the content with.
 
     Raises:
         ValueError: If an OSTree repository could not be properly parsed or the specified ref
@@ -49,10 +46,8 @@ def import_ostree_content(
     tarball_artifact = Artifact.objects.get(pk=artifact_pk)
     repository = Repository.objects.get(pk=repository_pk)
 
-    if ref and parent_commit:
-        first_stage = OstreeImportSingleRefFirstStage(
-            tarball_artifact, repository_name, parent_commit, ref
-        )
+    if ref:
+        first_stage = OstreeImportSingleRefFirstStage(tarball_artifact, repository_name, ref)
     else:
         first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name)
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
@@ -62,7 +57,7 @@ def import_ostree_content(
 class OstreeSingleRefParserMixin:
     """A mixin class that allows stages to share the same methods for parsing OSTree data."""
 
-    async def parse_ref(self, name, ref_commit_checksum, ref_parent_checksum=None):
+    async def parse_ref(self, name, ref_commit_checksum, has_referenced_parent=False):
         """Parse a single ref object with associated commits and other objects."""
         _, ref_commit, _ = self.repo.load_commit(ref_commit_checksum)
         relative_path = get_checksum_filepath(
@@ -81,7 +76,7 @@ class OstreeSingleRefParserMixin:
 
             self.init_ref_object(name, ref_path, commit_dc)
 
-            return commit_dc
+            return
 
         checksum = ref_commit_checksum
         ref_commit = OstreeCommit(checksum=checksum)
@@ -93,16 +88,18 @@ class OstreeSingleRefParserMixin:
         try:
             _, parent_commit, _ = self.repo.load_commit(parent_checksum)
         except GLib.Error:
-            if ref_parent_checksum is not None and ref_parent_checksum == parent_checksum:
-                return ref_commit_dc
+            if has_referenced_parent:
+                # the associated parent commit may not be present in the parsed tarball
+                # and this state is still considered valid
+                return parent_checksum, ref_commit_dc
             else:
                 raise ValueError(
                     gettext("The parent commit '{}' could not be loaded").format(parent_checksum)
                 )
 
-        return await self.load_next_commits(parent_commit, parent_checksum)
+        return await self.load_next_commits(parent_commit, parent_checksum, has_referenced_parent)
 
-    async def load_next_commits(self, parent_commit, checksum):
+    async def load_next_commits(self, parent_commit, checksum, has_referenced_parent=False):
         """Queue next parent commits if exist."""
         relative_path = get_checksum_filepath(checksum, OstreeObjectType.OSTREE_OBJECT_TYPE_COMMIT)
 
@@ -117,7 +114,19 @@ class OstreeSingleRefParserMixin:
             relative_path = get_checksum_filepath(
                 checksum, OstreeObjectType.OSTREE_OBJECT_TYPE_COMMIT
             )
-            _, parent_commit, _ = self.repo.load_commit(checksum)
+            try:
+                _, parent_commit, _ = self.repo.load_commit(parent_checksum)
+            except GLib.Error:
+                if has_referenced_parent:
+                    # the associated parent commit may not be present in the parsed tarball
+                    # and this state is still considered valid
+                    return parent_checksum, commit_dc
+                else:
+                    raise ValueError(
+                        gettext("The parent commit '{}' could not be loaded").format(
+                            parent_checksum
+                        )
+                    )
             parent_checksum = OSTree.commit_get_parent(parent_commit)
 
         commit = OstreeCommit(checksum=checksum)
@@ -128,8 +137,6 @@ class OstreeSingleRefParserMixin:
         await self.submit_related_objects(commit_dc)
 
         await self.submit_previous_commits_and_related_objects()
-
-        return commit_dc
 
 
 class OstreeImportStage(Stage):
@@ -165,15 +172,13 @@ class OstreeImportSingleRefFirstStage(
 ):
     """A first stage of the OSTree importing pipeline that appends child commits to a repository."""
 
-    def __init__(self, tarball_artifact, repo_name, parent_commit, ref):
+    def __init__(self, tarball_artifact, repo_name, ref):
         """Initialize class variables used for parsing OSTree objects."""
         super().__init__(repo_name)
         self.tarball_artifact = tarball_artifact
+        self.ref = ref
 
         self.create_object_dc_func = self.create_dc
-
-        self.parent_commit = parent_commit
-        self.ref = ref
 
     async def run(self):
         """Create OSTree content units and associate them with the parent commit."""
@@ -188,9 +193,10 @@ class OstreeImportSingleRefFirstStage(
                 _, refs = self.repo.list_refs()
                 for name, ref_commit_checksum in refs.items():
                     if self.ref == name:
-                        last_commit_dc = await self.parse_ref(
-                            name, ref_commit_checksum, self.parent_commit
+                        parent_checksum, last_commit_dc = await self.parse_ref(
+                            name, ref_commit_checksum, has_referenced_parent=True
                         )
+                        break
 
                 if last_commit_dc is None:
                     raise ValueError(
@@ -201,7 +207,7 @@ class OstreeImportSingleRefFirstStage(
 
                 try:
                     parent_commit = await sync_to_async(OstreeCommit.objects.get)(
-                        checksum=self.parent_commit
+                        checksum=parent_checksum
                     )
                 except OstreeCommit.DoesNotExist:
                     pass
@@ -210,16 +216,11 @@ class OstreeImportSingleRefFirstStage(
                     await self.put(last_commit_dc)
                     await self.submit_related_objects(last_commit_dc)
 
-                await self.submit_ref_with_last_commit(last_commit_dc)
+                await self.submit_previous_commits_and_related_objects()
 
                 await pb.aincrement()
 
             await self.submit_ref_objects()
-
-    async def submit_ref_with_last_commit(self, commit_dc):
-        """Update the corresponding ref with the newly imported head commit."""
-        ref_relative_path = os.path.join("refs/heads/", self.ref)
-        self.init_ref_object(self.ref, ref_relative_path, commit_dc)
 
 
 class OstreeImportAllRefsFirstStage(

@@ -76,8 +76,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
 
         artifact = serializer.validated_data["artifact"]
         repository_name = serializer.validated_data["repository_name"]
-        ref = serializer.validated_data["ref"]
-        parent_commit = serializer.validated_data["parent_commit"]
+        ref = serializer.validated_data.get("ref")
 
         async_result = dispatch(
             tasks.import_ostree_content,
@@ -87,7 +86,6 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "repository_pk": str(repository.pk),
                 "repository_name": repository_name,
                 "ref": ref,
-                "parent_commit": parent_commit,
             },
         )
         return core.OperationPostponedResponse(async_result, request)
