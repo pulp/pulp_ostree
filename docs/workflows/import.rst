@@ -102,7 +102,7 @@ Response::
 
 Import the uploaded file to the repository and wait until the task finishes::
 
-    http ${BASE_ADDR}${REPO_HREF}import_commits/ artifact=${COMMIT2_ARTIFACT_HREF} repository_name=repo ref=fedora/33/x86_64/iot parent_commit=50aeff7f74c66041ffc9e197887bfd5e427248ff1405e0e61e2cff4d3a1cecc7
+    http ${BASE_ADDR}${REPO_HREF}import_commits/ artifact=${COMMIT2_ARTIFACT_HREF} repository_name=repo ref=fedora/33/x86_64/iot
 
 Response::
 

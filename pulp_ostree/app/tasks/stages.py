@@ -52,7 +52,7 @@ class DeclarativeContentCreatorMixin:
 
     async def submit_previous_commits_and_related_objects(self):
         """Associate parent and child commits while submitting all related objects to the queue."""
-        for i in range(len(self.commit_dcs) - 1):
+        for i in reversed(range(len(self.commit_dcs) - 1)):
             self.commit_dcs[i].extra_data["parent_commit"] = self.commit_dcs[i + 1].content
 
             await self.put(self.commit_dcs[i])

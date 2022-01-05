@@ -29,12 +29,6 @@ class OstreeRepoImportSerializer(serializers.Serializer):
         required=False,
         help_text=_("The name of a ref branch that holds the reference to the last commit."),
     )
-    parent_commit = serializers.CharField(
-        required=False,
-        help_text=_(
-            "The checksum of a parent commit with which the content needs to be associated."
-        ),
-    )
 
     def validate(self, data):
         """Validate the passed tarball and optional ref attributes."""
@@ -42,7 +36,6 @@ class OstreeRepoImportSerializer(serializers.Serializer):
         new_data.update(self.initial_data)
 
         self.validate_tarball(new_data)
-        self.validate_ref_and_parent_commit(new_data)
 
         return new_data
 
@@ -52,19 +45,6 @@ class OstreeRepoImportSerializer(serializers.Serializer):
         if not is_tarfile(artifact.file.path):
             raise serializers.ValidationError(_("The artifact is not a tar archive file"))
         data["artifact"] = artifact
-
-    def validate_ref_and_parent_commit(self, data):
-        """Check if a user provided a ref and parent when adding commits to a repository."""
-        ref = data.get("ref")
-        parent_commit = data.get("parent_commit")
-
-        if all([ref, parent_commit]) or not any([ref, parent_commit]):
-            data["ref"] = ref
-            data["parent_commit"] = parent_commit
-        else:
-            raise serializers.ValidationError(
-                _("Both the parent commit and ref should be specified when adding new content")
-            )
 
 
 class OstreeCommitSerializer(platform.SingleArtifactContentSerializer):
