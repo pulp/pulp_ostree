@@ -120,14 +120,23 @@ class ImportCommitTestCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, Path(repo_name2))
         validate_repo_integrity(repo_name2, f"{remote_name}:foo")
 
-    def test_single_ref_import(self):
-        """Import a new child commit, publish it, and pull it from Pulp."""
+    def test_single_import_one_commit(self):
+        """Append a new child commit to an existing repository and pull it from Pulp."""
+        self.single_ref_import(1)
+
+    def test_single_import_more_commits(self):
+        """Append a set of commits to an existing repository and pull them from Pulp."""
+        self.single_ref_import(5)
+
+    def single_ref_import(self, number_of_commits):
+        """Import child commits, publish them, and pull them from Pulp."""
         self.repo_name1 = utils.uuid4()
         self.repo_name2 = utils.uuid4()
         sample_dir1 = Path(utils.uuid4())
         sample_dir2 = Path(utils.uuid4())
         sample_file1 = sample_dir1 / Path(utils.uuid4())
-        sample_file2 = sample_dir2 / Path(utils.uuid4())
+
+        commits_to_check = []
 
         # 1. create a first file
         sample_dir1.mkdir()
@@ -140,7 +149,7 @@ class ImportCommitTestCase(unittest.TestCase):
             ["ostree", f"--repo={self.repo_name1}", "commit", "--branch=foo", f"{sample_dir1}/"]
         )
         with open(f"{self.repo_name1}/refs/heads/foo", "r") as ref:
-            commit_checksum1 = ref.read().strip()
+            commits_to_check.append(ref.read().strip())
 
         # 3. create a tarball from the first repository
         subprocess.run(["tar", "-cvf", f"{self.repo_name1}1.tar", f"{self.repo_name1}/"])
@@ -149,26 +158,30 @@ class ImportCommitTestCase(unittest.TestCase):
 
         shutil.rmtree(self.repo_name1)
 
-        # 4. create a second file
+        # 4. initialize a second OSTree repository and commit the created file
+        subprocess.run(["ostree", f"--repo={self.repo_name1}", "init", "--mode=archive"])
+
         sample_dir2.mkdir()
         self.addCleanup(shutil.rmtree, sample_dir2)
-        sample_file2.touch()
 
-        # 5. initialize a second OSTree repository and commit the created file
-        subprocess.run(["ostree", f"--repo={self.repo_name1}", "init", "--mode=archive"])
-        subprocess.run(
-            [
-                "ostree",
-                f"--repo={self.repo_name1}",
-                "commit",
-                "--branch=foo",
-                f"{sample_dir2}/",
-                f"--parent={commit_checksum1}",
-            ]
-        )
+        # 5. create new commits by submitting randomly generated files one by one
+        for _ in range(number_of_commits):
+            sample_file2 = sample_dir2 / Path(utils.uuid4())
+            sample_file2.touch()
 
-        with open(f"{self.repo_name1}/refs/heads/foo", "r") as ref:
-            commit_checksum2 = ref.read().strip()
+            subprocess.run(
+                [
+                    "ostree",
+                    f"--repo={self.repo_name1}",
+                    "commit",
+                    "--branch=foo",
+                    f"{sample_dir2}/",
+                    f"--parent={commits_to_check[-1]}",
+                ]
+            )
+
+            with open(f"{self.repo_name1}/refs/heads/foo", "r") as ref:
+                commits_to_check.append(ref.read().strip())
 
         # 6. create a tarball from the second repository
         subprocess.run(["tar", "-cvf", f"{self.repo_name1}2.tar", f"{self.repo_name1}/"])
@@ -192,36 +205,28 @@ class ImportCommitTestCase(unittest.TestCase):
         self.assertEqual(added_content["ostree.object"]["count"], 3)
 
         # 8. import data from the second repository
-        created_commits = self.commits_api.list(repository_version_added=repo_version)
-        parent_commit = created_commits.to_dict()["results"][0]
-
-        add_data = OstreeRepoImport(
-            self.commit_repo2_artifact["pulp_href"],
-            self.repo_name1,
-            "foo",
-            parent_commit["checksum"],
-        )
+        add_data = OstreeRepoImport(self.commit_repo2_artifact["pulp_href"], self.repo_name1, "foo")
         response = self.repositories_api.import_commits(repo.pulp_href, add_data)
         repo_version = monitor_task(response.task).created_resources[0]
 
         repository_version = self.versions_api.read(repo_version)
         added_content = repository_version.content_summary.added
         self.assertEqual(added_content["ostree.refs"]["count"], 1)
-        self.assertEqual(added_content["ostree.commit"]["count"], 1)
+        self.assertEqual(added_content["ostree.commit"]["count"], number_of_commits)
         # when an OSTree repository contains a committed empty file and we are committing another
         # empty file, only a dirtree object is updated since only the parent directory has changed
-        self.assertEqual(added_content["ostree.object"]["count"], 1)
+        self.assertEqual(added_content["ostree.object"]["count"], number_of_commits)
 
         removed_content = repository_version.content_summary.removed
         # the old ref should be removed from the repository
         self.assertEqual(removed_content["ostree.refs"]["count"], 1)
 
-        # 9. verify the latest commit's fields (the checksum and reference to the parent commit)
-        created_refs = self.refs_api.list(repository_version_added=repo_version)
-        latest_commit_href = created_refs.to_dict()["results"][0]["commit"]
-        latest_commit = self.commits_api.read(latest_commit_href)
-        self.assertEqual(latest_commit.parent_commit, parent_commit["pulp_href"])
-        self.assertNotEqual(latest_commit.checksum, parent_commit["checksum"])
+        # 9. verify commits' associations in backwards order
+        for i in range(len(commits_to_check) - 1, 0, -1):
+            commit = self.commits_api.list(checksum=commits_to_check[i]).results[0]
+            self.assertIsNotNone(commit.parent_commit, commit)
+            parent_commit = self.commits_api.read(commit.parent_commit)
+            self.assertEqual(parent_commit.checksum, commits_to_check[i - 1])
 
         # 10. publish the parsed commits
         distribution_data = OstreeOstreeDistribution(**gen_distribution(repository=repo.pulp_href))
@@ -234,12 +239,11 @@ class ImportCommitTestCase(unittest.TestCase):
         # 11. initialize a local OSTree repository and pull the content from Pulp
         remote_name = init_local_repo_with_remote(self.repo_name2, ostree_repo_path)
         self.addCleanup(shutil.rmtree, Path(self.repo_name2))
-        commits_to_check = {commit_checksum1, commit_checksum2}
-        validate_repo_integrity(self.repo_name2, f"{remote_name}:foo", commits_to_check)
+        validate_repo_integrity(self.repo_name2, f"{remote_name}:foo", set(commits_to_check))
 
     def test_version_removal(self):
         """Test the repository version removal functionality by removing two adjacent versions."""
-        self.test_single_ref_import()
+        self.single_ref_import(1)
 
         repo_href = self.repositories_api.list().to_dict()["results"][0]["pulp_href"]
         repo_version1_href = self.versions_api.read(f"{repo_href}versions/1/").pulp_href
