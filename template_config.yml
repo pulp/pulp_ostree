@@ -41,7 +41,7 @@ publish_docs_to_pulpprojectdotorg: true
 pulp_scheme: https
 pulp_settings: null
 pulpcore_branch: '3.16'
-pulpcore_pip_version_specifier: '>=3.16.0,<3.18'
+pulpcore_pip_version_specifier: '>=3.16.0,<3.20'
 pulpcore_revision: null
 pulpprojectdotorg_key_id: null
 pydocstyle: true
