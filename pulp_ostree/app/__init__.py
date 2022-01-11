@@ -6,4 +6,4 @@ class PulpOstreePluginAppConfig(PulpPluginAppConfig):
 
     name = "pulp_ostree.app"
     label = "ostree"
-    version = "2.0.0a3"
+    version = "2.0.0a4.dev"
