@@ -11,6 +11,26 @@ Changelog
 
 .. towncrier release notes start
 
+2.0.0a3 (2022-01-11)
+====================
+
+Features
+--------
+
+- The reference to a parent commit is now retrieved from a child commit automatically.
+  `#140 <https://github.com/pulp/pulp_ostree/issues/140>`_
+
+
+Bugfixes
+--------
+
+- Fixed content paths for published distributions.
+  `#143 <https://github.com/pulp/pulp_ostree/issues/143>`_
+
+
+----
+
+
 2.0.0a2 (2021-10-25)
 ====================
 
