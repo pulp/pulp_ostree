@@ -6,7 +6,7 @@
 additional_repos: []
 aiohttp_fixtures_origin: 172.18.0.1
 black: true
-check_commit_message: true
+check_commit_message: false
 check_gettext: true
 check_manifest: true
 check_openapi_schema: true

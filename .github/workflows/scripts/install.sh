@@ -41,7 +41,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore>=3.15.0,<3.17
+    source: pulpcore>=3.16.0,<3.20
   - name: pulp_ostree
     source:  "${PLUGIN_NAME}"
 services:
