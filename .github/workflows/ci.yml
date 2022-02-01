@@ -74,6 +74,8 @@ jobs:
         env:
           - TEST: pulp
           - TEST: docs
+    outputs:
+      deprecations-pulp: ${{ steps.deprecations.outputs.deprecations-pulp }}
 
     steps:
       - uses: actions/checkout@v2
@@ -170,6 +172,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
+      - name: Extract Deprecations from Logs
+        id: deprecations
+        run: echo "::set-output name=deprecations-${{ matrix.env.TEST }}::$(docker logs pulp 2>&1 | grep -i pulpcore.deprecation | base64 -w 0)"
+
       - name: Logs
         if: always()
         run: |
@@ -181,6 +187,17 @@ jobs:
           docker exec pulp ls -latr /etc/yum.repos.d/ || true
           docker exec pulp cat /etc/yum.repos.d/* || true
           docker exec pulp pip3 list
-
+  deprecations:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: test
+    steps:
+      - name: Fail on deprecations
+        run: |
+          test -z "${{ needs.test.outputs.deprecations-pulp }}"
+      - name: Print deprecations
+        if: failure()
+        run: |
+          echo "${{ needs.test.outputs.deprecations-pulp }}" | base64 -d
 
 
