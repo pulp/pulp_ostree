@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-51-g538d663
+# generated with plugin_template@2021.08.26-68-g01ed1c2
 
 additional_repos: []
 aiohttp_fixtures_origin: 172.18.0.1
@@ -26,6 +26,7 @@ docs_test: true
 flake8: true
 issue_tracker: github
 noissue_marker: '[noissue]'
+parallel_test_workers: 8
 plugin_app_label: ostree
 plugin_camel: PulpOstree
 plugin_camel_short: Ostree
@@ -57,9 +58,12 @@ tasking_allow_async_unsafe: false
 test_azure: false
 test_bindings: false
 test_cli: false
+test_deprecations: true
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: false
 test_s3: false
+update_github: true
 update_redmine: false
 upgrade_range: []
+use_issue_template: true
 
