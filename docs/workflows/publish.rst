@@ -3,32 +3,27 @@
 Publish and Host
 ================
 
-This section assumes that you have a repository with OSTree content in it. To do this, see the
-:doc:`sync` or :doc:`import` documentation.
+This section assumes that a user has initialized a repository with OSTree content in it. To do this,
+see :doc:`sync` or :doc:`import`.
 
 Host Content (Create a Distribution)
 ------------------------------------
 
-To host content, which makes it consumable by a package manager, users create a distribution that
-will serve the associated repository at ``/pulp/content/<distribution.base_path>``::
+To serve the OSTree content from Pulp, the user needs to create a distribution that will host the
+associated repository at ``${PULP_BASE_ADDR}/pulp/content/<distribution.base_path>``::
 
-    http POST ${BASE_ADDR}/pulp/api/v3/distributions/ostree/ostree/ name=baz base_path=foo repository=${REPO_HREF}
+    pulp ostree distribution create --name fedora-iot --base-path fedora-iot --repository fedora-iot
 
-Response::
+The content present in the latest repository version is automatically published and accessible by
+package managers (e.g., the ``ostree`` utility).
 
-    {
-        "task": "/pulp/api/v3/tasks/1974aa50-d862-4eb7-84a3-1dc4000f34bf/"
-    }
-
-The content present in the latest repository version is automatically published and accessible by a
-package manager (the ``ostree`` utility). Configure a local OSTree repository and consume the
-content, like so::
+Now, configure a local OSTree repository and consume the content, like so::
 
     ostree --repo=repo init --mode=archive
-    ostree --repo=repo remote --no-gpg-verify add pulpos ${BASE_URL}repo/
+    ostree --repo=repo remote --no-gpg-verify add pulpos ${PULP_BASE_ADDR}/pulp/content/fedora-iot
 
-    ostree pull --repo=repo --mirror pulpos:fedora/33/x86_64/iot --depth=-1
-    ostree log --repo=repo fedora/33/x86_64/iot
+    ostree pull --repo=repo --mirror pulpos:fedora/stable/x86_64/iot --depth=-1
+    ostree log --repo=repo fedora/stable/x86_64/iot
 
 Output::
 

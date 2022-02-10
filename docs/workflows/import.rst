@@ -6,23 +6,14 @@ Import Content
 Create a Repository
 -------------------
 
-If you don't already have a repository, create one::
+Create a new repository by running::
 
-    http POST ${BASE_ADDR}/pulp/api/v3/repositories/ostree/ostree/ name=foo
-
-Response::
-
-    {
-        ...
-        "pulp_href": "/pulp/api/v3/repositories/ostree/ostree/9b19ceb7-11e1-4309-9f97-bcbab2ae38b6/",
-        ...
-    }
-
+    pulp ostree repository create --name fedora-iot
 
 Import a Commit
 ---------------
 
-First, build an OSTree commit and wait until the process finishes::
+First, build an image representing one OSTree commit and wait until the process finishes::
 
     echo """
     name = "fishy-commit"
@@ -35,34 +26,20 @@ First, build an OSTree commit and wait until the process finishes::
     """ > fishy.toml
 
     sudo composer-cli blueprints push fishy.toml
-    sudo composer-cli compose start fishy-commit fedora-iot-commit
+    sudo composer-cli compose start-ostree fishy-commit fedora-iot-commit --ref fedora/stable/x86_64/iot
     sudo composer-cli compose status
 
 Download the result from the server by issuing::
 
-    composer-cli compose image ${TASK_UUID}
+    sudo composer-cli compose image ${TASK_UUID}
 
-Upload the downloaded tarball to Pulp::
+Import the downloaded tarball into Pulp::
 
-    pulp artifact upload --file ${COMMIT1_TARBALL_FILE}
+    pulp ostree repository import-commits --name fedora-iot --file ${IMAGE_TARBALL_C1} --repository_name repo
 
-Response::
-
-    {
-        ...
-        "pulp_href": "/pulp/api/v3/artifacts/9baea722-68bb-4d0b-aefb-b9101914727e/",
-        ...
-    }
-
-Import the uploaded file to the repository and wait until the task finishes::
-
-    http ${BASE_ADDR}${REPO_HREF}import_commits/ artifact=${COMMIT1_ARTIFACT_HREF} repository_name=repo
-
-Response::
-
-    {
-        "task": "/pulp/api/v3/tasks/f71f9caa-82bb-463c-8ca4-1f81e5113747/"
-    }
+.. note::
+    The argument ``repository_name`` describes the name of an OSTree repository that is contained
+    within the tarball.
 
 Add more Commits
 ----------------
@@ -81,35 +58,20 @@ commit in the existing repository::
     """ > vim.toml
 
     sudo composer-cli blueprints push vim.toml
-    sudo composer-cli compose start-ostree vim-commit fedora-iot-commit --parent 50aeff7f74c66041ffc9e197887bfd5e427248ff1405e0e61e2cff4d3a1cecc7
+    sudo composer-cli compose start-ostree vim-commit fedora-iot-commit --ref fedora/stable/x86_64/iot --parent ${PARENT_COMMIT_CHECKSUM}
     sudo composer-cli compose status
+
+.. note::
+    The checksum of a parent commit can be seen either from the Pulp API endpoint that lists all refs
+    or from the extracted ref that was archived in a tarball.
 
 Download the result from the server by issuing::
 
     composer-cli compose image ${TASK_UUID}
 
-Upload the downloaded tarball to Pulp::
+Import the downloaded tarball into Pulp::
 
-    pulp artifact upload --file ${COMMIT2_TARBALL_FILE}
-
-Response::
-
-    {
-        ...
-        "pulp_href": "/pulp/api/v3/artifacts/9baea722-68bb-4d0b-aefb-b91019147444/",
-        ...
-    }
-
-Import the uploaded file to the repository and wait until the task finishes::
-
-    http ${BASE_ADDR}${REPO_HREF}import_commits/ artifact=${COMMIT2_ARTIFACT_HREF} repository_name=repo ref=fedora/33/x86_64/iot
-
-Response::
-
-    {
-        "task": "/pulp/api/v3/tasks/f71f9caa-82bb-463c-8ca4-1f81e5113747/"
-    }
-
+    pulp ostree repository import-commits --name fedora-iot --file ${IMAGE_TARBALL_C2} --repository_name repo --ref fedora/stable/x86_64/iot
 
 .. note::
 
