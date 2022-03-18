@@ -13,8 +13,9 @@ set -euv
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 
 mkdir ~/.ssh
-echo "$PULP_DOCS_KEY" > ~/.ssh/pulp-infra
+touch ~/.ssh/pulp-infra
 chmod 600 ~/.ssh/pulp-infra
+echo "$PULP_DOCS_KEY" > ~/.ssh/pulp-infra
 
 echo "docs.pulpproject.org,8.43.85.236 ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBGXG+8vjSQvnAkq33i0XWgpSrbco3rRqNZr0SfVeiqFI7RN/VznwXMioDDhc+hQtgVhd6TYBOrV07IMcKj+FAzg=" >> /home/runner/.ssh/known_hosts
 chmod 644 /home/runner/.ssh/known_hosts
@@ -30,3 +31,42 @@ eval "$(ssh-agent -s)" #start the ssh agent
 ssh-add ~/.ssh/pulp-infra
 
 python3 .github/workflows/scripts/docs-publisher.py --build-type $1 --branch $2
+
+if [[ "$GITHUB_WORKFLOW" == "Ostree changelog update" ]]; then
+  # Do not build bindings docs on changelog update
+  exit
+fi
+
+# Building python bindings
+export PULP_URL="${PULP_URL:-https://pulp}"
+VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ostree --arg legacy_plugin pulp_ostree -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+cd ../pulp-openapi-generator
+rm -rf pulp_ostree-client
+./generate.sh pulp_ostree python $VERSION
+cd pulp_ostree-client
+
+# Adding mkdocs
+cp README.md docs/index.md
+sed -i 's/docs\///g' docs/index.md
+sed -i 's/\.md//g' docs/index.md
+cat >> mkdocs.yml << DOCSYAML
+---
+site_name: PulpOstree Client
+site_description: Ostree bindings
+site_author: Pulp Team
+site_url: https://docs.pulpproject.org/pulp_ostree_client/
+repo_name: pulp/pulp_ostree
+repo_url: https://github.com/pulp/pulp_ostree
+theme: readthedocs
+DOCSYAML
+
+pip install mkdocs pymdown-extensions
+
+# Building the bindings docs
+mkdocs build
+
+# publish to docs.pulpproject.org/pulp_ostree_client
+rsync -avzh site/ doc_builder_pulp_ostree@docs.pulpproject.org:/var/www/docs.pulpproject.org/pulp_ostree_client/
+
+# publish to docs.pulpproject.org/pulp_ostree_client/en/{release}
+rsync -avzh site/ doc_builder_pulp_ostree@docs.pulpproject.org:/var/www/docs.pulpproject.org/pulp_ostree_client/en/"$1"
