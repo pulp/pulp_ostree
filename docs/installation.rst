@@ -13,7 +13,9 @@ Install plugin
 The following sections assume that ``pulpcore`` is `installed <https://docs.pulpproject.org/pulpcore/installation/instructions.html>`_
 into the virtual environment ``pulpvenv``.
 
-Users should install the plugin **either** from PyPI or source.
+Users should install the plugin **either** from PyPI or source. The plugin utilizes some of the
+features provided by `libostree <https://github.com/ostreedev/ostree>`_. Please, install it on the
+system as well.
 
 From PyPI
 *********
