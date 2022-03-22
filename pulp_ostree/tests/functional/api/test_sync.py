@@ -18,6 +18,7 @@ from pulpcore.client.pulp_ostree import (
     RepositoriesOstreeVersionsApi,
     RepositorySyncURL,
     RemotesOstreeApi,
+    ContentRefsApi,
 )
 
 
@@ -32,6 +33,7 @@ class BasicSyncTestCase(unittest.TestCase):
         cls.versions_api = RepositoriesOstreeVersionsApi(client_api)
         cls.remotes_api = RemotesOstreeApi(client_api)
         cls.distributions_api = DistributionsOstreeApi(client_api)
+        cls.refs_api = ContentRefsApi(client_api)
 
     @classmethod
     def tearDownClass(cls):
@@ -97,3 +99,48 @@ class BasicSyncTestCase(unittest.TestCase):
         self.addCleanup(shutil.rmtree, remote.name)
         validate_repo_integrity(remote.name, f"{remote_name}:rawhide")
         validate_repo_integrity(remote.name, f"{remote_name}:stable")
+
+    def test_filter_rawhide_ref_sync(self):
+        """Synchronize content from a remote repository considering only a specific ref."""
+        repo = self.repositories_api.create(gen_repo())
+        self.addCleanup(self.repositories_api.delete, repo.pulp_href)
+
+        body = gen_ostree_remote(depth=0, include_refs=["rawhide"], exclude_refs=["stable"])
+        remote = self.remotes_api.create(body)
+        self.addCleanup(self.remotes_api.delete, remote.pulp_href)
+
+        self.assertEqual(remote.include_refs, ["rawhide"])
+        self.assertEqual(remote.exclude_refs, ["stable"])
+
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        response = self.repositories_api.sync(repo.pulp_href, repository_sync_data)
+        repo_version = monitor_task(response.task).created_resources[0]
+
+        refs = self.refs_api.list(repository_version_added=repo_version).results
+        self.assertEqual(len(refs), 1)
+        self.assertEqual(refs[0].name, "rawhide")
+
+    def test_exclude_all_refs_sync(self):
+        """Synchronize content from a remote repository when a user excludes all refs."""
+        repo = self.repositories_api.create(gen_repo())
+        self.addCleanup(self.repositories_api.delete, repo.pulp_href)
+
+        body = gen_ostree_remote(depth=0, exclude_refs=["*"])
+        remote = self.remotes_api.create(body)
+        self.addCleanup(self.remotes_api.delete, remote.pulp_href)
+
+        self.assertEqual(remote.include_refs, None)
+        self.assertEqual(remote.exclude_refs, ["*"])
+
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        response = self.repositories_api.sync(repo.pulp_href, repository_sync_data)
+        repo_version = monitor_task(response.task).created_resources[0]
+
+        repository_version = self.versions_api.read(repo_version)
+        added_content = repository_version.content_summary.added
+
+        self.assertEqual(added_content["ostree.config"]["count"], 1)
+        self.assertEqual(added_content["ostree.summary"]["count"], 1)
+        self.assertRaises(KeyError, lambda: added_content["ostree.refs"])
+        self.assertRaises(KeyError, lambda: added_content["ostree.commit"])
+        self.assertRaises(KeyError, lambda: added_content["ostree.object"])

@@ -1,6 +1,7 @@
 from logging import getLogger
 
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
 
 from pulpcore.plugin.models import (
     Content,
@@ -113,6 +114,8 @@ class OstreeRemote(Remote):
     TYPE = "ostree"
 
     depth = models.IntegerField(default=0)
+    include_refs = ArrayField(models.CharField(max_length=255, null=True), null=True)
+    exclude_refs = ArrayField(models.CharField(max_length=255, null=True), null=True)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
