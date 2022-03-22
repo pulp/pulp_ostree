@@ -1,6 +1,7 @@
 import os
 import logging
 
+from fnmatch import fnmatch
 from gettext import gettext as _
 from pathlib import Path
 from urllib.parse import urljoin
@@ -93,13 +94,15 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
             await self.submit_metafiles()
 
             _, refs = self.repo.remote_list_refs(self.repo_name)
-            for name, _ in refs.items():
+            for name in self.filter_refs(refs.keys()):
+                ref_commit_checksum = refs[name]
+
                 ref_relative_path = os.path.join("refs/heads/", name)
-                await self.download_remote_object(ref_relative_path)
                 local_ref_path = os.path.join(self.repo_path, ref_relative_path)
 
-                with open(local_ref_path, "r") as f:
-                    ref_commit_checksum = f.read().strip()
+                with open(local_ref_path, "w") as f:
+                    f.write(ref_commit_checksum)
+                    f.flush()
 
                 relative_path = get_checksum_filepath(
                     ref_commit_checksum, OstreeObjectType.OSTREE_OBJECT_TYPE_COMMIT
@@ -163,6 +166,22 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
             await pb.aincrement()
 
         await self.submit_ref_objects()
+
+    def filter_refs(self, refs):
+        """Filter refs by the list of include/exclude patterns."""
+
+        def _pattern_matches(ref, patterns):
+            return any(fnmatch(ref, pattern) for pattern in patterns)
+
+        include_refs = self.remote.include_refs
+        if include_refs:
+            refs = [ref for ref in refs if _pattern_matches(ref, include_refs)]
+
+        exclude_refs = self.remote.exclude_refs
+        if exclude_refs:
+            refs = [ref for ref in refs if not _pattern_matches(ref, exclude_refs)]
+
+        return refs
 
     def init_repository(self):
         """Initialize a new OSTree repository object."""
