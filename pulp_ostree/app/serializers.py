@@ -148,9 +148,33 @@ class OstreeRemoteSerializer(platform.RemoteSerializer):
         choices=[Remote.IMMEDIATE, Remote.ON_DEMAND],
         default=Remote.IMMEDIATE,
     )
+    include_refs = serializers.ListField(
+        child=serializers.CharField(max_length=255),
+        allow_null=True,
+        required=False,
+        help_text=_(
+            """
+            A list of refs to include during a sync.
+            The wildcards *, ? are recognized.
+            'include_refs' is evaluated before 'exclude_refs'.
+            """
+        ),
+    )
+    exclude_refs = serializers.ListField(
+        child=serializers.CharField(max_length=255),
+        allow_null=True,
+        required=False,
+        help_text=_(
+            """
+            A list of tags to exclude during a sync.
+            The wildcards *, ? are recognized.
+            'exclude_refs' is evaluated after 'include_refs'.
+            """
+        ),
+    )
 
     class Meta:
-        fields = platform.RemoteSerializer.Meta.fields + ("depth",)
+        fields = platform.RemoteSerializer.Meta.fields + ("depth", "include_refs", "exclude_refs")
         model = models.OstreeRemote
 
 
