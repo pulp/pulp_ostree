@@ -37,18 +37,11 @@ if [[ "$GITHUB_WORKFLOW" == "Ostree changelog update" ]]; then
   exit
 fi
 
-# Building python bindings
-export PULP_URL="${PULP_URL:-https://pulp}"
-VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ostree --arg legacy_plugin pulp_ostree -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
-cd ../pulp-openapi-generator
-rm -rf pulp_ostree-client
-./generate.sh pulp_ostree python $VERSION
-cd pulp_ostree-client
+pip install mkdocs pymdown-extensions "Jinja2<3.1"
 
-# Adding mkdocs
-cp README.md docs/index.md
-sed -i 's/docs\///g' docs/index.md
-sed -i 's/\.md//g' docs/index.md
+mkdir -p ../bindings
+tar -xvf python-client-docs.tar --directory ../bindings
+cd ../bindings
 cat >> mkdocs.yml << DOCSYAML
 ---
 site_name: PulpOstree Client
@@ -60,8 +53,6 @@ repo_url: https://github.com/pulp/pulp_ostree
 theme: readthedocs
 DOCSYAML
 
-pip install mkdocs pymdown-extensions
-
 # Building the bindings docs
 mkdocs build
 
@@ -69,4 +60,4 @@ mkdocs build
 rsync -avzh site/ doc_builder_pulp_ostree@docs.pulpproject.org:/var/www/docs.pulpproject.org/pulp_ostree_client/
 
 # publish to docs.pulpproject.org/pulp_ostree_client/en/{release}
-rsync -avzh site/ doc_builder_pulp_ostree@docs.pulpproject.org:/var/www/docs.pulpproject.org/pulp_ostree_client/en/"$1"
+rsync -avzh site/ doc_builder_pulp_ostree@docs.pulpproject.org:/var/www/docs.pulpproject.org/pulp_ostree_client/en/"$2"
