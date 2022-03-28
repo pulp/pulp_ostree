@@ -100,6 +100,10 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                 ref_relative_path = os.path.join("refs/heads/", name)
                 local_ref_path = os.path.join(self.repo_path, ref_relative_path)
 
+                dirname = os.path.dirname(local_ref_path)
+                # create a directory to prevent IOError
+                os.makedirs(dirname, exist_ok=True)
+
                 with open(local_ref_path, "w") as f:
                     f.write(ref_commit_checksum)
                     f.flush()
