@@ -8,11 +8,11 @@
 import re
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 
 import os
-import warnings
 from github import Github
 
 
@@ -34,7 +34,8 @@ def __check_status(issue):
         sys.exit(f"Error: issue #{issue} is a pull request.")
     if gi.closed_at and "cherry picked from commit" not in message:
         warnings.warn(
-            "When backporting, make sure to have 'cherry picked from commit' in the commit message."
+            "When backporting, use the -x flag to append a line that says "
+            "'(cherry picked from commit ...)' to the original commit message."
         )
         sys.exit(f"Error: issue #{issue} is closed.")
 
@@ -66,6 +67,8 @@ if issues:
 else:
     if NO_ISSUE in message:
         print("Commit {sha} has no issues but is tagged {tag}.".format(sha=sha[0:7], tag=NO_ISSUE))
+    elif "Merge" in message and "cherry picked from commit" in message:
+        pass
     else:
         sys.exit(
             "Error: no attached issues found for {sha}. If this was intentional, add "
