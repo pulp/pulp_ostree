@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-110-g42cd391
+# generated with plugin_template@2021.08.26-122-g37dc7b5
 
 additional_repos: []
 aiohttp_fixtures_origin: 172.18.0.1
@@ -66,6 +66,7 @@ test_performance: false
 test_released_plugin_with_next_pulpcore_release: false
 test_reroute: true
 test_s3: false
+test_stream: false
 update_github: true
 update_redmine: false
 upgrade_range: []
