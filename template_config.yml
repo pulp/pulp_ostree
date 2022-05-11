@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-122-g37dc7b5
+# generated with plugin_template@2021.08.26-127-gfedbecb
 
 additional_repos: []
 aiohttp_fixtures_origin: 172.18.0.1
@@ -55,6 +55,7 @@ python_version: '3.8'
 redmine_project: null
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
+run_pulpcore_tests_for_plugins: true
 single_commit_check: false
 sync_ci: true
 tasking_allow_async_unsafe: false
