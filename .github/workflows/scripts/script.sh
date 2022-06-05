@@ -112,20 +112,20 @@ if [ -f $FUNC_TEST_SCRIPT ]; then
 else
 
     if [[ "$GITHUB_WORKFLOW" == "Ostree Nightly CI/CD" ]]; then
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ostree.tests.functional -m parallel -n 8  --nightly
+        pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m "not parallel"  --nightly
+
+    
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and parallel" -n  8  --nightly
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not parallel"  --nightly
+    
+    else
         pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ostree.tests.functional -m parallel -n 8
         pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m "not parallel"
 
     
         pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and parallel" -n  8
         pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not parallel"
-    
-    else
-        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ostree.tests.functional -m "parallel and not nightly" -n 8
-        pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m "not parallel and not nightly"
-
-    
-        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not nightly and parallel" -n  8
-        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not nightly and not parallel"
     
     fi
 
