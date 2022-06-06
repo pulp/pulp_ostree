@@ -20,6 +20,11 @@ Creating a remote object informs Pulp about an external content source::
 
     pulp ostree remote create --name bar --url https://fixtures.pulpproject.org/ostree/small/
 
+Use the standard Linux wildcards ``*``, ``?`` to include or exclude refs from a remote repository
+when syncing::
+
+    pulp ostree remote create --name bar-filtered --url https://fixtures.pulpproject.org/ostree/small/ --include-refs "[\"stable\"]" --exclude-refs "[\"raw*\"]"
+
 Sync the Repository
 -------------------
 
