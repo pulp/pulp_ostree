@@ -27,7 +27,8 @@ docs_test: true
 flake8: true
 github_org: pulp
 issue_tracker: github
-keep_ci_update_since_branch: null
+keep_ci_update_for_latest_branches: 5
+keep_ci_update_since_branch: 2.0
 noissue_marker: '[noissue]'
 parallel_test_workers: 8
 plugin_app_label: ostree
