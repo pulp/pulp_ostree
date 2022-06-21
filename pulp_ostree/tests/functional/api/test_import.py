@@ -14,7 +14,8 @@ from pulpcore.client.pulp_ostree import (
     DistributionsOstreeApi,
     OstreeOstreeRepository,
     OstreeOstreeDistribution,
-    OstreeRepoImport,
+    OstreeImportAll,
+    OstreeImportCommitsToRef,
     ContentCommitsApi,
     ContentRefsApi,
     RepositoriesOstreeApi,
@@ -95,8 +96,8 @@ class ImportCommitTestCase(unittest.TestCase):
         # 7. commit the tarball to a Pulp repository
         repo = self.repositories_api.create(OstreeOstreeRepository(**gen_repo()))
         self.addCleanup(self.repositories_api.delete, repo.pulp_href)
-        commit_data = OstreeRepoImport(artifact["pulp_href"], repo_name1)
-        response = self.repositories_api.import_commits(repo.pulp_href, commit_data)
+        commit_data = OstreeImportAll(artifact["pulp_href"], repo_name1)
+        response = self.repositories_api.import_all(repo.pulp_href, commit_data)
         repo_version = monitor_task(response.task).created_resources[0]
 
         # 8. check the number of created commits, branches (refs), and objects
@@ -193,8 +194,8 @@ class ImportCommitTestCase(unittest.TestCase):
         # 7. import the first repository
         repo = self.repositories_api.create(OstreeOstreeRepository(**gen_repo()))
         self.addCleanup(self.repositories_api.delete, repo.pulp_href)
-        commit_data = OstreeRepoImport(self.commit_repo1_artifact["pulp_href"], self.repo_name1)
-        response = self.repositories_api.import_commits(repo.pulp_href, commit_data)
+        commit_data = OstreeImportAll(self.commit_repo1_artifact["pulp_href"], self.repo_name1)
+        response = self.repositories_api.import_all(repo.pulp_href, commit_data)
         repo_version = monitor_task(response.task).created_resources[0]
 
         repository_version = self.versions_api.read(repo_version)
@@ -205,7 +206,9 @@ class ImportCommitTestCase(unittest.TestCase):
         self.assertEqual(added_content["ostree.object"]["count"], 3)
 
         # 8. import data from the second repository
-        add_data = OstreeRepoImport(self.commit_repo2_artifact["pulp_href"], self.repo_name1, "foo")
+        add_data = OstreeImportCommitsToRef(
+            self.commit_repo2_artifact["pulp_href"], self.repo_name1, "foo"
+        )
         response = self.repositories_api.import_commits(repo.pulp_href, add_data)
         repo_version = monitor_task(response.task).created_resources[0]
 

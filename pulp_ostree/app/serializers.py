@@ -16,8 +16,8 @@ from pulpcore.plugin.viewsets import NamedModelViewSet
 from . import models
 
 
-class OstreeRepoImportSerializer(serializers.Serializer):
-    """A Serializer class for importing commits to a Pulp OSTree repository."""
+class OstreeImportAllSerializer(serializers.Serializer):
+    """A Serializer class for importing all refs and commits to a repository."""
 
     artifact = platform.RelatedField(
         many=False,
@@ -28,11 +28,6 @@ class OstreeRepoImportSerializer(serializers.Serializer):
     )
     repository_name = serializers.CharField(
         help_text=_("The name of a repository that contains the compressed OSTree content.")
-    )
-
-    ref = serializers.CharField(
-        required=False,
-        help_text=_("The name of a ref branch that holds the reference to the last commit."),
     )
 
     def validate(self, data):
@@ -50,6 +45,14 @@ class OstreeRepoImportSerializer(serializers.Serializer):
         if not is_tarfile(artifact.file.path):
             raise serializers.ValidationError(_("The artifact is not a tar archive file"))
         data["artifact"] = artifact
+
+
+class OstreeImportCommitsToRefSerializer(OstreeImportAllSerializer):
+    """A Serializer class for appending child commits to a repository."""
+
+    ref = serializers.CharField(
+        help_text=_("The name of a ref branch that holds the reference to the last commit."),
+    )
 
 
 class OstreeCommitSerializer(platform.SingleArtifactContentSerializer):
