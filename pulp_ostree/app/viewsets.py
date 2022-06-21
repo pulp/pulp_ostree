@@ -60,26 +60,59 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         return core.OperationPostponedResponse(result, request)
 
     @extend_schema(
-        description="Trigger an asynchronous task to create a new OSTree repository version.",
-        summary="Import commits to a repository",
+        description="Trigger an asynchronous task to import all refs and commits to a repository.",
+        summary="Import refs and commits to a repository",
         responses={202: AsyncOperationResponseSerializer},
     )
-    @action(detail=True, methods=["post"], serializer_class=serializers.OstreeRepoImportSerializer)
-    def import_commits(self, request, pk):
-        """Add new commits to a repository."""
+    @action(detail=True, methods=["post"], serializer_class=serializers.OstreeImportAllSerializer)
+    def import_all(self, request, pk):
+        """Import all refs and commits to a repository."""
         repository = self.get_object()
 
-        serializer = serializers.OstreeRepoImportSerializer(
+        serializer = serializers.OstreeImportAllSerializer(
             data=request.data, context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
 
         artifact = serializer.validated_data["artifact"]
         repository_name = serializer.validated_data["repository_name"]
-        ref = serializer.validated_data.get("ref")
 
         async_result = dispatch(
-            tasks.import_ostree_content,
+            tasks.import_all_refs_and_commits,
+            exclusive_resources=[artifact, repository],
+            kwargs={
+                "artifact_pk": str(artifact.pk),
+                "repository_pk": str(repository.pk),
+                "repository_name": repository_name,
+            },
+        )
+        return core.OperationPostponedResponse(async_result, request)
+
+    @extend_schema(
+        description="Trigger an asynchronous task to append child commits to a repository.",
+        summary="Append child commits to a repository",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(
+        detail=True,
+        methods=["post"],
+        serializer_class=serializers.OstreeImportCommitsToRefSerializer,
+    )
+    def import_commits(self, request, pk):
+        """Append child commits to a repository."""
+        repository = self.get_object()
+
+        serializer = serializers.OstreeImportCommitsToRefSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        artifact = serializer.validated_data["artifact"]
+        repository_name = serializer.validated_data["repository_name"]
+        ref = serializer.validated_data["ref"]
+
+        async_result = dispatch(
+            tasks.import_child_commits,
             exclusive_resources=[artifact, repository],
             kwargs={
                 "artifact_pk": str(artifact.pk),
