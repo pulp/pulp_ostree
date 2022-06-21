@@ -30,8 +30,27 @@ gi.require_version("OSTree", "1.0")
 from gi.repository import Gio, GLib, OSTree  # noqa: E402: module level not at top of file
 
 
-def import_ostree_content(artifact_pk, repository_pk, repository_name, ref=None):
-    """Import content to an OSTree repository.
+def import_all_refs_and_commits(artifact_pk, repository_pk, repository_name):
+    """Import all ref and commits to an OSTree repository.
+
+    Args:
+        artifact_pk (str): The PK of an artifact that identifies a tarball.
+        repository_pk (str): The repository PK.
+        repository_name (str): The name of an OSTree repository (e.g., "repo").
+
+    Raises:
+        ValueError: If an OSTree repository could not be properly parsed or the specified ref
+            does not exist.
+    """
+    tarball_artifact = Artifact.objects.get(pk=artifact_pk)
+    repository = Repository.objects.get(pk=repository_pk)
+    first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name)
+    dv = OstreeImportDeclarativeVersion(first_stage, repository)
+    return dv.create()
+
+
+def import_child_commits(artifact_pk, repository_pk, repository_name, ref):
+    """Import child commits to a specific ref.
 
     Args:
         artifact_pk (str): The PK of an artifact that identifies a tarball.
@@ -45,11 +64,7 @@ def import_ostree_content(artifact_pk, repository_pk, repository_name, ref=None)
     """
     tarball_artifact = Artifact.objects.get(pk=artifact_pk)
     repository = Repository.objects.get(pk=repository_pk)
-
-    if ref:
-        first_stage = OstreeImportSingleRefFirstStage(tarball_artifact, repository_name, ref)
-    else:
-        first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name)
+    first_stage = OstreeImportSingleRefFirstStage(tarball_artifact, repository_name, ref)
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
     return dv.create()
 
