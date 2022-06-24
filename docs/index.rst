@@ -1,7 +1,7 @@
 Pulp OSTree Plugin
 ==================
 
-The OSTree plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`__ to support
+The OSTree plugin extends `pulpcore <https://pypi.python.org/pypi/pulpcore/>`_ to support
 hosting OSTree packages. This plugin is a part of the `Pulp Project <http://www.pulpproject.org>`_,
 and assumes some familiarity with the `pulpcore documentation
 <https://docs.pulpproject.org/pulpcore/>`_.
