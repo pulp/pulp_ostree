@@ -1,2 +1,2 @@
-pulpcore>=3.16.0,<3.20
+pulpcore>=3.20.0,<3.25
 PyGObject~=3.40.1
