@@ -10,14 +10,18 @@ Host Content (Create a Distribution)
 ------------------------------------
 
 To serve the OSTree content from Pulp, the user needs to create a distribution that will host the
-associated repository at ``${PULP_BASE_ADDR}/pulp/content/<distribution.base_path>``::
+associated repository at ``${PULP_BASE_ADDR}/pulp/content/<distribution.base_path>``:
+
+.. code-block:: bash
 
     pulp ostree distribution create --name fedora-iot --base-path fedora-iot --repository fedora-iot
 
 The content present in the latest repository version is automatically published and accessible by
 package managers (e.g., the ``ostree`` utility).
 
-Now, configure a local OSTree repository and consume the content, like so::
+Now, configure a local OSTree repository and consume the content, like so:
+
+.. code-block:: bash
 
     ostree --repo=repo init --mode=archive
     ostree --repo=repo remote --no-gpg-verify add pulpos ${PULP_BASE_ADDR}/pulp/content/fedora-iot
