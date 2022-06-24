@@ -11,6 +11,31 @@ Changelog
 
 .. towncrier release notes start
 
+2.0.0a6 (2022-06-24)
+====================
+
+Features
+--------
+
+- Added support for filtering refs during synchronization. Users can now use the flags
+  ``include_refs`` or ``exclude_refs`` to include or exclude refs from a remote repository.
+  `#163 <https://github.com/pulp/pulp_ostree/issues/163>`_
+- The old endpoint for importing a whole OSTree repository, including refs, was renamed to
+  ``import_all``. The endpoint ``import_commits`` shall be now used to import commits to an existing
+  ref.
+  `#170 <https://github.com/pulp/pulp_ostree/issues/170>`_
+
+
+Improved Documentation
+----------------------
+
+- Added a new paragraph about filtering remote content by refs.
+  `#179 <https://github.com/pulp/pulp_ostree/issues/179>`_
+
+
+----
+
+
 2.0.0a5 (2022-02-12)
 ====================
 
