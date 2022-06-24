@@ -9,19 +9,25 @@ their repository.
 Create a Repository
 -------------------
 
-Start by creating a new repository named "foo"::
+Start by creating a new repository named "foo":
+
+.. code-block:: bash
 
     pulp ostree repository create --name foo
 
 Create a Remote
 ---------------
 
-Creating a remote object informs Pulp about an external content source::
+Creating a remote object informs Pulp about an external content source:
+
+.. code-block:: bash
 
     pulp ostree remote create --name bar --url https://fixtures.pulpproject.org/ostree/small/
 
 Use the standard Linux wildcards ``*``, ``?`` to include or exclude refs from a remote repository
-when syncing::
+when syncing:
+
+.. code-block:: bash
 
     pulp ostree remote create --name bar-filtered --url https://fixtures.pulpproject.org/ostree/small/ --include-refs "[\"stable\"]" --exclude-refs "[\"raw*\"]"
 
@@ -29,7 +35,9 @@ Sync the Repository
 -------------------
 
 Use the remote object to kick off a synchronization task by specifying a repository to sync with.
-This tells Pulp to fetch content from the remote source and add it to the repository::
+This tells Pulp to fetch content from the remote source and add it to the repository:
+
+.. code-block:: bash
 
     pulp ostree repository sync --name foo --remote bar
 
