@@ -42,7 +42,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore>=3.16.0,<3.20
+    source: pulpcore>=3.20.0,<3.25
   - name: pulp_ostree
     source:  "${PLUGIN_NAME}"
   - name: pulp-smash
