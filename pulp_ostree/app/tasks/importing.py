@@ -197,7 +197,7 @@ class OstreeImportSingleRefFirstStage(
 
     async def run(self):
         """Create OSTree content units and associate them with the parent commit."""
-        with tarfile.open(self.tarball_artifact.file.path) as tar:
+        with tarfile.open(fileobj=self.tarball_artifact.file) as tar:
             async with ProgressReport(
                 message="Adding the child commits", code="adding.commits", total=1
             ) as pb:
@@ -252,7 +252,7 @@ class OstreeImportAllRefsFirstStage(
 
     async def run(self):
         """Create OSTree content units and declare relations between them."""
-        with tarfile.open(self.tarball_artifact.file.path) as tar:
+        with tarfile.open(fileobj=self.tarball_artifact.file) as tar:
             async with ProgressReport(
                 message="Committing the tarball", code="committing.tarball", total=1
             ) as pb:
