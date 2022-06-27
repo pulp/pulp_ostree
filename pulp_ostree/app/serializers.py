@@ -1,5 +1,6 @@
+import tarfile
+
 from gettext import gettext as _
-from tarfile import is_tarfile
 
 from django.urls import resolve
 from rest_framework import serializers
@@ -42,8 +43,14 @@ class OstreeImportAllSerializer(serializers.Serializer):
     def validate_tarball(self, data):
         """Check if the artifact is a tarball."""
         artifact = NamedModelViewSet.get_resource(data["artifact"])
-        if not is_tarfile(artifact.file.path):
+
+        try:
+            t = tarfile.open(fileobj=artifact.file)
+        except tarfile.TarError:
             raise serializers.ValidationError(_("The artifact is not a tar archive file"))
+        else:
+            t.close()
+
         data["artifact"] = artifact
 
 
