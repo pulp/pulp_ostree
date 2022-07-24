@@ -73,9 +73,10 @@ ignore = [
     "dev_requirements.txt",
     "doc_requirements.txt",
     "docs/**",
-    "flake8.cfg",
     "template_config.yml",
     ".ci/**",
     ".github/**",
+    "lint_requirements.txt",
+    ".flake8",
 ]
 
