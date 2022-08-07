@@ -82,10 +82,6 @@ pulp_container_tag: https
 
 VARSYAML
 
-if [ "$TEST" = "upgrade" ]; then
-  sed -i "/^pulp_container_tag:.*/s//pulp_container_tag: upgrade-https/" vars/main.yaml
-fi
-
 echo "PULP_API_ROOT=${PULP_API_ROOT}" >> "$GITHUB_ENV"
 
 if [ "${PULP_API_ROOT:-}" ]; then
