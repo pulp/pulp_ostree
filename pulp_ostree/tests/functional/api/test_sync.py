@@ -1,4 +1,6 @@
+import os
 import shutil
+import tempfile
 import unittest
 
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
@@ -35,10 +37,16 @@ class BasicSyncTestCase(unittest.TestCase):
         cls.distributions_api = DistributionsOstreeApi(client_api)
         cls.refs_api = ContentRefsApi(client_api)
 
+        cls.original_dir = os.getcwd()
+        cls.tmpdir = tempfile.TemporaryDirectory()
+        os.chdir(cls.tmpdir.name)
+
     @classmethod
     def tearDownClass(cls):
         """Clean orphaned content after finishing the tests."""
         delete_orphans()
+        os.chdir(cls.original_dir)
+        cls.tmpdir.cleanup()
 
     def setUp(self):
         """Clean orphaned content before each test."""
