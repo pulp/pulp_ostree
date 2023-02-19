@@ -117,11 +117,13 @@ then
   echo "Failed to install amazon.aws"
   exit $s
 fi
-# Patch DJANGO_ALLOW_ASYNC_UNSAFE out of the pulpcore tasking_system
-# Don't let it fail. Be opportunistic.
-sed -i -e '/DJANGO_ALLOW_ASYNC_UNSAFE/d' pulpcore/pulpcore/tasking/entrypoint.py || true
 
 cd pulp_ostree
+
+if [[ "$TEST" = "lowerbounds" ]]; then
+  python3 .ci/scripts/calc_deps_lowerbounds.py > lowerbounds_requirements.txt
+  mv lowerbounds_requirements.txt requirements.txt
+fi
 
 if [ -f $POST_BEFORE_INSTALL ]; then
   source $POST_BEFORE_INSTALL
