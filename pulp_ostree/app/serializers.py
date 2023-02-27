@@ -2,16 +2,10 @@ import tarfile
 
 from gettext import gettext as _
 
-from django.urls import resolve
 from rest_framework import serializers
-from rest_framework_nested.relations import (
-    NestedHyperlinkedIdentityField,
-    NestedHyperlinkedRelatedField,
-)
-from rest_framework.utils.field_mapping import get_nested_relation_kwargs
 
 from pulpcore.plugin import serializers as platform
-from pulpcore.plugin.models import Artifact, Remote, RepositoryVersion
+from pulpcore.plugin.models import Artifact, Remote
 from pulpcore.plugin.viewsets import NamedModelViewSet
 
 from . import models
@@ -199,126 +193,6 @@ class OstreeRepositorySerializer(platform.RepositorySerializer):
     class Meta:
         fields = platform.RepositorySerializer.Meta.fields
         model = models.OstreeRepository
-
-
-class NestedHyperlinkedModelSerializer(serializers.HyperlinkedModelSerializer):
-    """
-    A type of `ModelSerializer` that uses hyperlinked relationships with compound keys instead
-    of primary key relationships.  Specifically:
-
-    * A 'url' field is included instead of the 'id' field.
-    * Relationships to other instances are hyperlinks, instead of primary keys.
-
-    NOTE: this only works with DRF 3.1.0 and above.
-    """
-
-    parent_lookup_kwargs = {"parent_pk": "parent__pk"}
-
-    serializer_url_field = NestedHyperlinkedIdentityField
-    serializer_related_field = NestedHyperlinkedRelatedField
-
-    def __init__(self, *args, **kwargs):
-        """Initialize class-wide variables."""
-        self.parent_lookup_kwargs = kwargs.pop("parent_lookup_kwargs", self.parent_lookup_kwargs)
-        super(NestedHyperlinkedModelSerializer, self).__init__(*args, **kwargs)
-
-    def build_url_field(self, field_name, model_class):
-        """Return URL fields."""
-        field_class, field_kwargs = super(NestedHyperlinkedModelSerializer, self).build_url_field(
-            field_name, model_class
-        )
-        field_kwargs["parent_lookup_kwargs"] = self.parent_lookup_kwargs
-
-        return field_class, field_kwargs
-
-    def build_nested_field(self, field_name, relation_info, nested_depth):
-        """
-        Create nested fields for forward and reverse relationships.
-        """
-
-        class NestedSerializer(NestedHyperlinkedModelSerializer):
-            class Meta:
-                model = relation_info.related_model
-                depth = nested_depth - 1
-                fields = "__all__"
-
-        field_class = NestedSerializer
-        field_kwargs = get_nested_relation_kwargs(relation_info)
-
-        return field_class, field_kwargs
-
-
-class RepositoryAddRemoveContentSerializer(
-    platform.ModelSerializer, NestedHyperlinkedModelSerializer
-):
-    """A serializer class for add/remove operations."""
-
-    add_content_units = serializers.ListField(
-        help_text=_(
-            "A list of content units to add to a new repository version. This content is "
-            "added after remove_content_units are removed."
-        ),
-        required=False,
-    )
-    remove_content_units = serializers.ListField(
-        help_text=_(
-            "A list of content units to remove from the latest repository version. "
-            "You may also specify '*' as an entry to remove all content. This content is "
-            "removed before add_content_units are added."
-        ),
-        required=False,
-    )
-    base_version = platform.RepositoryVersionRelatedField(
-        required=False,
-        help_text=_(
-            "A repository version whose content will be used as the initial set of content "
-            "for the new repository version"
-        ),
-    )
-
-    def validate_remove_content_units(self, value):
-        """Validate the passed content units."""
-        if len(value) > 1 and "*" in value:
-            raise serializers.ValidationError("Cannot supply content units and '*'.")
-        return value
-
-    class Meta:
-        model = RepositoryVersion
-        fields = ["add_content_units", "remove_content_units", "base_version"]
-
-
-class OstreeRepositoryAddRemoveContentSerializer(RepositoryAddRemoveContentSerializer):
-    """A Serializer class for modifying a repository from an existing repository."""
-
-    ALLOWED_ADD_REMOVE_CONTENT_UNITS = [
-        models.OstreeCommit,
-        models.OstreeRef,
-        models.OstreeConfig,
-        models.OstreeSummary,
-    ]
-
-    def validate(self, data):
-        """Validate content that will be added or removed from a repository."""
-        data = super().validate(data)
-
-        self.validate_units("add_content_units", data)
-        self.validate_units("remove_content_units", data)
-
-        return data
-
-    def validate_units(self, units_modify_type, content):
-        """Check if the content is in allowed content types (e.g., commit)."""
-        if units_modify_type in content:
-            for unit_href in content[units_modify_type]:
-                unit_model = resolve(unit_href).func.cls.queryset.model
-                if unit_model not in self.ALLOWED_ADD_REMOVE_CONTENT_UNITS:
-                    raise serializers.ValidationError(
-                        _(
-                            "The unit {} is not allowed to be used in this endpoint".format(
-                                unit_href
-                            )
-                        )
-                    )
 
 
 class OstreeDistributionSerializer(platform.DistributionSerializer):
