@@ -7,10 +7,11 @@ from rest_framework.serializers import ValidationError
 
 from pulpcore.plugin.viewsets import ReadOnlyContentViewSet, ContentFilter, NAME_FILTER_OPTIONS
 from pulpcore.plugin import viewsets as core
-from pulpcore.plugin.models import RepositoryVersion, Content
+from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
+    RepositoryAddRemoveContentSerializer,
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import dispatch
@@ -131,7 +132,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
     @action(
         detail=True,
         methods=["post"],
-        serializer_class=serializers.OstreeRepositoryAddRemoveContentSerializer,
+        serializer_class=RepositoryAddRemoveContentSerializer,
     )
     def modify(self, request, pk):
         """Queues a task that adds and remove content units within a repository."""
@@ -144,40 +145,14 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         else:
             base_version_pk = None
 
-        add_content_units = {}
-        remove_content_units = {}
-
-        if "add_content_units" in request.data:
-            for url in request.data["add_content_units"]:
-                add_content_units[core.NamedModelViewSet.extract_pk(url)] = url
-
-            content_units_pks = set(add_content_units.keys())
-            existing_content_units = Content.objects.filter(pk__in=content_units_pks)
-            existing_content_units.touch()
-
-            self.verify_content_units(existing_content_units, add_content_units)
-
-            add_content_units = list(add_content_units.keys())
-
-        if "remove_content_units" in request.data:
-            if "*" in request.data["remove_content_units"]:
-                remove_content_units = ["*"]
-            else:
-                for url in request.data["remove_content_units"]:
-                    remove_content_units[core.NamedModelViewSet.extract_pk(url)] = url
-                content_units_pks = set(remove_content_units.keys())
-                existing_content_units = Content.objects.filter(pk__in=content_units_pks)
-                self.verify_content_units(existing_content_units, remove_content_units)
-                remove_content_units = list(remove_content_units.keys())
-
         task = dispatch(
             tasks.modify_content,
             exclusive_resources=[repository],
             kwargs={
                 "repository_pk": pk,
                 "base_version_pk": base_version_pk,
-                "add_content_units": add_content_units,
-                "remove_content_units": remove_content_units,
+                "add_content_units": serializer.validated_data.get("add_content_units", []),
+                "remove_content_units": serializer.validated_data.get("remove_content_units", []),
             },
         )
         return core.OperationPostponedResponse(task, request)
