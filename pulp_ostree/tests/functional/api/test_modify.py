@@ -5,8 +5,6 @@ import unittest
 
 from urllib.parse import urlparse
 
-from requests.exceptions import HTTPError
-
 from pulp_smash import config, api
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import get_content, gen_distribution, gen_repo, modify_repo
@@ -235,11 +233,16 @@ class ModifyRepositoryTestCase(unittest.TestCase):
         created_objs = self.objs_api.list(repository_version_added=self.repo_version1.pulp_href)
         obj = created_objs.to_dict()["results"][0]
 
-        with self.assertRaises(HTTPError):
-            modify_repo(self.cfg, self.repo1.to_dict(), add_units=[obj])
+        version1 = self.repositories_api.read(self.repo1.pulp_href).latest_version_href
 
-        with self.assertRaises(HTTPError):
-            modify_repo(self.cfg, self.repo1.to_dict(), remove_units=[obj])
+        # objects should be ignored by the machinery
+        modify_repo(self.cfg, self.repo1.to_dict(), add_units=[obj])
+        version2 = self.repositories_api.read(self.repo1.pulp_href).latest_version_href
+        self.assertEqual(version1, version2)
+
+        modify_repo(self.cfg, self.repo1.to_dict(), remove_units=[obj])
+        version2 = self.repositories_api.read(self.repo1.pulp_href).latest_version_href
+        self.assertEqual(version1, version2)
 
 
 def normalize_content(repo_content):
