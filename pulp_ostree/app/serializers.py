@@ -129,6 +129,20 @@ class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
         model = models.OstreeObject
 
 
+class OstreeContentSerializer(platform.SingleArtifactContentSerializer):
+    """A Serializer class for uncategorized content units (e.g., static deltas)."""
+
+    relative_path = serializers.CharField()
+    digest = serializers.CharField()
+
+    class Meta:
+        fields = platform.SingleArtifactContentSerializer.Meta.fields + (
+            "relative_path",
+            "digest",
+        )
+        model = models.OstreeContent
+
+
 class OstreeConfigSerializer(platform.SingleArtifactContentSerializer):
     """A Serializer class for OSTree repository configuration files."""
 
@@ -196,8 +210,10 @@ class OstreeRemoteSerializer(platform.RemoteSerializer):
 class OstreeRepositorySerializer(platform.RepositorySerializer):
     """A Serializer class for an OSTree repository."""
 
+    compute_delta = serializers.BooleanField(default=True)
+
     class Meta:
-        fields = platform.RepositorySerializer.Meta.fields
+        fields = platform.RepositorySerializer.Meta.fields + ("compute_delta",)
         model = models.OstreeRepository
 
 
