@@ -41,3 +41,9 @@ Output::
     ContentChecksum:  10155b85154b87675970fd56c4a3b44c4739b486772926ed7463f1c827e7a236
     Date:  2021-09-06 11:35:16 +0000
     (no subject)
+
+
+.. note::
+
+    The plugin automatically generates static deltas for a specific subset of commits. Currently,
+    the summary file is not being updated after every single change to the repository.

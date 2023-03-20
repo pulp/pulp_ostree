@@ -82,6 +82,19 @@ class OstreeCommitObject(models.Model):
         unique_together = [["commit", "obj"]]
 
 
+class OstreeContent(Content):
+    """Any type of content/object that is currently not tracked by separate means."""
+
+    repo_key_fields = ("relative_path",)
+
+    relative_path = models.TextField(null=False)
+    digest = models.CharField(max_length=64, null=False)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("relative_path", "digest")
+
+
 class OstreeConfig(Content):
     """A content model for an OSTree repository configuration file."""
 
@@ -126,7 +139,16 @@ class OstreeRepository(Repository):
 
     TYPE = "ostree"
 
-    CONTENT_TYPES = [OstreeCommit, OstreeRef, OstreeObject, OstreeConfig, OstreeSummary]
+    CONTENT_TYPES = [
+        OstreeCommit,
+        OstreeRef,
+        OstreeObject,
+        OstreeConfig,
+        OstreeSummary,
+        OstreeContent,
+    ]
+
+    compute_delta = models.BooleanField(default=True)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

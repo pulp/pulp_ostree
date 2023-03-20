@@ -10,8 +10,19 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 
-from pulp_ostree.app.models import OstreeCommit, OstreeObject, OstreeRef, OstreeCommitObject
-from pulp_ostree.app.tasks.utils import get_checksum_filepath
+from pulp_ostree.app.models import (
+    OstreeCommit,
+    OstreeContent,
+    OstreeObject,
+    OstreeRef,
+    OstreeCommitObject,
+)
+from pulp_ostree.app.tasks.utils import compute_hash, get_checksum_filepath
+
+import gi
+
+gi.require_version("OSTree", "1.0")
+from gi.repository import GLib, OSTree  # noqa: E402: module level not at top of file
 
 
 class DeclarativeContentCreatorMixin:
@@ -86,6 +97,31 @@ class DeclarativeContentCreatorMixin:
         os.link(filepath, filepath_copy)
 
         return Artifact.init_and_validate(filepath_copy)
+
+    async def compute_static_delta(self, ref_commit_checksum, parent_checksum=None):
+        if not self.commit_dcs:
+            return
+
+        if parent_checksum:
+            from_ = parent_checksum
+        else:
+            from_ = self.commit_dcs[0].content.checksum
+
+        # latest commit
+        to = ref_commit_checksum
+
+        self.repo.static_delta_generate(
+            OSTree.StaticDeltaGenerateOpt.MAJOR, from_, to, None, GLib.Variant("a{sv}", None)
+        )
+
+        for dirpath, dirnames, filenames in os.walk(os.path.join(self.repo_path, "deltas/")):
+            for filename in filenames:
+                full_path = os.path.join(dirpath, filename)
+                relative_path = os.path.relpath(full_path, self.repo_path)
+
+                content = OstreeContent(relative_path=relative_path, digest=compute_hash(full_path))
+                content_dc = self.create_dc(relative_path, content)
+                await self.put(content_dc)
 
 
 class OstreeAssociateContent(Stage):

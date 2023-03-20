@@ -61,7 +61,8 @@ def synchronize(remote_pk, repository_pk, mirror):
         raise ValueError(_("A remote must have a url specified to synchronize."))
 
     deferred_download = remote.policy != Remote.IMMEDIATE
-    first_stage = OstreeFirstStage(remote, deferred_download)
+    compute_delta = repository.cast().compute_delta
+    first_stage = OstreeFirstStage(remote, deferred_download, compute_delta)
     dv = OstreeSyncDeclarativeVersion(first_stage, repository, mirror=mirror)
     return dv.create()
 
@@ -69,11 +70,12 @@ def synchronize(remote_pk, repository_pk, mirror):
 class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
     """A first stage of the OSTree syncing pipeline that handles creation of content units."""
 
-    def __init__(self, remote, deferred_download):
+    def __init__(self, remote, deferred_download, compute_delta):
         """Initialize class variables used for parsing OSTree objects."""
         super().__init__()
         self.remote = remote
         self.deferred_download = deferred_download
+        self.compute_delta = compute_delta
 
         self.repo_name = remote.name
         self.repo = None
@@ -114,7 +116,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                 await self.download_remote_object(relative_path)
 
                 _, ref_commit, _ = self.repo.load_commit(ref_commit_checksum)
-                parent_checksum = OSTree.commit_get_parent(ref_commit)
+                ref_parent_checksum = parent_checksum = OSTree.commit_get_parent(ref_commit)
                 if not parent_checksum or self.remote.depth == 0:
                     # there are not any parent commits, continue parsing the next head branch
                     commit = OstreeCommit(checksum=ref_commit_checksum)
@@ -167,6 +169,9 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
                 self.init_ref_object(name, ref_relative_path, ref_commit_dc)
 
+                if self.compute_delta:
+                    await self.compute_static_delta(ref_commit_checksum, ref_parent_checksum)
+
             await pb.aincrement()
 
         await self.submit_ref_objects()
@@ -197,6 +202,11 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
         no_gpg_verify = {"gpg-verify": GLib.Variant.new_boolean(False)}
         gpg_verify_variant = GLib.Variant("a{sv}", no_gpg_verify)
         self.repo.remote_add(self.repo_name, self.remote.url, gpg_verify_variant)
+
+        # TODO: with this, we will no longer need to manually download ostree content because all
+        #   the content will be available in place; refactoring the code is necessary:
+        #   https://github.com/pulp/pulp_ostree/issues/169#issuecomment-1476232489
+        self.repo.pull(self.repo_name, None, OSTree.RepoPullFlags.MIRROR)
 
     async def submit_metafiles(self):
         """Download config and summary files and create DeclarativeContent objects for them."""
