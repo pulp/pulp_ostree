@@ -21,7 +21,7 @@ from pulp_ostree.app.models import (
     OstreeConfig,
     OstreeObjectType,
 )
-from pulp_ostree.app.tasks.utils import get_checksum_filepath
+from pulp_ostree.app.tasks.utils import copy_to_local_storage, get_checksum_filepath
 from pulp_ostree.app.tasks.stages import OstreeAssociateContent, DeclarativeContentCreatorMixin
 
 import gi
@@ -44,7 +44,8 @@ def import_all_refs_and_commits(artifact_pk, repository_pk, repository_name):
     """
     tarball_artifact = Artifact.objects.get(pk=artifact_pk)
     repository = Repository.objects.get(pk=repository_pk)
-    first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name)
+    compute_delta = repository.cast().compute_delta
+    first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name, compute_delta)
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
     return dv.create()
 
@@ -64,7 +65,10 @@ def import_child_commits(artifact_pk, repository_pk, repository_name, ref):
     """
     tarball_artifact = Artifact.objects.get(pk=artifact_pk)
     repository = Repository.objects.get(pk=repository_pk)
-    first_stage = OstreeImportSingleRefFirstStage(tarball_artifact, repository_name, ref)
+    compute_delta = repository.cast().compute_delta
+    first_stage = OstreeImportSingleRefFirstStage(
+        tarball_artifact, repository_name, ref, compute_delta
+    )
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
     return dv.create()
 
@@ -153,6 +157,19 @@ class OstreeSingleRefParserMixin:
 
         await self.submit_previous_commits_and_related_objects()
 
+    async def copy_from_storage_to_tmp(self, parent_commit, objs):
+        file_path = os.path.join(self.repo_path, parent_commit.relative_path)
+        commit_file = await sync_to_async(parent_commit._artifacts.get)()
+        copy_to_local_storage(commit_file.file, file_path)
+
+        objs = await sync_to_async(list)(objs.all())
+        for obj in objs:
+            file_path = os.path.join(self.repo_path, obj.relative_path)
+            # TODO: handle missing artifacts, if any (attached to on_demand syncing);
+            #   usually, imported repositories contain all the content
+            obj_file = await sync_to_async(obj._artifacts.get)()
+            copy_to_local_storage(obj_file.file, file_path)
+
 
 class OstreeImportStage(Stage):
     """A stage generalizing the common methods for initializing an OSTree repository."""
@@ -187,11 +204,12 @@ class OstreeImportSingleRefFirstStage(
 ):
     """A first stage of the OSTree importing pipeline that appends child commits to a repository."""
 
-    def __init__(self, tarball_artifact, repo_name, ref):
+    def __init__(self, tarball_artifact, repo_name, ref, compute_delta):
         """Initialize class variables used for parsing OSTree objects."""
         super().__init__(repo_name)
         self.tarball_artifact = tarball_artifact
         self.ref = ref
+        self.compute_delta = compute_delta
 
         self.create_object_dc_func = self.create_dc
 
@@ -220,6 +238,8 @@ class OstreeImportSingleRefFirstStage(
                         )
                     )
 
+                parent_commit = None
+
                 try:
                     parent_commit = await sync_to_async(OstreeCommit.objects.get)(
                         checksum=parent_checksum
@@ -233,6 +253,21 @@ class OstreeImportSingleRefFirstStage(
 
                 await self.submit_previous_commits_and_related_objects()
 
+                if self.compute_delta:
+                    num_of_parsed_commits = len(self.commit_dcs)
+
+                    # ensure there are at least two commits we can compute the static delta between.
+                    if parent_commit and num_of_parsed_commits == 1:
+                        await self.copy_from_storage_to_tmp(parent_commit, parent_commit.objs)
+                        await self.compute_static_delta(ref_commit_checksum, parent_commit.checksum)
+                    elif num_of_parsed_commits >= 2:
+                        # the latest 2 commits are already present in the temporary repo; so,
+                        # there is no need to copy files from the storage
+                        ref_parent_commit_checksum = self.commit_dcs[1].content.checksum
+                        await self.compute_static_delta(
+                            ref_commit_checksum, ref_parent_commit_checksum
+                        )
+
                 await pb.aincrement()
 
             await self.submit_ref_objects()
@@ -243,10 +278,11 @@ class OstreeImportAllRefsFirstStage(
 ):
     """A first stage of the OSTree importing pipeline that handles creation of content units."""
 
-    def __init__(self, tarball_artifact, repo_name):
+    def __init__(self, tarball_artifact, repo_name, compute_delta):
         """Initialize class variables used for parsing OSTree objects."""
         super().__init__(repo_name)
         self.tarball_artifact = tarball_artifact
+        self.compute_delta = compute_delta
 
         self.create_object_dc_func = self.create_dc
 
@@ -263,7 +299,29 @@ class OstreeImportAllRefsFirstStage(
 
                 _, refs = self.repo.list_refs()
                 for name, ref_commit_checksum in refs.items():
-                    await self.parse_ref(name, ref_commit_checksum)
+                    parsed_result = await self.parse_ref(name, ref_commit_checksum)
+
+                    if parsed_result is None:
+                        continue
+
+                    if self.compute_delta:
+                        num_of_parsed_commits = len(self.commit_dcs)
+
+                        parent_commit = await sync_to_async(OstreeCommit.objects.get)(
+                            checksum=ref_commit_checksum
+                        ).parent_commit
+                        if parent_commit and num_of_parsed_commits == 1:
+                            await self.copy_from_storage_to_tmp(parent_commit, parent_commit.objs)
+                            await self.compute_static_delta(
+                                ref_commit_checksum, parent_commit.checksum
+                            )
+                        elif num_of_parsed_commits >= 2:
+                            # the latest 2 commits are already present in the temporary repo; so,
+                            # there is no need to copy files from the storage
+                            ref_parent_commit_checksum = self.commit_dcs[1].content.checksum
+                            await self.compute_static_delta(
+                                ref_commit_checksum, ref_parent_commit_checksum
+                            )
 
                 await pb.aincrement()
 

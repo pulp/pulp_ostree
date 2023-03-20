@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 import unittest
 
+from urllib.parse import urljoin
 from pathlib import Path
 
 from pulp_smash import config, api
@@ -152,8 +153,8 @@ class ImportCommitTestCase(unittest.TestCase):
         sample_file1.touch()
 
         # 2. initialize a local OSTree repository and commit the created file
-        subprocess.run(["ostree", f"--repo={self.repo_name1}", "init", "--mode=archive"])
-        subprocess.run(
+        subprocess.check_output(["ostree", f"--repo={self.repo_name1}", "init", "--mode=archive"])
+        subprocess.check_output(
             ["ostree", f"--repo={self.repo_name1}", "commit", "--branch=foo", f"{sample_dir1}/"]
         )
         with open(f"{self.repo_name1}/refs/heads/foo", "r") as ref:
@@ -167,7 +168,7 @@ class ImportCommitTestCase(unittest.TestCase):
         shutil.rmtree(self.repo_name1)
 
         # 4. initialize a second OSTree repository and commit the created file
-        subprocess.run(["ostree", f"--repo={self.repo_name1}", "init", "--mode=archive"])
+        subprocess.check_output(["ostree", f"--repo={self.repo_name1}", "init", "--mode=archive"])
 
         sample_dir2.mkdir()
         self.addCleanup(shutil.rmtree, sample_dir2)
@@ -177,7 +178,7 @@ class ImportCommitTestCase(unittest.TestCase):
             sample_file2 = sample_dir2 / Path(utils.uuid4())
             sample_file2.touch()
 
-            subprocess.run(
+            subprocess.check_output(
                 [
                     "ostree",
                     f"--repo={self.repo_name1}",
@@ -195,6 +196,27 @@ class ImportCommitTestCase(unittest.TestCase):
         subprocess.run(["tar", "-cvf", f"{self.repo_name1}2.tar", f"{self.repo_name1}/"])
         self.addCleanup(os.unlink, f"{self.repo_name1}2.tar")
         self.commit_repo2_artifact = gen_artifact(f"{self.repo_name1}2.tar")
+
+        # the latest parent commit is not accessible to this repository since it was removed;
+        # therefore, we need to unpack the old repository into the new one to mimic the
+        # behaviour that should occur in a real repository when computing static deltas
+        subprocess.run(["tar", "-xvf", f"{self.repo_name1}1.tar", f"{self.repo_name1}/"])
+        subprocess.check_output(
+            [
+                "ostree",
+                f"--repo={self.repo_name1}",
+                "static-delta",
+                "generate",
+                f"--from={commits_to_check[-2]}",
+                f"--to={commits_to_check[-1]}",
+            ]
+        )
+
+        deltas_paths = []
+        for dirpath, dirnames, filenames in os.walk(os.path.join(self.repo_name1, "deltas/")):
+            for filename in filenames:
+                full_path = os.path.join(dirpath, filename)
+                deltas_paths.append(os.path.relpath(full_path, self.repo_name1))
 
         shutil.rmtree(self.repo_name1)
 
@@ -250,6 +272,13 @@ class ImportCommitTestCase(unittest.TestCase):
         remote_name = init_local_repo_with_remote(self.repo_name2, ostree_repo_path)
         self.addCleanup(shutil.rmtree, Path(self.repo_name2))
         validate_repo_integrity(self.repo_name2, f"{remote_name}:foo", set(commits_to_check))
+
+        # 12. check if static deltas are being published
+        for delta_path in deltas_paths:
+            response = self.client.using_handler(api.echo_handler).get(
+                urljoin(ostree_repo_path, delta_path)
+            )
+            self.assertEqual(response.status_code, 200)
 
     def test_version_removal(self):
         """Test the repository version removal functionality by removing two adjacent versions."""
