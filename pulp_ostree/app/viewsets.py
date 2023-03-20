@@ -237,6 +237,14 @@ class OstreeObjectViewSet(ReadOnlyContentViewSet):
     filterset_class = OstreeObjectFilter
 
 
+class OstreeContentViewSet(ReadOnlyContentViewSet):
+    """A ViewSet class for uncategorized content units (e.g., static deltas)."""
+
+    endpoint_name = "content"
+    queryset = models.OstreeContent.objects.all()
+    serializer_class = serializers.OstreeContentSerializer
+
+
 class OstreeConfigViewSet(ReadOnlyContentViewSet):
     """A ViewSet class for OSTree repository configurations."""
 
