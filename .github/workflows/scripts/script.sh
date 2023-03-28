@@ -8,11 +8,11 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
+set -mveuo pipefail
+
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 REPO_ROOT="$PWD"
-
-set -mveuo pipefail
 
 source .github/workflows/scripts/utils.sh
 
@@ -44,21 +44,16 @@ if [[ "$TEST" = "docs" ]]; then
   exit
 fi
 
+REPORTED_STATUS="$(pulp status)"
+
 if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  STATUS_ENDPOINT="${PULP_URL}${PULP_API_ROOT}api/v3/status/"
-  echo $STATUS_ENDPOINT
-  REPORTED_VERSION=$(http $STATUS_ENDPOINT | jq --arg plugin ostree --arg legacy_plugin pulp_ostree -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  REPORTED_VERSION="$(echo $REPORTED_STATUS | jq --arg plugin ostree --arg legacy_plugin pulp_ostree -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')"
   response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ostree/$REPORTED_VERSION/)
   if [ "$response" == "200" ];
   then
     echo "pulp_ostree $REPORTED_VERSION has already been released. Skipping running tests."
     exit
   fi
-fi
-
-if [[ "$TEST" == "plugin-from-pypi" ]]; then
-  COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ostree/json | jq -r '.info.version')
-  git checkout ${COMPONENT_VERSION} -- pulp_ostree/tests/
 fi
 
 echo "machine pulp
@@ -68,20 +63,19 @@ password password
 # Some commands like ansible-galaxy specifically require 600
 cmd_user_stdin_prefix bash -c "chmod 600 ~pulp/.netrc"
 
+cd ../pulp-openapi-generator
+for item in $(echo "$REPORTED_STATUS" | jq -r '.versions[].package|sub("-"; "_")')
+do
+./generate.sh "${item}" python
+cmd_prefix pip3 install "/root/pulp-openapi-generator/${item}-client"
+sudo rm -rf "./${item}-client"
+done
+
+cd $REPO_ROOT
+
 cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
 cat functest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/functest_requirements.txt"
-cmd_prefix pip3 install -r /tmp/unittest_requirements.txt
-cmd_prefix pip3 install -r /tmp/functest_requirements.txt
-cmd_prefix pip3 install --upgrade ../pulp-smash
-
-cd ../pulp-openapi-generator
-./generate.sh pulp_ostree python
-cmd_prefix pip3 install /root/pulp-openapi-generator/pulp_ostree-client
-sudo rm -rf ./pulp_ostree-client
-./generate.sh pulpcore python
-cmd_prefix pip3 install /root/pulp-openapi-generator/pulpcore-client
-sudo rm -rf ./pulpcore-client
-cd $REPO_ROOT
+cmd_prefix pip3 install -r /tmp/unittest_requirements.txt -r /tmp/functest_requirements.txt
 
 CERTIFI=$(cmd_prefix python3 -c 'import certifi; print(certifi.where())')
 cmd_prefix bash -c "cat /etc/pulp/certs/pulp_webserver.crt  | tee -a "$CERTIFI" > /dev/null"
@@ -112,10 +106,16 @@ else
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m 'not parallel' --nightly"
 
     
+        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m 'from_pulpcore_for_all_plugins and parallel' -n  8 --nightly"
+        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m 'from_pulpcore_for_all_plugins and not parallel'  --nightly"
+    
     else
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ostree.tests.functional -m parallel -n 8"
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m 'not parallel'"
 
+    
+        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m 'from_pulpcore_for_all_plugins and parallel' -n  8"
+        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m 'from_pulpcore_for_all_plugins and not parallel'"
     
     fi
 

@@ -18,55 +18,38 @@ source .github/workflows/scripts/utils.sh
 export PULP_API_ROOT="/pulp/"
 
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
+  cd ..
+  git clone https://github.com/pulp/pulpcore.git
+  cd -
   pip install -r ../pulpcore/doc_requirements.txt
   pip install -r doc_requirements.txt
 fi
 
 cd .ci/ansible/
 
-TAG=ci_build
-PULPCORE=./pulpcore
-if [[ "$TEST" == "plugin-from-pypi" ]]; then
-  PLUGIN_NAME=pulp_ostree
-elif [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
+if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
   PLUGIN_NAME=./pulp_ostree/dist/pulp_ostree-$PLUGIN_VERSION-py3-none-any.whl
 else
   PLUGIN_NAME=./pulp_ostree
 fi
-if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  # Install the plugin only and use published PyPI packages for the rest
-  # Quoting ${TAG} ensures Ansible casts the tag as a string.
-  cat >> vars/main.yaml << VARSYAML
+cat >> vars/main.yaml << VARSYAML
 image:
   name: pulp
-  tag: "${TAG}"
-plugins:
-  - name: pulpcore
-    source: pulpcore>=3.20.0,<3.25
-  - name: pulp_ostree
-    source:  "${PLUGIN_NAME}"
-  - name: pulp-smash
-    source: ./pulp-smash
-VARSYAML
-else
-  cat >> vars/main.yaml << VARSYAML
-image:
-  name: pulp
-  tag: "${TAG}"
+  tag: "ci_build"
 plugins:
   - name: pulp_ostree
     source: "${PLUGIN_NAME}"
-  - name: pulpcore
-    source: "${PULPCORE}"
-  - name: pulp-smash
-    source: ./pulp-smash
+VARSYAML
+if [[ -f ../../ci_requirements.txt ]]; then
+  cat >> vars/main.yaml << VARSYAML
+    ci_requirements: true
 VARSYAML
 fi
 
 cat >> vars/main.yaml << VARSYAML
 services:
   - name: pulp
-    image: "pulp:${TAG}"
+    image: "pulp:ci_build"
     volumes:
       - ./settings:/etc/pulp
       - ./ssh:/keys/
@@ -84,10 +67,6 @@ pulp_container_tag: https
 
 VARSYAML
 
-if [ "$TEST" = "upgrade" ]; then
-  sed -i "/^pulp_container_tag:.*/s//pulp_container_tag: upgrade-https/" vars/main.yaml
-fi
-
 if [ "$TEST" = "s3" ]; then
   export MINIO_ACCESS_KEY=AKIAIT2Z5TDYPX3ARJBA
   export MINIO_SECRET_KEY=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
@@ -100,7 +79,9 @@ if [ "$TEST" = "s3" ]; then
     command: "server /data"' vars/main.yaml
   sed -i -e '$a s3_test: true\
 minio_access_key: "'$MINIO_ACCESS_KEY'"\
-minio_secret_key: "'$MINIO_SECRET_KEY'"' vars/main.yaml
+minio_secret_key: "'$MINIO_SECRET_KEY'"\
+pulp_scenario_settings: null\
+' vars/main.yaml
   export PULP_API_ROOT="/rerouted/djnd/"
 fi
 
@@ -117,7 +98,9 @@ if [ "$TEST" = "azure" ]; then
     volumes:\
       - ./azurite:/etc/pulp\
     command: "azurite-blob --blobHost 0.0.0.0 --cert /etc/pulp/azcert.pem --key /etc/pulp/azkey.pem"' vars/main.yaml
-  sed -i -e '$a azure_test: true' vars/main.yaml
+  sed -i -e '$a azure_test: true\
+pulp_scenario_settings: null\
+' vars/main.yaml
 fi
 
 echo "PULP_API_ROOT=${PULP_API_ROOT}" >> "$GITHUB_ENV"
@@ -126,6 +109,8 @@ if [ "${PULP_API_ROOT:-}" ]; then
   sed -i -e '$a api_root: "'"$PULP_API_ROOT"'"' vars/main.yaml
 fi
 
+pulp config create --base-url https://pulp --api-root "$PULP_API_ROOT"
+
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
 
@@ -133,8 +118,8 @@ ansible-playbook start_container.yaml
 # files will likely be modified on the host by post/pre scripts.
 chmod 777 ~/.config/pulp_smash/
 chmod 666 ~/.config/pulp_smash/settings.json
-sudo chown -R 700:700 ~runner/.config
 
+sudo chown -R 700:700 ~/.config
 echo ::group::SSL
 # Copy pulp CA
 sudo docker cp pulp:/etc/pulp/certs/pulp_webserver.crt /usr/local/share/ca-certificates/pulp_webserver.crt

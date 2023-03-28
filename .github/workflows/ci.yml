@@ -10,28 +10,45 @@ name: Ostree CI
 on: {pull_request: {branches: ['*']}}
 jobs:
 
-
+  ready-to-ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v3
+        with:
+          python-version: "3.8"
+      - name: Install requirements
+        run: pip3 install github
+      - name: Check commit message
+        if: github.event_name == 'pull_request'
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          GITHUB_PULL_REQUEST: ${{ github.event.number }}
+          GITHUB_PULL_REQUEST_BODY: ${{ github.event.pull_request.body }}
+          GITHUB_BRANCH: ${{ github.head_ref }}
+          GITHUB_REPO_SLUG: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
+        run: sh .github/workflows/scripts/check_commit.sh
+      - name: Verify requirements files
+        run: python .ci/scripts/check_requirements.py
 
   lint:
     runs-on: ubuntu-latest
-    
 
     steps:
       - uses: actions/checkout@v3
         with:
-          # by default, it uses a depth of 1
-          # this fetches all history so that we can read each commit
-          fetch-depth: 0
-
+          fetch-depth: 1
       - uses: actions/setup-python@v3
         with:
           python-version: "3.8"
-
-        # lint_requirements contains tools needed for flake8, etc.
+      # lint_requirements contains tools needed for flake8, etc.
       - name: Install requirements
         run: pip3 install -r lint_requirements.txt
-
-      
 
       # run black separately from flake8 to get a diff
       - name: Run black
@@ -69,9 +86,9 @@ jobs:
         env:
           - TEST: pulp
           - TEST: docs
-          - TEST: lowerbounds
           - TEST: azure
           - TEST: s3
+          - TEST: lowerbounds
     outputs:
       deprecations-pulp: ${{ steps.deprecations.outputs.deprecations-pulp }}
       deprecations-azure: ${{ steps.deprecations.outputs.deprecations-azure }}
@@ -81,9 +98,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          # by default, it uses a depth of 1
-          # this fetches all history so that we can read each commit
-          fetch-depth: 0
+          fetch-depth: 1
 
       - uses: actions/setup-python@v3
         with:
@@ -101,7 +116,6 @@ jobs:
           echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
-        
         run: .github/workflows/scripts/before_install.sh
         shell: bash
         env:
@@ -115,7 +129,6 @@ jobs:
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
       - name: Install
-        
         run: .github/workflows/scripts/install.sh
         shell: bash
         env:
@@ -128,13 +141,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
-      - name: Install Python client
-        
-        run: .github/workflows/scripts/install_python_client.sh
-        shell: bash
-
       - name: Before Script
-        
         run: .github/workflows/scripts/before_script.sh
         shell: bash
         env:
@@ -155,7 +162,6 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Script
-        
         run: .github/workflows/scripts/script.sh
         shell: bash
         env:
@@ -198,8 +204,8 @@ jobs:
         if: failure()
         run: |
           echo "${{ needs.test.outputs.deprecations-pulp }}" | base64 -d
-          echo "${{ needs.test.outputs.deprecations-lowerbounds }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-azure }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-s3 }}" | base64 -d
+          echo "${{ needs.test.outputs.deprecations-lowerbounds }}" | base64 -d
 
 
