@@ -99,7 +99,7 @@ cmd_prefix bash -c "cat /etc/pulp/certs/pulp_webserver.crt  | tee -a "$CERTIFI" 
 
 # check for any uncommitted migrations
 echo "Checking for uncommitted migrations..."
-cmd_user_prefix bash -c "django-admin makemigrations --check --dry-run"
+cmd_user_prefix bash -c "django-admin makemigrations ostree --check --dry-run"
 
 # Run unit tests.
 cmd_user_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes -p no:pulpcore --pyargs pulp_ostree.tests.unit"
@@ -137,6 +137,10 @@ else
     fi
 
 fi
+pushd ../pulp-cli-ostree
+pip install -r test_requirements.txt
+pytest -v -m pulp_ostree
+popd
 
 if [ -f $POST_SCRIPT ]; then
   source $POST_SCRIPT

@@ -1,12 +1,4 @@
-coreapi
-django
-djangorestframework
-django-filter
-drf-nested-routers
 plantuml
-pyyaml
 sphinx
-# this is to fix the broken search on the webpage; https://github.com/pulp/pulpcore/issues/3569
-sphinx-rtd-theme<1.2.0
-sphinxcontrib-openapi
+sphinx-rtd-theme
 towncrier
