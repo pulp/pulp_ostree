@@ -24,16 +24,13 @@ def main():
             except ValueError:
                 print(line.strip())
             else:
-                if requirement.name.replace("-", "_") in EXCEPTIONS:
-                    print(line.strip())
+                for spec in requirement.specifier:
+                    if spec.operator == ">=":
+                        min_version = str(spec)[2:]
+                        print(f"{requirement.name}=={min_version}")
+                        break
                 else:
-                    for spec in requirement.specifier:
-                        if spec.operator == ">=":
-                            min_version = str(spec)[2:]
-                            print(f"{requirement.name}=={min_version}")
-                            break
-                    else:
-                        print(line.strip())
+                    print(line.strip())
 
 
 if __name__ == "__main__":
