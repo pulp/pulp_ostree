@@ -17,12 +17,18 @@ source .github/workflows/scripts/utils.sh
 
 export PULP_API_ROOT="/pulp/"
 
-if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
-  cd ..
-  git clone https://github.com/pulp/pulpcore.git
-  cd -
-  pip install -r ../pulpcore/doc_requirements.txt
-  pip install -r doc_requirements.txt
+PIP_REQUIREMENTS=("pulp-cli-ostree")
+if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]
+then
+  PIP_REQUIREMENTS+=("-r" "doc_requirements.txt")
+fi
+
+pip install ${PIP_REQUIREMENTS[*]}
+
+if [[ "$TEST" != "docs" ]]
+then
+  PULP_CLI_VERSION="$(pip freeze | sed -n -e 's/pulp-cli-ostree==//p')"
+  git clone --depth 1 --branch "$PULP_CLI_VERSION" https://github.com/pulp/pulp-cli-ostree.git ../pulp-cli-ostree
 fi
 
 cd .ci/ansible/
@@ -110,7 +116,9 @@ if [ "${PULP_API_ROOT:-}" ]; then
 fi
 
 pulp config create --base-url https://pulp --api-root "$PULP_API_ROOT"
-
+if [[ "$TEST" != "docs" ]]; then
+  cp ~/.config/pulp/cli.toml "${REPO_ROOT}/../pulp-cli-ostree/tests/cli.toml"
+fi
 
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
@@ -119,7 +127,9 @@ ansible-playbook start_container.yaml
 # files will likely be modified on the host by post/pre scripts.
 chmod 777 ~/.config/pulp_smash/
 chmod 666 ~/.config/pulp_smash/settings.json
-
+# Plugins often write to ~/.config/pulp/cli.toml from the host
+chmod 777 ~/.config/pulp
+chmod 666 ~/.config/pulp/cli.toml
 sudo chown -R 700:700 ~/.config
 echo ::group::SSL
 # Copy pulp CA
