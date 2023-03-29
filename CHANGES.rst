@@ -11,6 +11,24 @@ Changelog
 
 .. towncrier release notes start
 
+2.0.0 (2023-03-29)
+==================
+
+Features
+--------
+
+- Added support for third-party storage backends (i.e., S3, Azure).
+  `#172 <https://github.com/pulp/pulp_ostree/issues/172>`_
+- Added support for static deltas. The static deltas are automatically computed for synced and
+  imported repositories. This behaviour is enabled by default. Set ``compute_delta`` to ``False``
+  in a corresponding repository if there is no need to compute the static deltas between the last
+  two commits.
+  `#230 <https://github.com/pulp/pulp_ostree/issues/230>`_
+
+
+----
+
+
 2.0.0a6 (2022-06-24)
 ====================
 
