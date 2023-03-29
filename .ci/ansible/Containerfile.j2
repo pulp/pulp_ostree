@@ -27,7 +27,7 @@ RUN pip3 install
 {%- if item.name == "pulp-certguard" -%}
 {{ " " }}python-dateutil rhsm
 {%- endif -%}
-{{ " " }}{{ item.source }}
+{{ " " }}{{ item.name }}
 {%- if item.ci_requirements | default(false) -%}
 {{ " " }}-r ./{{ item.name }}/ci_requirements.txt
 {%- endif -%}
