@@ -121,8 +121,8 @@ def main():
             # It doesn't prevent incorrect docs being published at root if 2 releases are done close
             # to each other, within PyPI delay. E.g. Release 3.11.0 an then 3.10.1 immediately
             # after.
-            if docs_version >= latest_version:
-                publish_at_root = True
+            # if docs_version >= latest_version:
+            #    publish_at_root = True
             # Post releases should use the x.y.z part of the version string to form a path
             if "post" in branch:
                 branch = ".".join(branch.split(".")[:-1])
