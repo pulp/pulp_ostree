@@ -8,13 +8,6 @@
 from packaging.requirements import Requirement
 
 
-# We install these from source, but it would be really handy if we could test pulpcore
-# compatibility that way too.
-EXCEPTIONS = [
-    "pulpcore",
-]
-
-
 def main():
     """Calculate the lower bound of dependencies where possible."""
     with open("requirements.txt") as req_file:
@@ -26,8 +19,12 @@ def main():
             else:
                 for spec in requirement.specifier:
                     if spec.operator == ">=":
+                        if requirement.name == "pulpcore":
+                            operator = "~="
+                        else:
+                            operator = "=="
                         min_version = str(spec)[2:]
-                        print(f"{requirement.name}=={min_version}")
+                        print(f"{requirement.name}{operator}{min_version}")
                         break
                 else:
                     print(line.strip())
