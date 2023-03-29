@@ -111,6 +111,7 @@ fi
 
 pulp config create --base-url https://pulp --api-root "$PULP_API_ROOT"
 
+
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
 
