@@ -25,7 +25,7 @@ setup(
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
         "Operating System :: POSIX :: Linux",
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Framework :: Django",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
