@@ -178,7 +178,7 @@ class OstreeImportStage(Stage):
         """Initialize class variables that are common for tasks that import OSTree content."""
         super().__init__()
 
-        self.repo_name = repo_name
+        self.repo_name = repo_name.lstrip("/")
         self.repo = None
         self.repo_path = None
 
