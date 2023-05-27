@@ -3,8 +3,6 @@ import tarfile
 
 from gettext import gettext
 
-from asgiref.sync import sync_to_async
-
 from pulpcore.plugin.models import Artifact, Repository, ProgressReport
 from pulpcore.plugin.stages import (
     ArtifactSaver,
@@ -159,15 +157,14 @@ class OstreeSingleRefParserMixin:
 
     async def copy_from_storage_to_tmp(self, parent_commit, objs):
         file_path = os.path.join(self.repo_path, parent_commit.relative_path)
-        commit_file = await sync_to_async(parent_commit._artifacts.get)()
+        commit_file = await parent_commit._artifacts.aget()
         copy_to_local_storage(commit_file.file, file_path)
 
-        objs = await sync_to_async(list)(objs.all())
-        for obj in objs:
+        async for obj in objs.all():
             file_path = os.path.join(self.repo_path, obj.relative_path)
             # TODO: handle missing artifacts, if any (attached to on_demand syncing);
             #   usually, imported repositories contain all the content
-            obj_file = await sync_to_async(obj._artifacts.get)()
+            obj_file = await obj._artifacts.aget()
             copy_to_local_storage(obj_file.file, file_path)
 
 
@@ -241,9 +238,7 @@ class OstreeImportSingleRefFirstStage(
                 parent_commit = None
 
                 try:
-                    parent_commit = await sync_to_async(OstreeCommit.objects.get)(
-                        checksum=parent_checksum
-                    )
+                    parent_commit = await OstreeCommit.objects.aget(checksum=parent_checksum)
                 except OstreeCommit.DoesNotExist:
                     pass
                 else:
@@ -307,7 +302,7 @@ class OstreeImportAllRefsFirstStage(
                     if self.compute_delta:
                         num_of_parsed_commits = len(self.commit_dcs)
 
-                        parent_commit = await sync_to_async(OstreeCommit.objects.get)(
+                        parent_commit = await OstreeCommit.objects.aget(
                             checksum=ref_commit_checksum
                         ).parent_commit
                         if parent_commit and num_of_parsed_commits == 1:
