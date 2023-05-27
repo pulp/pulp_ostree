@@ -99,6 +99,7 @@ class OstreeConfig(Content):
     """A content model for an OSTree repository configuration file."""
 
     TYPE = "config"
+    repo_key_fields = ("relative_path",)
 
     sha256 = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
@@ -112,6 +113,7 @@ class OstreeSummary(Content):
     """A content model for an OSTree summary file."""
 
     TYPE = "summary"
+    repo_key_fields = ("relative_path",)
 
     sha256 = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
