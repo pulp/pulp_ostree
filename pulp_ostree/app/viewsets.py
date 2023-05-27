@@ -43,9 +43,11 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
     def sync(self, request, pk):
         """Dispatch a sync task."""
         repository = self.get_object()
-        serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
+        serializer = RepositorySyncURLSerializer(
+            data=request.data, context={"request": request, "repository_pk": pk}
+        )
         serializer.is_valid(raise_exception=True)
-        remote = serializer.validated_data.get("remote")
+        remote = serializer.validated_data.get("remote", repository.remote)
         mirror = serializer.validated_data.get("mirror")
 
         result = dispatch(

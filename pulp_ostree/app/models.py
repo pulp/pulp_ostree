@@ -147,6 +147,7 @@ class OstreeRepository(Repository):
         OstreeSummary,
         OstreeContent,
     ]
+    REMOTE_TYPES = [OstreeRemote]
 
     compute_delta = models.BooleanField(default=True)
 
