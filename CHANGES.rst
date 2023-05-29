@@ -11,6 +11,30 @@ Changelog
 
 .. towncrier release notes start
 
+2.1.0 (2023-05-28)
+==================
+
+Features
+--------
+
+- Made the plugin compatible with Django 4.2 and pulpcore 3.25.
+  `#258 <https://github.com/pulp/pulp_ostree/issues/258>`_
+
+
+Bugfixes
+--------
+
+- Fixed the path resolution when a user specifies absolute paths when importing repositories.
+  `#226 <https://github.com/pulp/pulp_ostree/issues/226>`_
+- Fixed a bug that disallowed users to pull re-synced content locally.
+  `#257 <https://github.com/pulp/pulp_ostree/issues/257>`_
+- Fixed a bug which prevented users from assigning remotes to repositories in advance.
+  `#262 <https://github.com/pulp/pulp_ostree/issues/262>`_
+
+
+----
+
+
 2.0.0 (2023-03-30)
 ==================
 
