@@ -18,6 +18,7 @@ from pulp_ostree.app.models import (
     OstreeCommit,
     OstreeConfig,
     OstreeObjectType,
+    OstreeSummary,
 )
 from pulp_ostree.app.tasks.utils import copy_to_local_storage, get_checksum_filepath
 from pulp_ostree.app.tasks.stages import OstreeAssociateContent, DeclarativeContentCreatorMixin
@@ -267,6 +268,9 @@ class OstreeImportSingleRefFirstStage(
 
             await self.submit_ref_objects()
 
+            self.repo.regenerate_summary()
+            await self.submit_metafile_object("summary", OstreeSummary())
+
 
 class OstreeImportAllRefsFirstStage(
     DeclarativeContentCreatorMixin, OstreeSingleRefParserMixin, OstreeImportStage
@@ -321,6 +325,9 @@ class OstreeImportAllRefsFirstStage(
                 await pb.aincrement()
 
             await self.submit_ref_objects()
+
+            self.repo.regenerate_summary()
+            await self.submit_metafile_object("summary", OstreeSummary())
 
 
 class OstreeImportDeclarativeVersion(DeclarativeVersion):
