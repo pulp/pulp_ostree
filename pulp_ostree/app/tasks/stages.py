@@ -1,5 +1,6 @@
 import os
-import uuid
+import shutil
+import tempfile
 
 from asgiref.sync import sync_to_async
 
@@ -90,13 +91,13 @@ class DeclarativeContentCreatorMixin:
         """Initialize a new artifact from the passed filepath."""
         filepath = os.path.join(self.repo_path, relative_file_path)
 
-        # this is a hack that prevents the pipeline to remove a temporary file which can be
-        # referenced by multiple content units at the same time; in particular, this means that
-        # one OSTree object (e.g., dirmeta, filez) is referenced by two different commits
-        filepath_copy = filepath + str(uuid.uuid4())
-        os.link(filepath, filepath_copy)
+        # we still need to keep the file in the local repository for further processing
+        with tempfile.NamedTemporaryFile("wb", dir=".", delete=False) as new_file:
+            with open(filepath, mode="rb") as f:
+                shutil.copyfileobj(f, new_file)
+                new_file.flush()
 
-        return Artifact.init_and_validate(filepath_copy)
+        return Artifact.init_and_validate(new_file.name)
 
     async def compute_static_delta(self, ref_commit_checksum, parent_checksum=None):
         if not self.commit_dcs:
