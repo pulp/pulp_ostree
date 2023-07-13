@@ -11,6 +11,19 @@ Changelog
 
 .. towncrier release notes start
 
+2.1.1 (2023-07-12)
+==================
+
+Bugfixes
+--------
+
+- Started re-generating summary files and publishing them during the import.
+  `#269 <https://github.com/pulp/pulp_ostree/issues/269>`_
+
+
+----
+
+
 2.1.0 (2023-05-28)
 ==================
 
