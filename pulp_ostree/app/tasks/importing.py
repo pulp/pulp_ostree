@@ -117,9 +117,17 @@ class OstreeSingleRefParserMixin:
                 # and this state is still considered valid
                 return parent_checksum, ref_commit_dc
             else:
-                raise ValueError(
-                    gettext("The parent commit '{}' could not be loaded").format(parent_checksum)
-                )
+                try:
+                    parent_commit = await OstreeCommit.objects.aget(checksum=parent_checksum)
+                except OstreeCommit.DoesNotExist:
+                    raise ValueError(
+                        gettext("The parent commit '{}' could not be loaded").format(
+                            parent_checksum
+                        )
+                    )
+                else:
+                    await self.copy_from_storage_to_tmp(parent_commit, parent_commit.objs)
+                    _, parent_commit, _ = self.repo.load_commit(parent_checksum)
 
         return await self.load_next_commits(parent_commit, parent_checksum, has_referenced_parent)
 
@@ -323,9 +331,10 @@ class OstreeImportAllRefsFirstStage(
                     if self.compute_delta:
                         num_of_parsed_commits = len(self.commit_dcs)
 
-                        parent_commit = await OstreeCommit.objects.aget(
+                        commit = await OstreeCommit.objects.select_related("parent_commit").aget(
                             checksum=ref_commit_checksum
-                        ).parent_commit
+                        )
+                        parent_commit = commit.parent_commit
                         if parent_commit and num_of_parsed_commits == 1:
                             await self.copy_from_storage_to_tmp(parent_commit, parent_commit.objs)
                             await self.compute_static_delta(
