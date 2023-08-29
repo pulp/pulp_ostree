@@ -3,6 +3,8 @@ import tarfile
 
 from gettext import gettext
 
+from asgiref.sync import sync_to_async
+
 from pulpcore.plugin.models import Artifact, Repository, ProgressReport
 from pulpcore.plugin.stages import (
     ArtifactSaver,
@@ -16,7 +18,9 @@ from pulpcore.plugin.stages import (
 
 from pulp_ostree.app.models import (
     OstreeCommit,
+    OstreeRef,
     OstreeConfig,
+    OstreeObject,
     OstreeObjectType,
     OstreeSummary,
 )
@@ -44,7 +48,9 @@ def import_all_refs_and_commits(artifact_pk, repository_pk, repository_name):
     tarball_artifact = Artifact.objects.get(pk=artifact_pk)
     repository = Repository.objects.get(pk=repository_pk)
     compute_delta = repository.cast().compute_delta
-    first_stage = OstreeImportAllRefsFirstStage(tarball_artifact, repository_name, compute_delta)
+    first_stage = OstreeImportAllRefsFirstStage(
+        tarball_artifact, repository_name, compute_delta, repository
+    )
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
     return dv.create()
 
@@ -224,9 +230,19 @@ class OstreeImportSingleRefFirstStage(
                 _, refs = self.repo.list_refs()
                 for name, ref_commit_checksum in refs.items():
                     if self.ref == name:
-                        parent_checksum, last_commit_dc = await self.parse_ref(
+                        parsed_result = await self.parse_ref(
                             name, ref_commit_checksum, has_referenced_parent=True
                         )
+                        if parsed_result is None:
+                            raise ValueError(
+                                gettext(
+                                    "The provided ref does not exist in the repository yet. "
+                                    "Try importing first the whole repository, then additional "
+                                    "commits."
+                                )
+                            )
+
+                        parent_checksum, last_commit_dc = parsed_result
                         break
 
                 if last_commit_dc is None:
@@ -277,11 +293,12 @@ class OstreeImportAllRefsFirstStage(
 ):
     """A first stage of the OSTree importing pipeline that handles creation of content units."""
 
-    def __init__(self, tarball_artifact, repo_name, compute_delta):
+    def __init__(self, tarball_artifact, repo_name, compute_delta, repository):
         """Initialize class variables used for parsing OSTree objects."""
         super().__init__(repo_name)
         self.tarball_artifact = tarball_artifact
         self.compute_delta = compute_delta
+        self.repository = repository
 
         self.create_object_dc_func = self.create_dc
 
@@ -325,6 +342,17 @@ class OstreeImportAllRefsFirstStage(
                 await pb.aincrement()
 
             await self.submit_ref_objects()
+
+            latest_version = await self.repository.alatest_version()
+            refs = await sync_to_async(latest_version.get_content)(OstreeRef.objects)
+            async for ref in refs:
+                # consider already uploaded refs to correctly regenerate the summary
+                file_path = os.path.join(self.repo_path, "refs", "heads", ref.name)
+                ref_file = await ref._artifacts.aget()
+                copy_to_local_storage(ref_file.file, file_path)
+
+                commit = await OstreeCommit.objects.aget(refs_commit=ref)
+                await self.copy_from_storage_to_tmp(commit, OstreeObject.objects.none())
 
             self.repo.regenerate_summary()
             await self.submit_metafile_object("summary", OstreeSummary())
