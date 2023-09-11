@@ -10,7 +10,7 @@ with open("README.md") as f:
 
 setup(
     name="pulp-ostree",
-    version="2.1.2",
+    version="2.1.3.dev",
     description="OSTree plugin for the Pulp Project",
     long_description=long_description,
     long_description_content_type="text/markdown",
