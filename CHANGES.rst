@@ -11,6 +11,21 @@ Changelog
 
 .. towncrier release notes start
 
+2.1.2 (2023-09-11)
+==================
+
+Bugfixes
+--------
+
+- Fixed a bug that led to ignoring already imported refs in a repository when generating a summary.
+  `#277 <https://github.com/pulp/pulp_ostree/issues/277>`_
+- Made the import facility to accept tarballs with already imported parent commits.
+  `#279 <https://github.com/pulp/pulp_ostree/issues/279>`_
+
+
+----
+
+
 2.1.1 (2023-07-12)
 ==================
 
