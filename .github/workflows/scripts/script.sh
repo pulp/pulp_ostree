@@ -121,9 +121,13 @@ else
     if [[ "$GITHUB_WORKFLOW" == "Ostree Nightly CI/CD" ]] || [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ostree.tests.functional -m parallel -n 8 --nightly"
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m 'not parallel' --nightly"
+
+    
     else
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ostree.tests.functional -m parallel -n 8"
         cmd_user_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ostree.tests.functional -m 'not parallel'"
+
+    
     fi
 
 fi
