@@ -353,9 +353,13 @@ class OstreeImportAllRefsFirstStage(
             await self.submit_ref_objects()
 
             latest_version = await self.repository.alatest_version()
-            refs = await sync_to_async(latest_version.get_content)(OstreeRef.objects)
+
+            # consider and copy already uploaded refs to correctly regenerate the summary; skip
+            # refs there were just added to the repository as new content
+            refs = await sync_to_async(latest_version.get_content(OstreeRef.objects).exclude)(
+                name__in=(dc.content.name for dc in self.refs_dcs)
+            )
             async for ref in refs:
-                # consider already uploaded refs to correctly regenerate the summary
                 file_path = os.path.join(self.repo_path, "refs", "heads", ref.name)
                 ref_file = await ref._artifacts.aget()
                 copy_to_local_storage(ref_file.file, file_path)
