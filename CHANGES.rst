@@ -11,6 +11,19 @@ Changelog
 
 .. towncrier release notes start
 
+2.1.3 (2023-09-18)
+==================
+
+Bugfixes
+--------
+
+- Fixed the procedure of regenerating summaries by using the relevant refs only.
+  `#288 <https://github.com/pulp/pulp_ostree/issues/288>`_
+
+
+----
+
+
 2.1.2 (2023-09-11)
 ==================
 
