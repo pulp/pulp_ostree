@@ -1,1 +1,1 @@
-sudo apt-get install -y ostree
+sudo apt-get install -y ostree libostree-dev
