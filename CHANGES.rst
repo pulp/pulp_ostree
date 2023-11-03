@@ -11,6 +11,32 @@ Changelog
 
 .. towncrier release notes start
 
+2.2.0 (2023-11-03)
+==================
+
+Features
+--------
+
+- Made plugin compatible with pulpcore 3.40.1+.
+  `#303 <https://github.com/pulp/pulp_ostree/issues/303>`_
+
+
+Bugfixes
+--------
+
+- Started re-generating summary files and publishing them during the import.
+  `#269 <https://github.com/pulp/pulp_ostree/issues/269>`_
+- Fixed a bug that led to ignoring already imported refs in a repository when generating a summary.
+  `#277 <https://github.com/pulp/pulp_ostree/issues/277>`_
+- Made the import facility to accept tarballs with already imported parent commits.
+  `#279 <https://github.com/pulp/pulp_ostree/issues/279>`_
+- Fixed the procedure of regenerating summaries by using the relevant refs only.
+  `#288 <https://github.com/pulp/pulp_ostree/issues/288>`_
+
+
+----
+
+
 2.1.3 (2023-09-18)
 ==================
 
