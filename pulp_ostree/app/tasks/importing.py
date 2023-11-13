@@ -10,11 +10,11 @@ from pulpcore.plugin.stages import (
     ArtifactSaver,
     ContentSaver,
     DeclarativeVersion,
-    QueryExistingArtifacts,
     QueryExistingContents,
     ResolveContentFutures,
     Stage,
 )
+from pulpcore.plugin.sync import sync_to_async_iterable
 
 from pulp_ostree.app.models import (
     OstreeCommit,
@@ -371,6 +371,43 @@ class OstreeImportAllRefsFirstStage(
             await self.submit_metafile_object("summary", OstreeSummary())
 
 
+class QueryExistingArtifactsOstree(Stage):
+    """A customized version of the QueryExistingArtifacts stage comparing just sha256 digests."""
+
+    async def run(self):
+        """Compare existing artifacts by leveraging dictionary access."""
+        async for batch in self.batches():
+            artifacts_digests = []
+
+            for d_content in batch:
+                d_artifact = d_content.d_artifacts[0]
+                if d_artifact.artifact._state.adding:
+                    digest_value = d_artifact.artifact.sha256
+                    artifacts_digests.append(digest_value)
+
+            query_params = {
+                "sha256__in": artifacts_digests,
+                "pulp_domain": self.domain,
+            }
+
+            existing_artifacts_qs = Artifact.objects.filter(**query_params)
+            await sync_to_async(existing_artifacts_qs.touch)()
+
+            d = {}
+            async for result in sync_to_async_iterable(existing_artifacts_qs):
+                d[result.sha256] = result
+
+            for d_content in batch:
+                d_artifact = d_content.d_artifacts[0]
+                artifact_digest = d_artifact.artifact.sha256
+                m = d.get(artifact_digest)
+                if m:
+                    d_artifact.artifact = m
+
+            for d_content in batch:
+                await self.put(d_content)
+
+
 class OstreeImportDeclarativeVersion(DeclarativeVersion):
     """A customized DeclarativeVersion class that creates a pipeline for the OSTree import."""
 
@@ -378,7 +415,7 @@ class OstreeImportDeclarativeVersion(DeclarativeVersion):
         """Build a list of stages."""
         pipeline = [
             self.first_stage,
-            QueryExistingArtifacts(),
+            QueryExistingArtifactsOstree(),
             ArtifactSaver(),
             QueryExistingContents(),
             ContentSaver(),
