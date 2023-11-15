@@ -74,7 +74,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           path: pulp_ostree
-          ref: '2.1'
+          ref: '2.2'
           fetch-depth: 0
 
       - name: Run update
@@ -89,10 +89,10 @@ jobs:
           path: pulp_ostree
           committer: pulpbot <pulp-infra@redhat.com>
           author: pulpbot <pulp-infra@redhat.com>
-          title: 'Update CI files for branch 2.1'
+          title: 'Update CI files for branch 2.2'
           body: '[noissue]'
-          branch: 'update-ci/2.1'
-          base: '2.1'
+          branch: 'update-ci/2.2'
+          base: '2.2'
           commit-message: |
             Update CI files
 
