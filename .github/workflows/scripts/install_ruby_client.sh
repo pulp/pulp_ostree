@@ -7,37 +7,26 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
-set -euv
+set -mveuo pipefail
 
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 
+source .github/workflows/scripts/utils.sh
+
 export PULP_URL="${PULP_URL:-https://pulp}"
 
-export REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ostree --arg legacy_plugin pulp_ostree -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
-export DESCRIPTION="$(git describe --all --exact-match `git rev-parse HEAD`)"
-if [[ $DESCRIPTION == 'tags/'$REPORTED_VERSION ]]; then
-  export VERSION=${REPORTED_VERSION}
-else
-  export EPOCH="$(date +%s)"
-  export VERSION=${REPORTED_VERSION}${EPOCH}
-fi
 
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://rubygems.org/gems/pulp_ostree_client/versions/$VERSION)
+REPORTED_STATUS="$(pulp status)"
+REPORTED_VERSION="$(echo "$REPORTED_STATUS" | jq --arg plugin "ostree" -r '.versions[] | select(.component == $plugin) | .version')"
+VERSION="$(echo "$REPORTED_VERSION" | python -c 'from packaging.version import Version; print(Version(input()))')"
 
-if [ "$response" == "200" ];
-then
-  echo "pulp_ostree client $VERSION has already been released. Installing from RubyGems.org."
-  gem install pulp_ostree_client -v $VERSION
-  touch pulp_ostree_client-$VERSION.gem
-  tar cvf ruby-client.tar ./pulp_ostree_client-$VERSION.gem
-  exit
-fi
-
-cd ../pulp-openapi-generator
+pushd ../pulp-openapi-generator
 rm -rf pulp_ostree-client
-./generate.sh pulp_ostree ruby $VERSION
-cd pulp_ostree-client
+./generate.sh pulp_ostree ruby "$VERSION"
+pushd pulp_ostree-client
 gem build pulp_ostree_client
-gem install --both ./pulp_ostree_client-$VERSION.gem
-tar cvf ../../pulp_ostree/ruby-client.tar ./pulp_ostree_client-$VERSION.gem
+gem install --both "./pulp_ostree_client-$VERSION.gem"
+tar cvf ../../pulp_ostree/ostree-ruby-client.tar "./pulp_ostree_client-$VERSION.gem"
+popd
+popd
