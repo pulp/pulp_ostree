@@ -264,7 +264,6 @@ class ImportCommitTestCase(unittest.TestCase):
         distribution_data = OstreeOstreeDistribution(**gen_distribution(repository=repo.pulp_href))
         response = self.distributions_api.create(distribution_data)
         distribution = monitor_task(response.task).created_resources[0]
-        self.addCleanup(self.distributions_api.delete, distribution)
 
         ostree_repo_path = self.distributions_api.read(distribution).base_url
 
@@ -280,6 +279,8 @@ class ImportCommitTestCase(unittest.TestCase):
             )
             self.assertEqual(response.status_code, 200)
 
+        monitor_task(self.distributions_api.delete(distribution).task)
+
     def test_version_removal(self):
         """Test the repository version removal functionality by removing two adjacent versions."""
         self.single_ref_import(1)
@@ -292,7 +293,7 @@ class ImportCommitTestCase(unittest.TestCase):
         monitor_task(response.task)
         with self.assertRaises(requests.HTTPError) as exc:
             self.client.get(repo_version1_href)
-        self.assertEqual(exc.exception.response.status_code, 404, repo_version2_href)
+        self.assertEqual(exc.exception.response.status_code, 404, repo_version1_href)
 
         response = self.versions_api.delete(repo_version2_href)
         monitor_task(response.task)
