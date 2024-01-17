@@ -9,6 +9,7 @@ from pulpcore.client.pulp_ostree import (
     DistributionsOstreeApi,
     RepositoriesOstreeApi,
     RemotesOstreeApi,
+    RepositoriesOstreeVersionsApi,
 )
 
 # Api Bindings fixtures
@@ -39,6 +40,12 @@ def ostree_content_commits_api_client(ostree_client):
 def ostree_repositories_api_client(ostree_client):
     """Fixture that returns an instance of RepositoriesOstreeApi"""
     return RepositoriesOstreeApi(ostree_client)
+
+
+@pytest.fixture(scope="session")
+def ostree_repositories_versions_api_client(ostree_client):
+    """Fixture that returns an instance of RepositoriesOstreeVersionsApi"""
+    return RepositoriesOstreeVersionsApi(ostree_client)
 
 
 @pytest.fixture(scope="session")
@@ -81,12 +88,12 @@ def ostree_remote_factory(ostree_remotes_api_client, gen_object_with_cleanup):
 
 
 @pytest.fixture(scope="class")
-def ostree_distribution_factory(ostree_distribution_factory, gen_object_with_cleanup):
+def ostree_distribution_factory(ostree_distributions_api_client, gen_object_with_cleanup):
     """A factory to generate an ostree Distribution with auto-deletion after the test run."""
 
     def _ostree_distribution_factory(**body):
         data = {"base_path": str(uuid.uuid4()), "name": str(uuid.uuid4())}
         data.update(body)
-        return gen_object_with_cleanup(ostree_distribution_factory, data)
+        return gen_object_with_cleanup(ostree_distributions_api_client, data)
 
     return _ostree_distribution_factory
