@@ -5,7 +5,10 @@ from pulp_ostree.tests.functional.constants import OSTREE_FIXTURE_URL
 from pulpcore.client.pulp_ostree import (
     ApiClient,
     ContentCommitsApi,
+    ContentConfigsApi,
+    ContentObjectsApi,
     ContentRefsApi,
+    ContentSummariesApi,
     DistributionsOstreeApi,
     RepositoriesOstreeApi,
     RemotesOstreeApi,
@@ -34,6 +37,24 @@ def ostree_content_refs_api_client(ostree_client):
 def ostree_content_commits_api_client(ostree_client):
     """Fixture that returns an instance of ContentCommitsApi"""
     return ContentCommitsApi(ostree_client)
+
+
+@pytest.fixture(scope="session")
+def ostree_content_configs_api_client(ostree_client):
+    """Fixture that returns an instance of ContentConfigsApi"""
+    return ContentConfigsApi(ostree_client)
+
+
+@pytest.fixture(scope="session")
+def ostree_content_objects_api_client(ostree_client):
+    """Fixture that returns an instance of ContentObjectsApi"""
+    return ContentObjectsApi(ostree_client)
+
+
+@pytest.fixture(scope="session")
+def ostree_content_summaries_api_client(ostree_client):
+    """Fixture that returns an instance of ContentSummariesApi"""
+    return ContentSummariesApi(ostree_client)
 
 
 @pytest.fixture(scope="session")
@@ -97,3 +118,27 @@ def ostree_distribution_factory(ostree_distributions_api_client, gen_object_with
         return gen_object_with_cleanup(ostree_distributions_api_client, data)
 
     return _ostree_distribution_factory
+
+
+# Utils
+
+
+@pytest.fixture(scope="class")
+def synced_repo_version(
+    ostree_repositories_api_client,
+    ostree_repositories_versions_api_client,
+    ostree_repository_factory,
+    ostree_remote_factory,
+    monitor_task,
+):
+    """
+    Fixture that syncs a Remote ostree Repository,
+    waits until the sync task completes and returns the
+    created repository version object.
+    """
+    repo = ostree_repository_factory()
+    remote = ostree_remote_factory(url=OSTREE_FIXTURE_URL, policy="immediate")
+    result = ostree_repositories_api_client.sync(repo.pulp_href, {"remote": remote.pulp_href})
+    repo_version_href = monitor_task(result.task).created_resources[0]
+    repo = ostree_repositories_api_client.read(repo.pulp_href)
+    return ostree_repositories_versions_api_client.read(repo_version_href), remote, repo
