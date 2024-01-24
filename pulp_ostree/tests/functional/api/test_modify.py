@@ -52,11 +52,11 @@ def test_add_ref_and_commit(
     ostree_distributions_api_client,
     ostree_repositories_api_client,
     ostree_repository_factory,
-    synced_repo_version,
+    sync_repo_version,
     tmp_path,
 ):
     """Copy one commit and one ref from the existing repository."""
-    repo_version1, remote, _ = synced_repo_version
+    repo_version1, remote, _ = sync_repo_version()
     created_refs = ostree_content_refs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
@@ -101,11 +101,11 @@ def test_add_refs_commits(
     ostree_repositories_api_client,
     ostree_repositories_versions_api_client,
     ostree_repository_factory,
-    synced_repo_version,
+    sync_repo_version,
     tmp_path,
 ):
     """Copy multiple refs and commits at once."""
-    repo_version1, remote, _ = synced_repo_version
+    repo_version1, remote, _ = sync_repo_version()
     created_refs = ostree_content_refs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
@@ -157,10 +157,10 @@ def test_copy_whole_repository(
     normalize_content,
     ostree_repositories_api_client,
     ostree_repository_factory,
-    synced_repo_version,
+    sync_repo_version,
 ):
     """Initialize a new repository from the existing repository."""
-    repo_version1, _, repo1 = synced_repo_version
+    repo_version1, _, repo1 = sync_repo_version()
     repo2 = ostree_repository_factory()
     response = ostree_repositories_api_client.modify(
         ostree_ostree_repository_href=repo2.pulp_href,
@@ -184,10 +184,10 @@ def test_remove_ref_and_commit(
     ostree_content_refs_api_client,
     ostree_repositories_api_client,
     ostree_repositories_versions_api_client,
-    synced_repo_version,
+    sync_repo_version,
 ):
     """Remove one ref and one commit at once."""
-    repo_version1, _, repo1 = synced_repo_version
+    repo_version1, _, repo1 = sync_repo_version()
     created_refs = ostree_content_refs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
@@ -256,10 +256,10 @@ def test_add_remove_obj(
     monitor_task,
     ostree_content_objects_api_client,
     ostree_repositories_api_client,
-    synced_repo_version,
+    sync_repo_version,
 ):
     """Try to modify an object (e.g., dirtree, dirmeta, ...) in the existing repository."""
-    repo_version1, _, repo1 = synced_repo_version
+    repo_version1, _, repo1 = sync_repo_version()
     created_objs = ostree_content_objects_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )

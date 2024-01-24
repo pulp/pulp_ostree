@@ -124,7 +124,7 @@ def ostree_distribution_factory(ostree_distributions_api_client, gen_object_with
 
 
 @pytest.fixture(scope="class")
-def synced_repo_version(
+def sync_repo_version(
     ostree_repositories_api_client,
     ostree_repositories_versions_api_client,
     ostree_repository_factory,
@@ -136,9 +136,19 @@ def synced_repo_version(
     waits until the sync task completes and returns the
     created repository version object.
     """
-    repo = ostree_repository_factory()
-    remote = ostree_remote_factory(url=OSTREE_FIXTURE_URL, policy="immediate")
-    result = ostree_repositories_api_client.sync(repo.pulp_href, {"remote": remote.pulp_href})
-    repo_version_href = monitor_task(result.task).created_resources[0]
-    repo = ostree_repositories_api_client.read(repo.pulp_href)
-    return ostree_repositories_versions_api_client.read(repo_version_href), remote, repo
+
+    def _sync_repo_version(repo=None, remote=None, policy="immediate"):
+        if repo is None:
+            repo = ostree_repository_factory()
+        if remote is None:
+            remote = ostree_remote_factory(url=OSTREE_FIXTURE_URL, policy=policy, depth=0)
+        result = ostree_repositories_api_client.sync(repo.pulp_href, {"remote": remote.pulp_href})
+        monitor_task_result = monitor_task(result.task)
+        repo = ostree_repositories_api_client.read(repo.pulp_href)
+        if len(monitor_task_result.created_resources) > 0:
+            repo_version_href = monitor_task_result.created_resources[0]
+        else:
+            repo_version_href = repo.latest_version_href
+        return ostree_repositories_versions_api_client.read(repo_version_href), remote, repo
+
+    return _sync_repo_version
