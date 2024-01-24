@@ -5,11 +5,11 @@ import pytest
 def test_filter_refs(
     ostree_content_refs_api_client,
     ostree_content_commits_api_client,
-    synced_repo_version,
+    sync_repo_version,
 ):
     """Check if refs can be filtered by their names and related commits' checksums."""
     # check by name
-    _, _, repo = synced_repo_version
+    _, _, repo = sync_repo_version()
     refs_stable = ostree_content_refs_api_client.list(
         repository_version_added=repo.latest_version_href, name="stable"
     ).to_dict()
@@ -31,10 +31,10 @@ def test_filter_refs(
 def test_filter_commits(
     ostree_content_refs_api_client,
     ostree_content_commits_api_client,
-    synced_repo_version,
+    sync_repo_version,
 ):
     """Check if commits can be filtered by their checksums."""
-    _, _, repo = synced_repo_version
+    _, _, repo = sync_repo_version()
     refs_rawhide = ostree_content_refs_api_client.list(
         repository_version_added=repo.latest_version_href, name="rawhide"
     ).to_dict()
