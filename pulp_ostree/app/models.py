@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.postgres.fields import ArrayField
 
 from pulpcore.plugin.models import (
+    AutoAddObjPermsMixin,
     Content,
     Remote,
     Repository,
@@ -123,7 +124,7 @@ class OstreeSummary(Content):
         unique_together = [["sha256", "relative_path"]]
 
 
-class OstreeRemote(Remote):
+class OstreeRemote(Remote, AutoAddObjPermsMixin):
     """A remote model for OSTree content."""
 
     TYPE = "ostree"
@@ -134,9 +135,12 @@ class OstreeRemote(Remote):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_ostreeremote", "Can manage roles on ostree remotes"),
+        ]
 
 
-class OstreeRepository(Repository):
+class OstreeRepository(Repository, AutoAddObjPermsMixin):
     """A repository model for OSTree content."""
 
     TYPE = "ostree"
@@ -155,6 +159,13 @@ class OstreeRepository(Repository):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("sync_ostreerepository", "Can start a sync task"),
+            ("modify_ostreerepository", "Can modify content of the repository"),
+            ("manage_roles_ostreerepository", "Can manage roles on ostree repositories"),
+            ("repair_ostreerepository", "Can repair repository versions"),
+            ("import_commits_ostreerepository", "Can import commits into a repository"),
+        ]
 
     def finalize_new_version(self, new_version):
         """Handle repository duplicates."""
@@ -162,10 +173,13 @@ class OstreeRepository(Repository):
         validate_duplicate_content(new_version)
 
 
-class OstreeDistribution(Distribution):
+class OstreeDistribution(Distribution, AutoAddObjPermsMixin):
     """A distribution model for OSTree content."""
 
     TYPE = "ostree"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_ostreedistribution", "Can manage roles on ostree distributions"),
+        ]
