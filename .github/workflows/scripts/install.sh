@@ -80,9 +80,7 @@ cat >> vars/main.yaml << VARSYAML
 pulp_env: {}
 pulp_settings: null
 pulp_scheme: https
-
-pulp_container_tag: "latest"
-
+pulp_default_container: ghcr.io/pulp/pulp-ci-centos:latest
 VARSYAML
 
 if [ "$TEST" = "s3" ]; then
@@ -98,7 +96,7 @@ if [ "$TEST" = "s3" ]; then
   sed -i -e '$a s3_test: true\
 minio_access_key: "'$MINIO_ACCESS_KEY'"\
 minio_secret_key: "'$MINIO_SECRET_KEY'"\
-pulp_scenario_settings: null\
+pulp_scenario_settings: {"domain_enabled": true}\
 pulp_scenario_env: {}\
 ' vars/main.yaml
   export PULP_API_ROOT="/rerouted/djnd/"

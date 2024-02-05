@@ -12,6 +12,8 @@ from pulpcore.plugin.models import (
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_duplicate_content
 
+from pulpcore.plugin.util import get_domain_pk
+
 logger = getLogger(__name__)
 
 
@@ -32,13 +34,14 @@ class OstreeObject(Content):
 
     TYPE = "object"
 
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     typ = models.IntegerField(choices=OstreeObjectType.choices)
     checksum = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = [["checksum", "relative_path"]]
+        unique_together = [["checksum", "relative_path", "_pulp_domain"]]
 
 
 class OstreeCommit(Content):
@@ -46,6 +49,7 @@ class OstreeCommit(Content):
 
     TYPE = "commit"
 
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     parent_commit = models.ForeignKey("self", null=True, blank=True, on_delete=models.CASCADE)
     checksum = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
@@ -53,7 +57,7 @@ class OstreeCommit(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = [["checksum", "relative_path"]]
+        unique_together = [["checksum", "relative_path", "_pulp_domain"]]
 
 
 class OstreeRef(Content):
@@ -62,6 +66,7 @@ class OstreeRef(Content):
     TYPE = "refs"
     repo_key_fields = ("name",)
 
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     commit = models.ForeignKey(
         OstreeCommit, related_name="refs_commit", null=True, on_delete=models.CASCADE
     )
@@ -70,7 +75,7 @@ class OstreeRef(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = [["name", "commit", "relative_path"]]
+        unique_together = [["name", "commit", "relative_path", "_pulp_domain"]]
 
 
 class OstreeCommitObject(models.Model):
@@ -88,12 +93,13 @@ class OstreeContent(Content):
 
     repo_key_fields = ("relative_path",)
 
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     relative_path = models.TextField(null=False)
     digest = models.CharField(max_length=64, null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("relative_path", "digest")
+        unique_together = ("relative_path", "digest", "_pulp_domain")
 
 
 class OstreeConfig(Content):
@@ -102,12 +108,13 @@ class OstreeConfig(Content):
     TYPE = "config"
     repo_key_fields = ("relative_path",)
 
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     sha256 = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = [["sha256", "relative_path"]]
+        unique_together = [["sha256", "relative_path", "_pulp_domain"]]
 
 
 class OstreeSummary(Content):
@@ -116,12 +123,13 @@ class OstreeSummary(Content):
     TYPE = "summary"
     repo_key_fields = ("relative_path",)
 
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     sha256 = models.CharField(max_length=64, db_index=True)
     relative_path = models.TextField(null=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = [["sha256", "relative_path"]]
+        unique_together = [["sha256", "relative_path", "_pulp_domain"]]
 
 
 class OstreeRemote(Remote, AutoAddObjPermsMixin):
