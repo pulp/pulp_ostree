@@ -36,7 +36,7 @@ class DeclarativeContentCreatorMixin:
             if obj_checksum == commit_dc.content.checksum:
                 continue
 
-            obj = OstreeObject(typ=obj_type, checksum=obj_checksum)
+            obj = OstreeObject(typ=obj_type, checksum=obj_checksum, _pulp_domain=self.domain)
             obj_relative_path = get_checksum_filepath(obj_checksum, obj_type)
             object_dc = self.create_object_dc_func(obj_relative_path, obj)
             object_dc.extra_data["commit_relation"] = await commit_dc.resolution()
@@ -44,7 +44,7 @@ class DeclarativeContentCreatorMixin:
 
     def init_ref_object(self, name, relative_path, commit_dc):
         """Initialize a DeclarativeContent object for a ref object."""
-        ref = OstreeRef(name=name)
+        ref = OstreeRef(name=name, _pulp_domain=self.domain)
         ref_dc = self.create_dc(relative_path, ref)
         ref_dc.extra_data["ref_commit"] = commit_dc
         self.refs_dcs.append(ref_dc)
@@ -120,7 +120,11 @@ class DeclarativeContentCreatorMixin:
                 full_path = os.path.join(dirpath, filename)
                 relative_path = os.path.relpath(full_path, self.repo_path)
 
-                content = OstreeContent(relative_path=relative_path, digest=compute_hash(full_path))
+                content = OstreeContent(
+                    relative_path=relative_path,
+                    digest=compute_hash(full_path),
+                    _pulp_domain=self.domain,
+                )
                 content_dc = self.create_dc(relative_path, content)
                 await self.put(content_dc)
 

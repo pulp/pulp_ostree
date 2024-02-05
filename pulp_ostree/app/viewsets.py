@@ -47,20 +47,20 @@ class OstreeRemoteViewSet(core.RemoteViewSet, core.RolesMixin):
                 "action": ["create"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_perms:ostree.add_ostreeremote",
+                "condition": "has_model_or_domain_perms:ostree.add_ostreeremote",
             },
             {
                 "action": ["retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ostree.view_ostreeremote",
+                "condition": "has_model_or_domain_or_obj_perms:ostree.view_ostreeremote",
             },
             {
                 "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.change_ostreeremote",
+                    "has_model_or_domain_or_obj_perms:ostree.change_ostreeremote",
                 ],
             },
             {
@@ -68,14 +68,14 @@ class OstreeRemoteViewSet(core.RemoteViewSet, core.RolesMixin):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.delete_ostreeremote",
+                    "has_model_or_domain_or_obj_perms:ostree.delete_ostreeremote",
                 ],
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": ["has_model_or_obj_perms:ostree.manage_roles_ostreeremote"],
+                "condition": ["has_model_or_domain_or_obj_perms:ostree.manage_roles_ostreeremote"],
             },
         ],
         "creation_hooks": [
@@ -118,22 +118,22 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_perms:ostree.add_ostreerepository",
-                    "has_remote_param_model_or_obj_perms:ostree.view_ostreeremote",
+                    "has_model_or_domain_perms:ostree.add_ostreerepository",
+                    "has_remote_param_model_or_domain_or_obj_perms:ostree.view_ostreeremote",
                 ],
             },
             {
                 "action": ["retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ostree.view_ostreerepository",
+                "condition": "has_model_or_domain_or_obj_perms:ostree.view_ostreerepository",
             },
             {
                 "action": ["destroy"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.delete_ostreerepository",
+                    "has_model_or_domain_or_obj_perms:ostree.delete_ostreerepository",
                 ],
             },
             {
@@ -141,8 +141,8 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.change_ostreerepository",
-                    "has_remote_param_model_or_obj_perms:ostree.view_ostreeremote",
+                    "has_model_or_domain_or_obj_perms:ostree.change_ostreerepository",
+                    "has_remote_param_model_or_domain_or_obj_perms:ostree.view_ostreeremote",
                 ],
             },
             {
@@ -150,9 +150,9 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.sync_ostreerepository",
-                    "has_remote_param_model_or_obj_perms:ostree.view_ostreeremote",
-                    "has_model_or_obj_perms:ostree.view_ostreerepository",
+                    "has_model_or_domain_or_obj_perms:ostree.sync_ostreerepository",
+                    "has_remote_param_model_or_domain_or_obj_perms:ostree.view_ostreeremote",
+                    "has_model_or_domain_or_obj_perms:ostree.view_ostreerepository",
                 ],
             },
             {
@@ -160,8 +160,8 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.import_commits_ostreerepository"
-                    "has_model_or_obj_perms:ostree.view_ostreerepository",
+                    "has_model_or_domain_or_obj_perms:ostree.import_commits_ostreerepository"
+                    "has_model_or_domain_or_obj_perms:ostree.view_ostreerepository",
                 ],
             },
             {
@@ -169,14 +169,16 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.modify_ostreerepository",
+                    "has_model_or_domain_or_obj_perms:ostree.modify_ostreerepository",
                 ],
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": ["has_model_or_obj_perms:ostree.manage_roles_ostreerepository"],
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:ostree.manage_roles_ostreerepository"
+                ],
             },
         ],
         "creation_hooks": [
@@ -351,16 +353,16 @@ class OstreeRepositoryVersionViewSet(core.RepositoryVersionViewSet):
                 "action": ["list", "retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_repository_model_or_obj_perms:ostree.view_ostreerepository",
+                "condition": "has_repository_model_or_domain_or_obj_perms:ostree.view_ostreerepository",  # noqa: E501
             },
             {
                 "action": ["destroy"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_repository_model_or_obj_perms:ostree.delete_ostreerepository",
-                    "has_repository_model_or_obj_perms:ostree.delete_ostreerepository_version",
-                    "has_repository_model_or_obj_perms:ostree.view_ostreerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ostree.delete_ostreerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ostree.delete_ostreerepository_version",  # noqa: E501
+                    "has_repository_model_or_domain_or_obj_perms:ostree.view_ostreerepository",
                 ],
             },
             {
@@ -368,7 +370,7 @@ class OstreeRepositoryVersionViewSet(core.RepositoryVersionViewSet):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_repository_model_or_obj_perms:ostree.repair_ostreerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ostree.repair_ostreerepository",
                 ],
             },
         ],
@@ -395,25 +397,27 @@ class OstreeDistributionViewSet(core.DistributionViewSet, core.RolesMixin):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_perms:ostree.add_ostreedistribution",
-                    "has_repo_or_repo_ver_param_model_or_obj_perms:" "ostree.view_ostreerepository",
-                    "has_publication_param_model_or_obj_perms:ostree.view_ostreepublication",
+                    "has_model_or_domain_perms:ostree.add_ostreedistribution",
+                    "has_repo_or_repo_ver_param_model_or_domain_or_obj_perms:"
+                    "ostree.view_ostreerepository",
+                    "has_publication_param_model_or_domain_or_obj_perms:ostree.view_ostreepublication",  # noqa: E501
                 ],
             },
             {
                 "action": ["retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ostree.view_ostreedistribution",
+                "condition": "has_model_or_domain_or_obj_perms:ostree.view_ostreedistribution",
             },
             {
                 "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.change_ostreedistribution",
-                    "has_repo_or_repo_ver_param_model_or_obj_perms:" "ostree.view_ostreerepository",
-                    "has_publication_param_model_or_obj_perms:ostree.view_ostreepublication",
+                    "has_model_or_domain_or_obj_perms:ostree.change_ostreedistribution",
+                    "has_repo_or_repo_ver_param_model_or_domain_or_obj_perms:"
+                    "ostree.view_ostreerepository",
+                    "has_publication_param_model_or_domain_or_obj_perms:ostree.view_ostreepublication",  # noqa: E501
                 ],
             },
             {
@@ -421,14 +425,16 @@ class OstreeDistributionViewSet(core.DistributionViewSet, core.RolesMixin):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ostree.delete_ostreedistribution",
+                    "has_model_or_domain_or_obj_perms:ostree.delete_ostreedistribution",
                 ],
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": ["has_model_or_obj_perms:ostree.manage_roles_ostreedistribution"],
+                "condition": [
+                    "has_model_or_domain_or_obj_perms:ostree.manage_roles_ostreedistribution"
+                ],
             },
         ],
         "creation_hooks": [
@@ -595,7 +601,7 @@ class OstreeContentViewSet(OstreeContentQuerySetMixin, SingleArtifactContentUplo
                 "effect": "allow",
                 "condition": [
                     "has_required_repo_perms_on_upload:ostree.modify_ostreerepository",
-                    "has_upload_param_model_or_obj_perms:core.change_upload",
+                    "has_upload_param_model_or_domain_or_obj_perms:core.change_upload",
                 ],
             },
         ],

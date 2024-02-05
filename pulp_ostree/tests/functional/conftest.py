@@ -89,9 +89,12 @@ def ostree_repository_factory(ostree_repositories_api_client, gen_object_with_cl
     """A factory to generate an ostree Repository with auto-deletion after the test run."""
 
     def _ostree_repository_factory(**kwargs):
+        extra_args = {}
+        if pulp_domain := kwargs.pop("pulp_domain", None):
+            extra_args["pulp_domain"] = pulp_domain
         data = {"name": str(uuid.uuid4())}
         data.update(kwargs)
-        return gen_object_with_cleanup(ostree_repositories_api_client, data)
+        return gen_object_with_cleanup(ostree_repositories_api_client, data, **extra_args)
 
     return _ostree_repository_factory
 
@@ -101,9 +104,12 @@ def ostree_remote_factory(ostree_remotes_api_client, gen_object_with_cleanup):
     """A factory to generate an ostree Remote with auto-deletion after the test run."""
 
     def _ostree_remote_factory(*, url=OSTREE_FIXTURE_URL, policy="immediate", **kwargs):
+        extra_args = {}
+        if pulp_domain := kwargs.pop("pulp_domain", None):
+            extra_args["pulp_domain"] = pulp_domain
         data = {"url": url, "policy": policy, "name": str(uuid.uuid4())}
         data.update(kwargs)
-        return gen_object_with_cleanup(ostree_remotes_api_client, data)
+        return gen_object_with_cleanup(ostree_remotes_api_client, data, **extra_args)
 
     return _ostree_remote_factory
 
@@ -113,9 +119,12 @@ def ostree_distribution_factory(ostree_distributions_api_client, gen_object_with
     """A factory to generate an ostree Distribution with auto-deletion after the test run."""
 
     def _ostree_distribution_factory(**body):
+        extra_args = {}
+        if pulp_domain := body.pop("pulp_domain", None):
+            extra_args["pulp_domain"] = pulp_domain
         data = {"base_path": str(uuid.uuid4()), "name": str(uuid.uuid4())}
         data.update(body)
-        return gen_object_with_cleanup(ostree_distributions_api_client, data)
+        return gen_object_with_cleanup(ostree_distributions_api_client, data, **extra_args)
 
     return _ostree_distribution_factory
 
