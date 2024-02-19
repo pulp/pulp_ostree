@@ -11,6 +11,34 @@ Changelog
 
 .. towncrier release notes start
 
+2.3.0 (2024-02-19)
+==================
+
+Features
+--------
+
+- Added support for domains.
+  `#321 <https://github.com/pulp/pulp_ostree/issues/321>`_
+- Added role-based access control.
+  `#331 <https://github.com/pulp/pulp_ostree/issues/331>`_
+
+
+Bugfixes
+--------
+
+- Improved the performance of subsequent imports.
+  `#289 <https://github.com/pulp/pulp_ostree/issues/289>`_
+
+
+Misc
+----
+
+- `#324 <https://github.com/pulp/pulp_ostree/issues/324>`_, `#325 <https://github.com/pulp/pulp_ostree/issues/325>`_, `#326 <https://github.com/pulp/pulp_ostree/issues/326>`_, `#327 <https://github.com/pulp/pulp_ostree/issues/327>`_
+
+
+----
+
+
 2.2.1 (2023-11-16)
 ==================
 
