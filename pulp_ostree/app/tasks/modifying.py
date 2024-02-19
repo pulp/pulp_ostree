@@ -3,6 +3,7 @@ from collections import namedtuple
 from django.db.models import Q
 
 from pulpcore.plugin.models import Repository, RepositoryVersion, Content
+from pulpcore.plugin.util import get_domain
 
 from pulp_ostree.app.models import (
     OstreeCommit,
@@ -69,16 +70,20 @@ def modify_content(repository_pk, add_content_units, remove_content_units, base_
 
 def get_content_data_by_model(model_type, add_content_units, remove_content_units):
     """Return an object that holds a reference to querysets of added and removed content."""
-    to_add = model_type.objects.filter(pk__in=add_content_units)
-    to_remove = model_type.objects.filter(pk__in=remove_content_units)
+    curr_domain = get_domain()
+    to_add = model_type.objects.filter(pk__in=add_content_units, _pulp_domain=curr_domain)
+    to_remove = model_type.objects.filter(pk__in=remove_content_units, _pulp_domain=curr_domain)
     return ModifyContentData(to_add, to_remove)
 
 
 def recursively_get_add_content(commit_data, ref_data):
     """Get all the content required for addition that the passed objects reference."""
+    curr_domain = get_domain()
     ref_commits_pks = ref_data.values_list("commit", flat=True)
 
-    commit_data = commit_data.union(OstreeCommit.objects.filter(pk__in=ref_commits_pks))
+    commit_data = commit_data.union(
+        OstreeCommit.objects.filter(pk__in=ref_commits_pks, _pulp_domain=curr_domain)
+    )
     objects_pks = commit_data.values_list("objs", flat=True)
     commit_data_pks = commit_data.values_list("pk", flat=True)
 
@@ -89,9 +94,12 @@ def recursively_get_add_content(commit_data, ref_data):
 
 def recursively_get_remove_content(commit_data, ref_data, latest_content):
     """Get all the content required for removal that the passed objects reference."""
+    curr_domain = get_domain()
     ref_commits_pks = ref_data.values_list("commit", flat=True)
 
-    commit_data = commit_data.union(OstreeCommit.objects.filter(pk__in=ref_commits_pks))
+    commit_data = commit_data.union(
+        OstreeCommit.objects.filter(pk__in=ref_commits_pks, _pulp_domain=curr_domain)
+    )
     commit_data_pks = commit_data.values_list("pk", flat=True)
 
     # we do not want to get removed objects that are referenced by other commits in the repository
@@ -100,17 +108,17 @@ def recursively_get_remove_content(commit_data, ref_data, latest_content):
     ).values_list("pk", flat=True)
     if remaining_commits_pks:
         remaining_objects_pks = OstreeCommit.objects.filter(
-            ~Q(pk__in=remaining_commits_pks)
+            ~Q(pk__in=remaining_commits_pks), _pulp_domain=curr_domain
         ).values_list("objs", flat=True)
         objects_pks = (
-            OstreeCommit.objects.filter(pk__in=commit_data_pks)
+            OstreeCommit.objects.filter(pk__in=commit_data_pks, _pulp_domain=curr_domain)
             .values_list("objs", flat=True)
             .difference(remaining_objects_pks)
         )
     else:
-        objects_pks = OstreeCommit.objects.filter(pk__in=commit_data_pks).values_list(
-            "objs", flat=True
-        )
+        objects_pks = OstreeCommit.objects.filter(
+            pk__in=commit_data_pks, _pulp_domain=curr_domain
+        ).values_list("objs", flat=True)
 
     return Content.objects.filter(
         Q(pk__in=commit_data_pks) | Q(pk__in=ref_data) | Q(pk__in=objects_pks)

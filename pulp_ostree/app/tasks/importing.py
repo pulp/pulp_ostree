@@ -92,7 +92,7 @@ class OstreeSingleRefParserMixin:
         parent_checksum = OSTree.commit_get_parent(ref_commit)
         if not parent_checksum:
             # there are not any parent commits, return and continue parsing the next ref
-            commit = OstreeCommit(checksum=ref_commit_checksum)
+            commit = OstreeCommit(checksum=ref_commit_checksum, _pulp_domain=self.domain)
             commit_dc = self.create_dc(relative_path, commit)
             await self.put(commit_dc)
 
@@ -103,7 +103,7 @@ class OstreeSingleRefParserMixin:
             return
 
         checksum = ref_commit_checksum
-        ref_commit = OstreeCommit(checksum=checksum)
+        ref_commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
         ref_commit_dc = self.create_dc(relative_path, ref_commit)
         self.commit_dcs.append(ref_commit_dc)
 
@@ -118,7 +118,9 @@ class OstreeSingleRefParserMixin:
                 return parent_checksum, ref_commit_dc
             else:
                 try:
-                    parent_commit = await OstreeCommit.objects.aget(checksum=parent_checksum)
+                    parent_commit = await OstreeCommit.objects.aget(
+                        checksum=parent_checksum, _pulp_domain=self.domain
+                    )
                 except OstreeCommit.DoesNotExist:
                     raise ValueError(
                         gettext("The parent commit '{}' could not be loaded").format(
@@ -138,7 +140,7 @@ class OstreeSingleRefParserMixin:
         parent_checksum = OSTree.commit_get_parent(parent_commit)
 
         while parent_checksum:
-            commit = OstreeCommit(checksum=checksum)
+            commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
             commit_dc = self.create_dc(relative_path, commit)
             self.commit_dcs.append(commit_dc)
 
@@ -161,7 +163,7 @@ class OstreeSingleRefParserMixin:
                     )
             parent_checksum = OSTree.commit_get_parent(parent_commit)
 
-        commit = OstreeCommit(checksum=checksum)
+        commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
         commit_dc = self.create_dc(relative_path, commit)
         self.commit_dcs.append(commit_dc)
 
@@ -263,7 +265,9 @@ class OstreeImportSingleRefFirstStage(
                 parent_commit = None
 
                 try:
-                    parent_commit = await OstreeCommit.objects.aget(checksum=parent_checksum)
+                    parent_commit = await OstreeCommit.objects.aget(
+                        checksum=parent_checksum, _pulp_domain=self.domain
+                    )
                 except OstreeCommit.DoesNotExist:
                     pass
                 else:
@@ -332,7 +336,7 @@ class OstreeImportAllRefsFirstStage(
                         num_of_parsed_commits = len(self.commit_dcs)
 
                         commit = await OstreeCommit.objects.select_related("parent_commit").aget(
-                            checksum=ref_commit_checksum
+                            checksum=ref_commit_checksum, _pulp_domain=self.domain
                         )
                         parent_commit = commit.parent_commit
                         if parent_commit and num_of_parsed_commits == 1:
@@ -364,7 +368,7 @@ class OstreeImportAllRefsFirstStage(
                 ref_file = await ref._artifacts.aget()
                 copy_to_local_storage(ref_file.file, file_path)
 
-                commit = await OstreeCommit.objects.aget(refs_commit=ref)
+                commit = await OstreeCommit.objects.aget(refs_commit=ref, _pulp_domain=self.domain)
                 await self.copy_from_storage_to_tmp(commit, OstreeObject.objects.none())
 
             self.repo.regenerate_summary()

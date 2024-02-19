@@ -119,7 +119,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                 ref_parent_checksum = parent_checksum = OSTree.commit_get_parent(ref_commit)
                 if not parent_checksum or self.remote.depth == 0:
                     # there are not any parent commits, continue parsing the next head branch
-                    commit = OstreeCommit(checksum=ref_commit_checksum)
+                    commit = OstreeCommit(checksum=ref_commit_checksum, _pulp_domain=self.domain)
                     commit_dc = self.create_dc(relative_path, commit)
                     await self.put(commit_dc)
 
@@ -130,7 +130,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                     continue
 
                 checksum = ref_commit_checksum
-                ref_commit = OstreeCommit(checksum=checksum)
+                ref_commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
                 ref_commit_dc = self.create_dc(relative_path, ref_commit)
                 self.commit_dcs.append(ref_commit_dc)
 
@@ -144,7 +144,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
                 max_depth = self.remote.depth
 
                 while parent_checksum and max_depth > 0:
-                    commit = OstreeCommit(checksum=checksum)
+                    commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
                     commit_dc = self.create_dc(relative_path, commit)
                     self.commit_dcs.append(commit_dc)
 
@@ -158,7 +158,7 @@ class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
 
                     max_depth -= 1
 
-                commit = OstreeCommit(checksum=checksum)
+                commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
                 commit_dc = self.create_dc(relative_path, commit)
                 self.commit_dcs.append(commit_dc)
 
