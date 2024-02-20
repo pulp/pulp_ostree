@@ -97,30 +97,3 @@ jobs:
 
             [noissue]
           delete-branch: true
-      - uses: "actions/checkout@v4"
-        with:
-          fetch-depth: 0
-          path: "pulp_ostree"
-          ref: "2.2"
-
-      - name: "Run update"
-        working-directory: "pulp_ostree"
-        run: |
-          ../plugin_template/scripts/update_ci.sh
-
-      - name: "Create Pull Request for CI files"
-        uses: "peter-evans/create-pull-request@v4"
-        with:
-          token: "${{ secrets.RELEASE_TOKEN }}"
-          path: "pulp_ostree"
-          committer: "pulpbot <pulp-infra@redhat.com>"
-          author: "pulpbot <pulp-infra@redhat.com>"
-          title: "Update CI files for branch 2.2"
-          body: ""
-          branch: "update-ci/2.2"
-          base: "2.2"
-          commit-message: |
-            Update CI files
-
-            [noissue]
-          delete-branch: true
