@@ -31,6 +31,7 @@ if [[ "$TEST" = "docs" ]]; then
   if [[ "$GITHUB_WORKFLOW" == "Ostree CI" ]]; then
     towncrier build --yes --version 4.0.0.ci
   fi
+  # Legacy Docs Build
   cd docs
   make PULP_URL="$PULP_URL" diagrams html
   tar -cvf docs.tar ./_build
@@ -130,7 +131,6 @@ cmd_user_prefix bash -c "django-admin makemigrations ostree --check --dry-run"
 
 # Run unit tests.
 cmd_user_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes --suppress-no-test-exit-code -p no:pulpcore --pyargs pulp_ostree.tests.unit"
-
 # Run functional tests
 if [[ "$TEST" == "performance" ]]; then
   if [[ -z ${PERFORMANCE_TEST+x} ]]; then
@@ -155,7 +155,7 @@ else
 fi
 pushd ../pulp-cli-ostree
 pip install -r test_requirements.txt
-pytest -v -m pulp_ostree
+pytest -v -m "pulp_ostree"
 popd
 
 if [ -f "$POST_SCRIPT" ]; then
