@@ -1,4 +1,5 @@
 """Utilities for tests for the ostree plugin."""
+
 import subprocess
 
 from functools import partial

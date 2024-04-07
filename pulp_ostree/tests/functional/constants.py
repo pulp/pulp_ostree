@@ -1,4 +1,5 @@
 """Constants for Pulp Ostree plugin tests."""
+
 from urllib.parse import urljoin
 
 from pulp_smash.constants import PULP_FIXTURES_BASE_URL
