@@ -276,3 +276,77 @@ def test_version_removal(
         )
         response.raise_for_status()
     assert exc.value.response.status_code == 404, repo_version2_href
+
+
+@pytest.mark.parallel
+def test_import_commits_same_ref(
+    artifacts_api_client,
+    gen_object_with_cleanup,
+    monitor_task,
+    ostree_repository_factory,
+    ostree_repositories_api_client,
+    ostree_repositories_versions_api_client,
+    tmp_path,
+):
+    """Import a repository with import-all, then import single commits with import-commits."""
+    os.chdir(tmp_path)
+    repo_name = "repo"
+    sample_dir = tmp_path / str(uuid.uuid4())
+    sample_file1 = sample_dir / str(uuid.uuid4())
+    sample_file2 = sample_dir / str(uuid.uuid4())
+    branch_name = "foo"
+
+    # 1. create a first file
+    sample_dir.mkdir()
+    sample_file1.touch()
+
+    # 2. initialize a local OSTree repository and commit the created file
+    subprocess.run(["ostree", f"--repo={repo_name}", "init", "--mode=archive"])
+    subprocess.run(
+        ["ostree", f"--repo={repo_name}", "commit", f"--branch={branch_name}", f"{sample_dir}/"]
+    )
+    subprocess.run(["tar", "-cvf", f"{repo_name}.tar", f"{repo_name}/"])
+
+    artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name}.tar")
+    repo = ostree_repository_factory(name=repo_name)
+    commit_data = OstreeImportAll(artifact.pulp_href, repo_name)
+    response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
+    repo_version = monitor_task(response.task).created_resources[0]
+
+    repository_version = ostree_repositories_versions_api_client.read(repo_version)
+    added_content = repository_version.content_summary.added
+    assert added_content["ostree.config"]["count"] == 1
+    assert added_content["ostree.summary"]["count"] == 1
+    assert added_content["ostree.refs"]["count"] == 1
+    assert added_content["ostree.commit"]["count"] == 1
+
+    parent_commit = ""
+    with open(f"{repo_name}/refs/heads/{branch_name}", "r") as ref:
+        parent_commit = ref.read().strip()
+
+    # 3. commit a second file
+    sample_file2.touch()
+    subprocess.run(
+        [
+            "ostree",
+            f"--repo={repo_name}",
+            "commit",
+            f"--branch={branch_name}",
+            f"{sample_dir}/",
+            f"--parent={parent_commit}",
+        ]
+    )
+    subprocess.run(["tar", "-cvf", f"{repo_name}.tar", f"{repo_name}/"])
+
+    artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name}.tar")
+
+    add_data = OstreeImportCommitsToRef(artifact.pulp_href, repo_name, branch_name)
+    response = ostree_repositories_api_client.import_commits(repo.pulp_href, add_data)
+    repo_version = monitor_task(response.task).created_resources[0]
+
+    repository_version = ostree_repositories_versions_api_client.read(repo_version)
+    added_content = repository_version.content_summary.added
+    assert added_content["ostree.refs"]["count"] == 1
+    assert added_content["ostree.commit"]["count"] == 1
+    assert added_content["ostree.content"]["count"] == 2
+    assert added_content["ostree.summary"]["count"] == 1
