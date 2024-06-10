@@ -1,0 +1,2 @@
+Fixed an issue with `rpm-ostree` having multiples commits in the same tar file and breaking
+Pulp `import-commits`.

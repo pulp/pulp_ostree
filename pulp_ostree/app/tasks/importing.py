@@ -139,6 +139,9 @@ class OstreeSingleRefParserMixin:
 
         parent_checksum = OSTree.commit_get_parent(parent_commit)
 
+        # keep a reference to the parent's commit checksum
+        first_parent_checksum = parent_checksum
+
         while parent_checksum:
             commit = OstreeCommit(checksum=checksum, _pulp_domain=self.domain)
             commit_dc = self.create_dc(relative_path, commit)
@@ -171,6 +174,8 @@ class OstreeSingleRefParserMixin:
         await self.submit_related_objects(commit_dc)
 
         await self.submit_previous_commits_and_related_objects()
+
+        return first_parent_checksum, commit_dc
 
     async def copy_from_storage_to_tmp(self, parent_commit, objs):
         file_path = os.path.join(self.repo_path, parent_commit.relative_path)
