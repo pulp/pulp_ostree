@@ -21,7 +21,7 @@ from pulp_ostree.tests.functional.utils import (
 
 
 def test_simple_tarball_import(
-    artifacts_api_client,
+    pulpcore_bindings,
     gen_object_with_cleanup,
     monitor_task,
     ostree_distributions_api_client,
@@ -58,7 +58,7 @@ def test_simple_tarball_import(
     subprocess.run(["tar", "-cvf", f"{repo_name1}.tar", f"{repo_name1}/"])
 
     # 6. create an artifact from the tarball
-    artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name1}.tar")
+    artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name1}.tar")
 
     # 7. commit the tarball to a Pulp repository
     repo = ostree_repository_factory()
@@ -92,7 +92,7 @@ def test_single_import_commit(single_ref_import, number_of_commits):
 
 @pytest.fixture
 def single_ref_import(
-    artifacts_api_client,
+    pulpcore_bindings,
     gen_object_with_cleanup,
     http_get,
     monitor_task,
@@ -130,7 +130,9 @@ def single_ref_import(
 
         # 3. create a tarball from the first repository
         subprocess.run(["tar", "-cvf", f"{repo_name1}1.tar", f"{repo_name1}/"])
-        commit_repo1_artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name1}1.tar")
+        commit_repo1_artifact = gen_object_with_cleanup(
+            pulpcore_bindings.ArtifactsApi, f"{repo_name1}1.tar"
+        )
         shutil.rmtree(repo_name1)
 
         # 4. initialize a second OSTree repository and commit the created file
@@ -158,7 +160,9 @@ def single_ref_import(
 
         # 6. create a tarball from the second repository
         subprocess.run(["tar", "-cvf", f"{repo_name1}2.tar", f"{repo_name1}/"])
-        commit_repo2_artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name1}2.tar")
+        commit_repo2_artifact = gen_object_with_cleanup(
+            pulpcore_bindings.ArtifactsApi, f"{repo_name1}2.tar"
+        )
 
         # the latest parent commit is not accessible to this repository since it was removed;
         # therefore, we need to unpack the old repository into the new one to mimic the
@@ -280,7 +284,7 @@ def test_version_removal(
 
 @pytest.mark.parallel
 def test_import_commits_same_ref(
-    artifacts_api_client,
+    pulpcore_bindings,
     gen_object_with_cleanup,
     monitor_task,
     ostree_repository_factory,
@@ -307,7 +311,7 @@ def test_import_commits_same_ref(
     )
     subprocess.run(["tar", "-cvf", f"{repo_name}.tar", f"{repo_name}/"])
 
-    artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name}.tar")
+    artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name}.tar")
     repo = ostree_repository_factory(name=repo_name)
     commit_data = OstreeImportAll(artifact.pulp_href, repo_name)
     response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
@@ -338,7 +342,7 @@ def test_import_commits_same_ref(
     )
     subprocess.run(["tar", "-cvf", f"{repo_name}.tar", f"{repo_name}/"])
 
-    artifact = gen_object_with_cleanup(artifacts_api_client, f"{repo_name}.tar")
+    artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name}.tar")
 
     add_data = OstreeImportCommitsToRef(artifact.pulp_href, repo_name, branch_name)
     response = ostree_repositories_api_client.import_commits(repo.pulp_href, add_data)
