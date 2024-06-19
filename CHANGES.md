@@ -8,6 +8,17 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.3.1 (2024-06-18) {: #2.3.1 }
+
+
+#### Bugfixes {: #2.3.1-bugfix }
+
+- Fixed an issue with `rpm-ostree` having multiples commits in the same tar file and breaking
+  Pulp `import-commits`.
+  [#366](https://github.com/pulp/pulp_ostree/issues/366)
+
+---
+
 ## 2.3.0 (2024-02-19) {: #2.3.0 }
 
 ### Features
