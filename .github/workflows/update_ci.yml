@@ -74,7 +74,7 @@ jobs:
         with:
           fetch-depth: 0
           path: "pulp_ostree"
-          ref: "2.3"
+          ref: "2.4"
 
       - name: "Run update"
         working-directory: "pulp_ostree"
@@ -88,10 +88,10 @@ jobs:
           path: "pulp_ostree"
           committer: "pulpbot <pulp-infra@redhat.com>"
           author: "pulpbot <pulp-infra@redhat.com>"
-          title: "Update CI files for branch 2.3"
+          title: "Update CI files for branch 2.4"
           body: ""
-          branch: "update-ci/2.3"
-          base: "2.3"
+          branch: "update-ci/2.4"
+          base: "2.4"
           commit-message: |
             Update CI files
 
