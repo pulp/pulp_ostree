@@ -160,7 +160,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_domain_or_obj_perms:ostree.import_commits_ostreerepository"
+                    "has_model_or_domain_or_obj_perms:ostree.import_commits_ostreerepository",
                     "has_model_or_domain_or_obj_perms:ostree.view_ostreerepository",
                 ],
             },
