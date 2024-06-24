@@ -350,3 +350,50 @@ def test_import_commits_same_ref(
     assert added_content["ostree.commit"]["count"] == 1
     assert added_content["ostree.content"]["count"] == 2
     assert added_content["ostree.summary"]["count"] == 1
+
+
+@pytest.mark.parallel
+def test_import_all_as_ostree_repo_admin(
+    pulpcore_bindings,
+    gen_user,
+    role_factory,
+    gen_object_with_cleanup,
+    monitor_task,
+    ostree_repository_factory,
+    ostree_repositories_api_client,
+    ostree_repositories_versions_api_client,
+    tmp_path,
+):
+    """Create a role for ostree admin, then import a repository with import-all."""
+
+    os.chdir(tmp_path)
+    repo_name = "repo"
+    sample_dir = tmp_path / str(uuid.uuid4())
+    sample_file1 = sample_dir / str(uuid.uuid4())
+    branch_name = "foo"
+
+    # 1. create a first file
+    sample_dir.mkdir()
+    sample_file1.touch()
+
+    # 2. initialize a local OSTree repository and commit the created file
+    subprocess.run(["ostree", f"--repo={repo_name}", "init", "--mode=archive"])
+    subprocess.run(
+        ["ostree", f"--repo={repo_name}", "commit", f"--branch={branch_name}", f"{sample_dir}/"]
+    )
+    subprocess.run(["tar", "-cvf", f"{repo_name}.tar", f"{repo_name}/"])
+
+    user = gen_user(model_roles=["ostree.ostreerepository_creator"])
+
+    with user:
+        artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name}.tar")
+        repo = ostree_repository_factory(name=repo_name)
+        commit_data = OstreeImportAll(artifact.pulp_href, repo_name)
+        response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
+
+    repo_version = monitor_task(response.task).created_resources[0]
+
+    repository_version = ostree_repositories_versions_api_client.read(repo_version)
+    added_content = repository_version.content_summary.added
+    assert added_content["ostree.refs"]["count"] == 1
+    assert added_content["ostree.commit"]["count"] == 1
