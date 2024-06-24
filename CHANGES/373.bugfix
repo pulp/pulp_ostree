@@ -1,0 +1,1 @@
+Fixed an issue when trying to use import-all as a non-admin user.
