@@ -42,8 +42,7 @@ def import_all_refs_and_commits(artifact_pk, repository_pk, repository_name):
         repository_name (str): The name of an OSTree repository (e.g., "repo").
 
     Raises:
-        ValueError: If an OSTree repository could not be properly parsed or the specified ref
-            does not exist.
+        ValueError: If an OSTree repository could not be properly parsed.
     """
     tarball_artifact = Artifact.objects.get(pk=artifact_pk)
     repository = Repository.objects.get(pk=repository_pk)
