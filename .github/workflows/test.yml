@@ -48,6 +48,19 @@ jobs:
           name: "plugin_package"
           path: "pulp_ostree/dist/"
 
+      - uses: "actions/download-artifact@v4"
+        with:
+          name: "python-client.tar"
+          path: "pulp_ostree"
+
+      - name: "Unpack client packages"
+        working-directory: "pulp-openapi-generator"
+        run: |
+          mkdir -p "pulp_ostree-client"
+          pushd "pulp_ostree-client"
+          tar xvf "../../pulp_ostree/ostree-python-client.tar"
+          popd
+
       - name: "Install python dependencies"
         run: |
           echo ::group::PYDEPS
@@ -94,16 +107,6 @@ jobs:
           GITHUB_CONTEXT: "${{ github.event.pull_request.commits_url }}"
           REDIS_DISABLED: "${{ contains('', matrix.env.TEST) }}"
 
-      - name: "Install Python client"
-        run: |
-          .github/workflows/scripts/install_python_client.sh
-        shell: "bash"
-      - name: "Install Ruby client"
-        if: "${{ env.TEST == 'pulp' }}"
-        run: |
-          .github/workflows/scripts/install_ruby_client.sh
-        shell: "bash"
-
       - name: "Script"
         run: |
           .github/workflows/scripts/script.sh
@@ -123,34 +126,6 @@ jobs:
         with:
           name: "deprecations-${{ matrix.env.TEST }}"
           path: "pulp_ostree/deprecations-${{ matrix.env.TEST }}.txt"
-          if-no-files-found: "error"
-          retention-days: 5
-          overwrite: true
-      - name: Upload python client packages
-        if: ${{ env.TEST == 'pulp' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: "python-client.tar"
-          path: "pulp_ostree/ostree-python-client.tar"
-          if-no-files-found: "error"
-          retention-days: 5
-          overwrite: true
-
-      - name: Upload python client docs
-        if: ${{ env.TEST == 'pulp' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: "python-client-docs.tar"
-          path: "pulp_ostree/ostree-python-client-docs.tar"
-          if-no-files-found: "error"
-          retention-days: 5
-          overwrite: true
-      - name: Upload Ruby client
-        if: ${{ env.TEST == 'pulp' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: "ruby-client.tar"
-          path: "pulp_ostree/ostree-ruby-client.tar"
           if-no-files-found: "error"
           retention-days: 5
           overwrite: true
@@ -175,3 +150,4 @@ jobs:
           docker exec pulp ls -latr /etc/yum.repos.d/ || true
           docker exec pulp cat /etc/yum.repos.d/* || true
           docker exec pulp bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
+...
