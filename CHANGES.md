@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.3.2 (2024-06-26) {: #2.3.2 }
+
+
+#### Bugfixes {: #2.3.2-bugfix }
+
+- Fixed an issue when trying to use import-all as a non-admin user.
+  [#373](https://github.com/pulp/pulp_ostree/issues/373)
+
+---
+
 ## 2.3.1 (2024-06-18) {: #2.3.1 }
 
 
