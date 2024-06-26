@@ -32,6 +32,9 @@ kanban: true
 latest_release_branch: null
 lint_requirements: true
 noissue_marker: '[noissue]'
+os_required_packages:
+  - libgirepository1.0-dev
+  - libostree-dev
 parallel_test_workers: 8
 plugin_app_label: ostree
 plugin_default_branch: main
