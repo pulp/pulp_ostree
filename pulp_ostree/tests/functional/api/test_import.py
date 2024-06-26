@@ -371,7 +371,7 @@ def test_import_all_as_ostree_repo_admin(
     """Create a role for ostree admin, then import a repository with import-all."""
 
     os.chdir(tmp_path)
-    repo_name = "repo"
+    repo_name = str(uuid.uuid4())
     sample_dir = tmp_path / str(uuid.uuid4())
     sample_file1 = sample_dir / str(uuid.uuid4())
     branch_name = "foo"
