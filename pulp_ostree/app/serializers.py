@@ -22,7 +22,9 @@ class OstreeImportAllSerializer(serializers.Serializer):
         help_text=_("An artifact representing OSTree content compressed as a tarball."),
     )
     repository_name = serializers.CharField(
-        help_text=_("The name of a repository that contains the compressed OSTree content.")
+        help_text=_("The name of a repository that contains the compressed OSTree content."),
+        allow_blank=True,
+        default="",
     )
 
     def validate(self, data):
