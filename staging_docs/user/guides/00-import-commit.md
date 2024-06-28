@@ -38,8 +38,9 @@ pulp ostree repository import-all --name fedora-iot --file ${IMAGE_TARBALL_C1} -
 
 !!! note
 
-    The argument `repository_name` describes the name of an OSTree repository that is contained
-    within the tarball. The name of a repository created by `composer-cli` defaults to `repo`.
+    The argument `repository_name` describes the name of a root directory containing the OSTree repository
+    after untarring the tarball. For example, the name of the root directory created by `composer-cli`
+    defaults to `repo`, which contains the repository itself.
 
 
 ## Import more Commits
