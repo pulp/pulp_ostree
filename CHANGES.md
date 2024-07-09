@@ -8,6 +8,13 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.4.3 (2024-07-09) {: #2.4.3 }
+
+
+No significant changes.
+
+---
+
 ## 2.4.2 (2024-07-09) {: #2.4.2 }
 
 
