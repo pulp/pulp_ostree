@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-347-gc4a2504
+# generated with plugin_template@2021.08.26-351-g4e8a1a7
 
 api_root: /pulp/
 black: true
@@ -23,7 +23,6 @@ disabled_redis_runners: []
 doc_requirements_from_pulpcore: false
 docker_fixtures: false
 docs_test: true
-extra_docs_requirements: []
 flake8: true
 flake8_ignore: []
 github_org: pulp
@@ -33,8 +32,8 @@ latest_release_branch: '2.3'
 lint_requirements: true
 noissue_marker: '[noissue]'
 os_required_packages:
-  - libgirepository1.0-dev
-  - libostree-dev
+- libgirepository1.0-dev
+- libostree-dev
 parallel_test_workers: 8
 plugin_app_label: ostree
 plugin_default_branch: main
@@ -44,7 +43,6 @@ plugins:
   name: pulp_ostree
 post_job_template: null
 pre_job_template: null
-publish_docs_to_pulpprojectdotorg: true
 pulp_env: {}
 pulp_env_azure: {}
 pulp_env_gcp: {}
@@ -73,6 +71,4 @@ test_performance: false
 test_reroute: true
 test_s3: true
 use_issue_template: true
-use_legacy_docs: true
-use_unified_docs: true
 
