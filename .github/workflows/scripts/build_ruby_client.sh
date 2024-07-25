@@ -18,15 +18,7 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 pushd ../pulp-openapi-generator
 rm -rf "pulp_ostree-client"
 
-# We need to copy that over to be visible in the container.
-#cp "../pulp_ostree/ostree-api.json" .
-#./gen-client.sh "ostree-api.json" "ostree" ruby "pulp_ostree"
-
-# -------------
-# The generator still needs to have it called api.json at this time...
-cp "../pulp_ostree/api.json" .
-./gen-client.sh "api.json" "ostree" ruby "pulp_ostree"
-# -------------
+./gen-client.sh "../pulp_ostree/ostree-api.json" "ostree" ruby "pulp_ostree"
 
 pushd pulp_ostree-client
 gem build pulp_ostree_client
