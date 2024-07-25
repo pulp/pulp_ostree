@@ -18,9 +18,7 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 pushd ../pulp-openapi-generator
 rm -rf "pulp_ostree-client"
 
-# We need to copy that over to be visible in the container.
-cp "../pulp_ostree/ostree-api.json" .
-./gen-client.sh "ostree-api.json" "ostree" python "pulp_ostree"
+./gen-client.sh "../pulp_ostree/ostree-api.json" "ostree" python "pulp_ostree"
 
 pushd pulp_ostree-client
 python setup.py sdist bdist_wheel --python-tag py3
