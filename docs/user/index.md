@@ -1,4 +1,4 @@
-# Overview
+# Welcome to Pulp OSTree
 
 The Pulp OSTree plugin adds support for managing OSTree repositories. In this section,
 readers will learn more about the concept of mirroring remote repositories and publishing
