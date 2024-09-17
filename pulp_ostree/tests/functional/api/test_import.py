@@ -367,8 +367,12 @@ def test_import_all_as_ostree_repo_admin(
     ostree_repositories_api_client,
     ostree_repositories_versions_api_client,
     tmp_path,
+    has_pulp_plugin,
 ):
     """Create a role for ostree admin, then import a repository with import-all."""
+
+    if has_pulp_plugin("core", min="3.59"):
+        pytest.skip("#402 After pulpcore 3.59 users are not allowed to upload artifacts.")
 
     os.chdir(tmp_path)
     repo_name = str(uuid.uuid4())
