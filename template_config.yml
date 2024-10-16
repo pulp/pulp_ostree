@@ -28,6 +28,7 @@ lint_requirements: true
 os_required_packages:
 - libgirepository1.0-dev
 - libostree-dev
+- libcairo2-dev
 parallel_test_workers: 8
 plugin_app_label: ostree
 plugin_default_branch: main
