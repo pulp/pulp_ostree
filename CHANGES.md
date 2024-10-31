@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.4.4 (2024-10-30) {: #2.4.4 }
+
+#### Bugfixes {: #2.4.4-bugfix }
+
+- Disable the an `import_all` test if pulpcore version is equal or higher than 3.59 given a specific fix in that version.
+  [#403](https://github.com/pulp/pulp_ostree/issues/403)
+
+---
+
 ## 2.4.3 (2024-07-09) {: #2.4.3 }
 
 
