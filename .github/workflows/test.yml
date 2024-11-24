@@ -71,7 +71,7 @@ jobs:
       - name: "Install python dependencies"
         run: |
           echo ::group::PYDEPS
-          pip install towncrier twine wheel httpie docker netaddr boto3 'ansible~=10.3.0' mkdocs jq jsonpatch
+          pip install towncrier twine wheel httpie docker netaddr boto3 'ansible~=10.3.0' mkdocs jq jsonpatch bump-my-version
           echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/pulp_ostree/.ci/assets/httpie/" >> $GITHUB_ENV
           echo ::endgroup::
 
@@ -147,5 +147,5 @@ jobs:
           docker logs pulp || true
           docker exec pulp ls -latr /etc/yum.repos.d/ || true
           docker exec pulp cat /etc/yum.repos.d/* || true
-          docker exec pulp bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
+          docker exec pulp bash -c "pip3 list" || true
 ...
