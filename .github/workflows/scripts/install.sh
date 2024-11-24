@@ -15,7 +15,7 @@ set -euv
 
 source .github/workflows/scripts/utils.sh
 
-PLUGIN_VERSION="$(sed -n -e 's/^\s*current_version\s*=\s*//p' .bumpversion.cfg | python -c 'from packaging.version import Version; print(Version(input()))')"
+PLUGIN_VERSION="$(bump-my-version show current_version | tail -n -1 | python -c 'from packaging.version import Version; print(Version(input()))')"
 PLUGIN_SOURCE="./pulp_ostree/dist/pulp_ostree-${PLUGIN_VERSION}-py3-none-any.whl"
 
 export PULP_API_ROOT="/pulp/"
@@ -156,5 +156,5 @@ if [[ "$TEST" = "azure" ]]; then
 fi
 
 echo ::group::PIP_LIST
-cmd_prefix bash -c "pip3 list && pipdeptree"
+cmd_prefix bash -c "pip3 list"
 echo ::endgroup::
