@@ -28,6 +28,6 @@ then
 fi
 
 twine upload -u __token__ -p "$PYPI_API_TOKEN" \
-"dist/pulp_ostree-$VERSION-py3-none-any.whl" \
-"dist/pulp-ostree-$VERSION.tar.gz" \
+dist/pulp?ostree-"$VERSION"-py3-none-any.whl \
+dist/pulp?ostree-"$VERSION".tar.gz \
 ;
