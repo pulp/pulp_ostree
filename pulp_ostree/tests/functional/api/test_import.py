@@ -62,7 +62,7 @@ def test_simple_tarball_import(
 
     # 7. commit the tarball to a Pulp repository
     repo = ostree_repository_factory()
-    commit_data = OstreeImportAll(artifact.pulp_href, repo_name1)
+    commit_data = OstreeImportAll(artifact=artifact.pulp_href, repository_name=repo_name1)
     response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
     repo_version = monitor_task(response.task).created_resources[0]
 
@@ -189,7 +189,9 @@ def single_ref_import(
 
         # 7. import the first repository
         repo = ostree_repository_factory()
-        commit_data = OstreeImportAll(commit_repo1_artifact.pulp_href, repo_name1)
+        commit_data = OstreeImportAll(
+            artifact=commit_repo1_artifact.pulp_href, repository_name=repo_name1
+        )
         response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
         repo_version = monitor_task(response.task).created_resources[0]
 
@@ -201,7 +203,9 @@ def single_ref_import(
         assert added_content["ostree.object"]["count"] == 3
 
         # 8. import data from the second repository
-        add_data = OstreeImportCommitsToRef(commit_repo2_artifact.pulp_href, repo_name1, "foo")
+        add_data = OstreeImportCommitsToRef(
+            artifact=commit_repo2_artifact.pulp_href, repository_name=repo_name1, ref="foo"
+        )
         response = ostree_repositories_api_client.import_commits(repo.pulp_href, add_data)
         repo_version = monitor_task(response.task).created_resources[0]
 
@@ -313,7 +317,7 @@ def test_import_commits_same_ref(
 
     artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name}.tar")
     repo = ostree_repository_factory(name=repo_name)
-    commit_data = OstreeImportAll(artifact.pulp_href, repo_name)
+    commit_data = OstreeImportAll(artifact=artifact.pulp_href, repository_name=repo_name)
     response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
     repo_version = monitor_task(response.task).created_resources[0]
 
@@ -344,7 +348,9 @@ def test_import_commits_same_ref(
 
     artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name}.tar")
 
-    add_data = OstreeImportCommitsToRef(artifact.pulp_href, repo_name, branch_name)
+    add_data = OstreeImportCommitsToRef(
+        artifact=artifact.pulp_href, repository_name=repo_name, ref=branch_name
+    )
     response = ostree_repositories_api_client.import_commits(repo.pulp_href, add_data)
     repo_version = monitor_task(response.task).created_resources[0]
 
@@ -396,7 +402,7 @@ def test_import_all_as_ostree_repo_admin(
     with user:
         artifact = gen_object_with_cleanup(pulpcore_bindings.ArtifactsApi, f"{repo_name}.tar")
         repo = ostree_repository_factory(name=repo_name)
-        commit_data = OstreeImportAll(artifact.pulp_href, repo_name)
+        commit_data = OstreeImportAll(artifact=artifact.pulp_href, repository_name=repo_name)
         response = ostree_repositories_api_client.import_all(repo.pulp_href, commit_data)
 
     repo_version = monitor_task(response.task).created_resources[0]
