@@ -60,13 +60,13 @@ def test_add_ref_and_commit(
     created_refs = ostree_content_refs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
-    ref = ostree_content_refs_api_client.read(created_refs.to_dict()["results"][0]["pulp_href"])
+    ref = ostree_content_refs_api_client.read(created_refs.results[0].pulp_href)
     latest_commit = ostree_content_commits_api_client.read(ref.commit)
 
     configs = ostree_content_configs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
-    cfg = ostree_content_configs_api_client.read(configs.to_dict()["results"][0]["pulp_href"])
+    cfg = ostree_content_configs_api_client.read(configs.results[0].pulp_href)
 
     repo2 = ostree_repository_factory()
     response = ostree_repositories_api_client.modify(
@@ -109,16 +109,16 @@ def test_add_refs_commits(
     created_refs = ostree_content_refs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
-    ref1 = ostree_content_refs_api_client.read(created_refs.to_dict()["results"][0]["pulp_href"])
+    ref1 = ostree_content_refs_api_client.read(created_refs.results[0].pulp_href)
     latest_commit = ostree_content_commits_api_client.read(ref1.commit)
 
-    ref2 = ostree_content_refs_api_client.read(created_refs.to_dict()["results"][1]["pulp_href"])
+    ref2 = ostree_content_refs_api_client.read(created_refs.results[1].pulp_href)
     another_ref_commit = ostree_content_commits_api_client.read(ref2.commit)
 
     configs = ostree_content_configs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
-    cfg = ostree_content_configs_api_client.read(configs.to_dict()["results"][0]["pulp_href"])
+    cfg = ostree_content_configs_api_client.read(configs.results[0].pulp_href)
 
     repo2 = ostree_repository_factory()
     response = ostree_repositories_api_client.modify(
@@ -191,12 +191,10 @@ def test_remove_ref_and_commit(
     created_refs = ostree_content_refs_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
-    ref = ostree_content_refs_api_client.read(created_refs.to_dict()["results"][0]["pulp_href"])
+    ref = ostree_content_refs_api_client.read(created_refs.results[0].pulp_href)
     latest_commit = ostree_content_commits_api_client.read(ref.commit)
 
-    second_ref = ostree_content_refs_api_client.read(
-        created_refs.to_dict()["results"][1]["pulp_href"]
-    )
+    second_ref = ostree_content_refs_api_client.read(created_refs.results[1].pulp_href)
     second_commit = ostree_content_commits_api_client.read(second_ref.commit)
 
     response = ostree_repositories_api_client.modify(
@@ -222,17 +220,13 @@ def test_remove_ref_and_commit(
     removed_refs = ostree_content_refs_api_client.list(
         repository_version_removed=repo1.latest_version_href
     )
-    removed_ref = ostree_content_refs_api_client.read(
-        removed_refs.to_dict()["results"][0]["pulp_href"]
-    )
+    removed_ref = ostree_content_refs_api_client.read(removed_refs.results[0].pulp_href)
     assert ref == removed_ref
 
     removed_commits = ostree_content_commits_api_client.list(
         repository_version_removed=repo1.latest_version_href
     )
-    removed_commit = ostree_content_commits_api_client.read(
-        removed_commits.to_dict()["results"][0]["pulp_href"]
-    )
+    removed_commit = ostree_content_commits_api_client.read(removed_commits.results[0].pulp_href)
     assert latest_commit == removed_commit
 
     # now, remove the second commit and check whether the referenced objects were removed too
@@ -263,14 +257,14 @@ def test_add_remove_obj(
     created_objs = ostree_content_objects_api_client.list(
         repository_version_added=repo_version1.pulp_href
     )
-    obj = created_objs.to_dict()["results"][0]
+    obj = created_objs.results[0]
 
     version1 = repo1.latest_version_href
 
     # objects should be ignored by the machinery
     response = ostree_repositories_api_client.modify(
         ostree_ostree_repository_href=repo1.pulp_href,
-        repository_add_remove_content={"add_content_units": [obj["pulp_href"]]},
+        repository_add_remove_content={"add_content_units": [obj.pulp_href]},
     )
     monitor_task(response.task)
     repo1 = ostree_repositories_api_client.read(repo1.pulp_href)
@@ -279,7 +273,7 @@ def test_add_remove_obj(
 
     response = ostree_repositories_api_client.modify(
         ostree_ostree_repository_href=repo1.pulp_href,
-        repository_add_remove_content={"remove_content_units": [obj["pulp_href"]]},
+        repository_add_remove_content={"remove_content_units": [obj.pulp_href]},
     )
     monitor_task(response.task)
     repo1 = ostree_repositories_api_client.read(repo1.pulp_href)
