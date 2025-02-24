@@ -5,6 +5,42 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
+[project]
+name = "pulp-ostree"
+version = "2.5.0.dev"
+description = "OSTree plugin for the Pulp Project"
+readme = "README.md"
+authors = [
+  {name="Pulp Project Developers", email="pulp-list@redhat.com"}
+]
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Operating System :: POSIX :: Linux",
+  "Development Status :: 5 - Production/Stable",
+  "Framework :: Django",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "pulpcore>=3.49.0,<3.85",
+  "PyGObject~=3.40.1",
+]
+
+[project.urls]
+Homepage = "https://pulpproject.org"
+Documentation = "https://pulpproject.org/pulp_ostree/"
+Repository = "https://github.com/pulp/pulp_ostree"
+"Bug Tracker" = "https://github.com/pulp/pulp_ostree/issues"
+Changelog = "https://pulpproject.org/pulp_ostree/changes/"
+
+[project.entry-points."pulpcore.plugin"]
+pulp_ostree = "pulp_ostree:default_app_config"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
 [tool.towncrier]
 package = "pulp_ostree"
 filename = "CHANGES.md"
@@ -126,4 +162,8 @@ search = "version = \"{current_version}\""
 replace = "version = \"{new_version}\""
 
 [[tool.bumpversion.files]]
-filename = "./setup.py"
+# This section is managed by the plugin template. Do not edit manually.
+
+filename = "./pyproject.toml"
+search = "version = \"{current_version}\""
+replace = "version = \"{new_version}\""
