@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.4.6 (2025-02-24) {: #2.4.6 }
+
+#### Misc {: #2.4.6-misc }
+
+- [#422](https://github.com/pulp/pulp_ostree/issues/422)
+
+---
+
 ## 2.4.5 (2025-02-06) {: #2.4.5 }
 
 No significant changes.
