@@ -24,7 +24,7 @@ extra_files: []
 flake8: true
 flake8_ignore: []
 github_org: pulp
-latest_release_branch: '2.4'
+latest_release_branch: '2.5'
 lint_requirements: true
 os_required_packages:
 - libgirepository1.0-dev

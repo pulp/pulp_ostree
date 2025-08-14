@@ -1,1 +1,0 @@
-Added flag on template_config.yml to exercise both the new and the legacy django STORAGE settings on CI.

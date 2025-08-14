@@ -1,1 +1,0 @@
-Disable the an `import_all` test if pulpcore version is equal or higher than 3.59 given a specific fix in that version.
