@@ -8,6 +8,25 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.5.0 (2025-08-14) {: #2.5.0 }
+
+#### Bugfixes {: #2.5.0-bugfix }
+
+- Fixed an issue when trying to use import-all as a non-admin user.
+  [#373](https://github.com/pulp/pulp_ostree/issues/373)
+- Disable the an `import_all` test if pulpcore version is equal or higher than 3.59 given a specific fix in that version.
+  [#403](https://github.com/pulp/pulp_ostree/issues/403)
+
+#### Removals {: #2.5.0-removal }
+
+- This release drops support for Python<3.11.
+
+#### Misc {: #2.5.0-misc }
+
+- [#416](https://github.com/pulp/pulp_ostree/issues/416), [#422](https://github.com/pulp/pulp_ostree/issues/422), [#435](https://github.com/pulp/pulp_ostree/issues/435)
+
+---
+
 ## 2.4.8 (2025-04-22) {: #2.4.8 }
 
 No significant changes.
