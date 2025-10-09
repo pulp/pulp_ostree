@@ -107,6 +107,7 @@ ignore = [
     "CHANGES/**",
     "CONTRIBUTING.rst",
     "HISTORY.rst",
+    "ci_requirements.txt",
     "dev_requirements.txt",
     "doc_requirements.txt",
     "docs/**",
