@@ -21,10 +21,10 @@ rm -rf "pulp_ostree-client"
 ./gen-client.sh "../pulp_ostree/ostree-api.json" "ostree" python "pulp_ostree"
 
 pushd pulp_ostree-client
-python setup.py sdist bdist_wheel --python-tag py3
+python -m build
 
 twine check "dist/pulp_ostree_client-"*"-py3-none-any.whl"
-twine check "dist/pulp_ostree-client-"*".tar.gz"
+twine check "dist/pulp_ostree_client-"*".tar.gz"
 
 tar cvf "../../pulp_ostree/ostree-python-client.tar" ./dist
 
