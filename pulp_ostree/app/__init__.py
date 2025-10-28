@@ -6,6 +6,6 @@ class PulpOstreePluginAppConfig(PulpPluginAppConfig):
 
     name = "pulp_ostree.app"
     label = "ostree"
-    version = "2.5.1.dev"
+    version = "2.5.1"
     python_package_name = "pulp-ostree"
     domain_compatible = True
