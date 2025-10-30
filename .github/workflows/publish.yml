@@ -47,10 +47,16 @@ jobs:
       id-token: "write"
 
     steps:
+      - uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 1
+          path: "pulp_ostree"
+
       - name: "Download Python client"
         uses: "actions/download-artifact@v4"
         with:
           name: "python-client.tar"
+          path: "pulp_ostree/"
 
       - name: "Untar python client packages"
         run: |
@@ -58,6 +64,8 @@ jobs:
 
       - name: "Publish client to pypi"
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: "pulp_ostree/dist/"
   publish-ruby-bindings:
     runs-on: "ubuntu-latest"
     needs:
@@ -68,10 +76,16 @@ jobs:
       id-token: "write"
 
     steps:
+      - uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 1
+          path: "pulp_ostree"
+
       - name: "Download Ruby client"
         uses: "actions/download-artifact@v4"
         with:
           name: "ruby-client.tar"
+          path: "pulp_ostree/"
 
       - name: "Untar Ruby client packages"
         run: |
