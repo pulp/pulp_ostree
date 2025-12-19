@@ -15,6 +15,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from pulpcore.plugin.sync import sync_to_async_iterable
+from pulpcore.plugin.serializers import RepositoryVersionSerializer
 
 from pulp_ostree.app.models import (
     OstreeCommit,
@@ -51,7 +52,11 @@ def import_all_refs_and_commits(artifact_pk, repository_pk, repository_name):
         tarball_artifact, repository_name, compute_delta, repository
     )
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
-    return dv.create()
+    repover = dv.create()
+    repover_serialized = RepositoryVersionSerializer(
+        instance=repover, context={"request": None}
+    ).data
+    return repover_serialized
 
 
 def import_child_commits(artifact_pk, repository_pk, repository_name, ref):
@@ -74,7 +79,11 @@ def import_child_commits(artifact_pk, repository_pk, repository_name, ref):
         tarball_artifact, repository_name, ref, compute_delta
     )
     dv = OstreeImportDeclarativeVersion(first_stage, repository)
-    return dv.create()
+    repover = dv.create()
+    repover_serialized = RepositoryVersionSerializer(
+        instance=repover, context={"request": None}
+    ).data
+    return repover_serialized
 
 
 class OstreeSingleRefParserMixin:
