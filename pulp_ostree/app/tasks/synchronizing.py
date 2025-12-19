@@ -20,6 +20,7 @@ from pulpcore.plugin.stages import (
     ResolveContentFutures,
     Stage,
 )
+from pulpcore.plugin.serializers import RepositoryVersionSerializer
 
 from pulp_ostree.app.models import (
     OstreeRemote,
@@ -64,7 +65,11 @@ def synchronize(remote_pk, repository_pk, mirror):
     compute_delta = repository.cast().compute_delta
     first_stage = OstreeFirstStage(remote, deferred_download, compute_delta)
     dv = OstreeSyncDeclarativeVersion(first_stage, repository, mirror=mirror)
-    return dv.create()
+    repover = dv.create()
+    repover_serialized = RepositoryVersionSerializer(
+        instance=repover, context={"request": None}
+    ).data
+    return repover_serialized
 
 
 class OstreeFirstStage(DeclarativeContentCreatorMixin, Stage):
