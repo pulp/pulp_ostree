@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 2.6.0 (2026-01-08) {: #2.6.0 }
+
+#### Features {: #2.6.0-feature }
+
+- Bump pulpcore upperbound to <3.115.
+- Taught synchronize and importing tasks to return full serialized object of their action.
+
+---
+
 ## 2.5.3 (2025-10-30) {: #2.5.3 }
 
 No significant changes.
