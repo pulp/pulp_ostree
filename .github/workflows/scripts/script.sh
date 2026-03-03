@@ -144,7 +144,7 @@ else
 fi
 pushd ../pulp-cli-ostree
 pip install -r test_requirements.txt
-pytest -v -m "pulp_ostree"
+pytest -v tests -m "pulp_ostree"
 popd
 
 if [ -f "$POST_SCRIPT" ]; then
