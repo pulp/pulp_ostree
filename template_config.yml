@@ -2,18 +2,21 @@
 # were not present before running plugin-template have been added with their default values.
 
 # generated with plugin_template
+#
+# After editing this file please always reapply the plugin template before committing any changes.
 
-api_root: /pulp/
+---
+api_root: "/pulp/"
 black: true
 check_commit_message: true
 check_gettext: true
 check_manifest: true
 check_stray_pulpcore_imports: true
-ci_base_image: ghcr.io/pulp/pulp-ci-centos9
+ci_base_image: "ghcr.io/pulp/pulp-ci-centos9"
 ci_env: {}
-ci_trigger: '{pull_request: {branches: [''*'']}}'
-cli_package: pulp-cli-ostree
-cli_repo: https://github.com/pulp/pulp-cli-ostree.git
+ci_trigger: "{pull_request: {branches: ['*']}}"
+cli_package: "pulp-cli-ostree"
+cli_repo: "https://github.com/pulp/pulp-cli-ostree.git"
 core_import_allowed: []
 deploy_client_to_pypi: true
 deploy_client_to_rubygems: true
@@ -23,64 +26,62 @@ docker_fixtures: false
 extra_files: []
 flake8: true
 flake8_ignore: []
-github_org: pulp
-latest_release_branch: '2.6'
+github_org: "pulp"
+latest_release_branch: "2.6"
 lint_requirements: true
 os_required_packages:
-- libgirepository1.0-dev
-- libostree-dev
-- libcairo2-dev
+  - "libgirepository1.0-dev"
+  - "libostree-dev"
+  - "libcairo2-dev"
 parallel_test_workers: 8
-plugin_app_label: ostree
-plugin_default_branch: main
-plugin_name: pulp_ostree
+plugin_app_label: "ostree"
+plugin_default_branch: "main"
+plugin_name: "pulp_ostree"
 plugins:
-- app_label: ostree
-  name: pulp_ostree
-post_job_template: null
-pre_job_template: null
+  - app_label: "ostree"
+    name: "pulp_ostree"
 pulp_env: {}
 pulp_env_azure: {}
 pulp_env_gcp: {}
 pulp_env_s3: {}
-pulp_scheme: https
+pulp_scheme: "https"
 pulp_settings: null
 pulp_settings_azure:
-  MEDIA_ROOT: ''
+  MEDIA_ROOT: ""
   STORAGES:
     default:
-      BACKEND: storages.backends.azure_storage.AzureStorage
+      BACKEND: "storages.backends.azure_storage.AzureStorage"
       OPTIONS:
-        account_key: Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==
-        account_name: devstoreaccount1
-        azure_container: pulp-test
-        connection_string: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ci-azurite:10000/devstoreaccount1;
+        account_key: "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw=="
+        account_name: "devstoreaccount1"
+        azure_container: "pulp-test"
+        connection_string: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ci-azurite:10000/devstoreaccount1;"
         expiration_secs: 120
-        location: pulp3
+        location: "pulp3"
         overwrite_files: true
     staticfiles:
-      BACKEND: django.contrib.staticfiles.storage.StaticFilesStorage
+      BACKEND: "django.contrib.staticfiles.storage.StaticFilesStorage"
 pulp_settings_gcp: null
 pulp_settings_s3:
-  MEDIA_ROOT: ''
+  MEDIA_ROOT: ""
   STORAGES:
     default:
-      BACKEND: storages.backends.s3boto3.S3Boto3Storage
+      BACKEND: "storages.backends.s3boto3.S3Boto3Storage"
       OPTIONS:
-        access_key: AKIAIT2Z5TDYPX3ARJBA
-        addressing_style: path
-        bucket_name: pulp3
-        default_acl: '@none'
-        endpoint_url: http://minio:9000
-        region_name: eu-central-1
-        secret_key: fqRvjWaPU5o0fCqQuUWbj9Fainj2pVZtBCiDiieS
-        signature_version: s3v4
+        access_key: "AKIAIT2Z5TDYPX3ARJBA"
+        addressing_style: "path"
+        bucket_name: "pulp3"
+        default_acl: "@none"
+        endpoint_url: "http://minio:9000"
+        region_name: "eu-central-1"
+        secret_key: "fqRvjWaPU5o0fCqQuUWbj9Fainj2pVZtBCiDiieS"
+        signature_version: "s3v4"
     staticfiles:
-      BACKEND: django.contrib.staticfiles.storage.StaticFilesStorage
+      BACKEND: "django.contrib.staticfiles.storage.StaticFilesStorage"
   domain_enabled: true
 pydocstyle: true
-release_email: pulp-infra@redhat.com
-release_user: pulpbot
+release_email: "pulp-infra@redhat.com"
+release_user: "pulpbot"
 stalebot: true
 stalebot_days_until_close: 30
 stalebot_days_until_stale: 90
@@ -96,4 +97,5 @@ test_performance: false
 test_reroute: true
 test_s3: true
 use_issue_template: true
+...
 
