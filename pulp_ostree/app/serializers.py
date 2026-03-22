@@ -106,12 +106,10 @@ class OstreeObjectSerializer(platform.SingleArtifactContentSerializer):
     """A Serializer class for OSTree objects (e.g., dirtree, dirmeta, file)."""
 
     typ = serializers.IntegerField(
-        help_text=_(
-            """
+        help_text=_("""
             The type of an object. All values are described by the mapping declared at
             https://lazka.github.io/pgi-docs/OSTree-1.0/enums.html#OSTree.ObjectType
-            """
-        ),
+            """),
     )
     checksum = serializers.CharField()
 
@@ -175,25 +173,21 @@ class OstreeRemoteSerializer(platform.RemoteSerializer):
         child=serializers.CharField(max_length=255),
         allow_null=True,
         required=False,
-        help_text=_(
-            """
+        help_text=_("""
             A list of refs to include during a sync.
             The wildcards *, ? are recognized.
             'include_refs' is evaluated before 'exclude_refs'.
-            """
-        ),
+            """),
     )
     exclude_refs = serializers.ListField(
         child=serializers.CharField(max_length=255),
         allow_null=True,
         required=False,
-        help_text=_(
-            """
+        help_text=_("""
             A list of tags to exclude during a sync.
             The wildcards *, ? are recognized.
             'exclude_refs' is evaluated after 'include_refs'.
-            """
-        ),
+            """),
     )
 
     class Meta:
