@@ -24,7 +24,6 @@ from pulpcore.plugin.util import get_objects_for_user
 
 from . import models, serializers, tasks
 
-
 REPO_VIEW_PERM = "ostree.view_ostreerepository"
 
 

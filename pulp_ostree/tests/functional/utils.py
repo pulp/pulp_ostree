@@ -22,7 +22,6 @@ from pulpcore.client.pulpcore import (
 )
 from pulpcore.client.pulp_ostree import ApiClient as OstreeApiClient
 
-
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
 
