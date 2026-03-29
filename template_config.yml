@@ -6,7 +6,6 @@
 # After editing this file please always reapply the plugin template before committing any changes.
 
 ---
-api_root: "/pulp/"
 black: true
 check_commit_message: true
 check_gettext: true
@@ -45,7 +44,8 @@ pulp_env_azure: {}
 pulp_env_gcp: {}
 pulp_env_s3: {}
 pulp_scheme: "https"
-pulp_settings: null
+pulp_settings:
+  api_root: "/pulp/"
 pulp_settings_azure:
   MEDIA_ROOT: ""
   STORAGES:
@@ -78,6 +78,7 @@ pulp_settings_s3:
         signature_version: "s3v4"
     staticfiles:
       BACKEND: "django.contrib.staticfiles.storage.StaticFilesStorage"
+  api_root: "/rerouted/djnd/"
   domain_enabled: true
 pydocstyle: true
 release_email: "pulp-infra@redhat.com"
