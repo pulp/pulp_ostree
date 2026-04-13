@@ -1,4 +1,4 @@
 pulp-smash @ git+https://github.com/pulp/pulp-smash.git
-pytest==7.4.4
+pytest==9.0.3
 pytest-xdist
 pytest-timeout
