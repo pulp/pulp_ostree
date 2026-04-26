@@ -2,6 +2,7 @@ import os
 import shutil
 import tempfile
 
+import gi
 from asgiref.sync import sync_to_async
 
 from pulpcore.plugin.models import Artifact
@@ -13,14 +14,12 @@ from pulpcore.plugin.stages import (
 
 from pulp_ostree.app.models import (
     OstreeCommit,
+    OstreeCommitObject,
     OstreeContent,
     OstreeObject,
     OstreeRef,
-    OstreeCommitObject,
 )
 from pulp_ostree.app.tasks.utils import compute_hash, get_checksum_filepath
-
-import gi
 
 gi.require_version("OSTree", "1.0")
 from gi.repository import GLib, OSTree  # noqa: E402: module level not at top of file

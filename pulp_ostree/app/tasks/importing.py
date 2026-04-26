@@ -1,11 +1,12 @@
 import os
 import tarfile
-
 from gettext import gettext
 
+import gi
 from asgiref.sync import sync_to_async
 
-from pulpcore.plugin.models import Artifact, Repository, ProgressReport
+from pulpcore.plugin.models import Artifact, ProgressReport, Repository
+from pulpcore.plugin.serializers import RepositoryVersionSerializer
 from pulpcore.plugin.stages import (
     ArtifactSaver,
     ContentSaver,
@@ -15,20 +16,17 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from pulpcore.plugin.sync import sync_to_async_iterable
-from pulpcore.plugin.serializers import RepositoryVersionSerializer
 
 from pulp_ostree.app.models import (
     OstreeCommit,
-    OstreeRef,
     OstreeConfig,
     OstreeObject,
     OstreeObjectType,
+    OstreeRef,
     OstreeSummary,
 )
+from pulp_ostree.app.tasks.stages import DeclarativeContentCreatorMixin, OstreeAssociateContent
 from pulp_ostree.app.tasks.utils import copy_to_local_storage, get_checksum_filepath
-from pulp_ostree.app.tasks.stages import OstreeAssociateContent, DeclarativeContentCreatorMixin
-
-import gi
 
 gi.require_version("OSTree", "1.0")
 from gi.repository import Gio, GLib, OSTree  # noqa: E402: module level not at top of file

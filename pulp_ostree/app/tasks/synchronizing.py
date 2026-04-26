@@ -1,38 +1,37 @@
-import os
 import logging
-
+import os
 from fnmatch import fnmatch
 from gettext import gettext as _
 from pathlib import Path
 from urllib.parse import urljoin
 
-from pulpcore.plugin.models import Repository, ProgressReport, Artifact, Remote
+import gi
+
+from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
+from pulpcore.plugin.serializers import RepositoryVersionSerializer
 from pulpcore.plugin.stages import (
-    ArtifactSaver,
     ArtifactDownloader,
+    ArtifactSaver,
     ContentSaver,
-    DeclarativeVersion,
     DeclarativeArtifact,
     DeclarativeContent,
+    DeclarativeVersion,
     QueryExistingArtifacts,
     QueryExistingContents,
     RemoteArtifactSaver,
     ResolveContentFutures,
     Stage,
 )
-from pulpcore.plugin.serializers import RepositoryVersionSerializer
 
 from pulp_ostree.app.models import (
-    OstreeRemote,
-    OstreeObjectType,
     OstreeCommit,
     OstreeConfig,
+    OstreeObjectType,
+    OstreeRemote,
     OstreeSummary,
 )
-from pulp_ostree.app.tasks.stages import OstreeAssociateContent, DeclarativeContentCreatorMixin
-from pulp_ostree.app.tasks.utils import get_checksum_filepath, bytes_to_checksum
-
-import gi
+from pulp_ostree.app.tasks.stages import DeclarativeContentCreatorMixin, OstreeAssociateContent
+from pulp_ostree.app.tasks.utils import bytes_to_checksum, get_checksum_filepath
 
 gi.require_version("OSTree", "1.0")
 from gi.repository import Gio, GLib, OSTree  # noqa: E402: module level not at top of file
