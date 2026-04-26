@@ -4,10 +4,10 @@ from urllib.parse import urljoin
 
 from pulp_smash.constants import PULP_FIXTURES_BASE_URL
 from pulp_smash.pulp3.constants import (
+    BASE_CONTENT_PATH,
     BASE_DISTRIBUTION_PATH,
     BASE_REMOTE_PATH,
     BASE_REPO_PATH,
-    BASE_CONTENT_PATH,
 )
 
 OSTREE_COMMITS_NAME = "ostree.commit"

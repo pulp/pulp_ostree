@@ -2,7 +2,7 @@ from collections import namedtuple
 
 from django.db.models import Q
 
-from pulpcore.plugin.models import Repository, RepositoryVersion, Content
+from pulpcore.plugin.models import Content, Repository, RepositoryVersion
 from pulpcore.plugin.util import get_domain
 
 from pulp_ostree.app.models import (

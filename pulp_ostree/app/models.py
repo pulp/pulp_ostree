@@ -1,17 +1,16 @@
 from logging import getLogger
 
-from django.db import models
 from django.contrib.postgres.fields import ArrayField
+from django.db import models
 
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     Content,
+    Distribution,
     Remote,
     Repository,
-    Distribution,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_duplicate_content
-
 from pulpcore.plugin.util import get_domain_pk
 
 logger = getLogger(__name__)
