@@ -5,15 +5,9 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from rest_framework.serializers import ValidationError
 
-from pulpcore.plugin.viewsets import (
-    ReadOnlyContentViewSet,
-    ContentFilter,
-    NAME_FILTER_OPTIONS,
-    SingleArtifactContentUploadViewSet,
-)
 from pulpcore.plugin import viewsets as core
-from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
+from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryAddRemoveContentSerializer,
@@ -21,6 +15,12 @@ from pulpcore.plugin.serializers import (
 )
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.util import get_objects_for_user
+from pulpcore.plugin.viewsets import (
+    NAME_FILTER_OPTIONS,
+    ContentFilter,
+    ReadOnlyContentViewSet,
+    SingleArtifactContentUploadViewSet,
+)
 
 from . import models, serializers, tasks
 

@@ -1,13 +1,13 @@
-import pytest
-import requests
 import os
 import shutil
 import subprocess
 import uuid
-
-from requests.exceptions import HTTPError
-from requests.auth import HTTPBasicAuth
 from urllib.parse import urljoin
+
+import pytest
+import requests
+from requests.auth import HTTPBasicAuth
+from requests.exceptions import HTTPError
 
 from pulpcore.client.pulp_ostree import (
     OstreeImportAll,

@@ -1,26 +1,27 @@
 """Utilities for tests for the ostree plugin."""
 
 import subprocess
-
 from functools import partial
 from unittest import SkipTest
 
 from pulp_smash import config, selectors
-from pulp_smash.utils import uuid4
 from pulp_smash.pulp3.utils import (
     gen_remote,
     require_pulp_3,
     require_pulp_plugins,
 )
+from pulp_smash.utils import uuid4
 
-from pulp_ostree.tests.functional.constants import OSTREE_FIXTURE_URL
-
+from pulpcore.client.pulp_ostree import ApiClient as OstreeApiClient
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
+)
+from pulpcore.client.pulpcore import (
     ArtifactsApi,
     TasksApi,
 )
-from pulpcore.client.pulp_ostree import ApiClient as OstreeApiClient
+
+from pulp_ostree.tests.functional.constants import OSTREE_FIXTURE_URL
 
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()

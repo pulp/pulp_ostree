@@ -1,5 +1,4 @@
 import tarfile
-
 from gettext import gettext as _
 
 from rest_framework import serializers
