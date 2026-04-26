@@ -1,7 +1,7 @@
-import pytest
 import uuid
 
-from pulp_ostree.tests.functional.constants import OSTREE_FIXTURE_URL
+import pytest
+
 from pulpcore.client.pulp_ostree import (
     ApiClient,
     ContentCommitsApi,
@@ -10,10 +10,12 @@ from pulpcore.client.pulp_ostree import (
     ContentRefsApi,
     ContentSummariesApi,
     DistributionsOstreeApi,
-    RepositoriesOstreeApi,
     RemotesOstreeApi,
+    RepositoriesOstreeApi,
     RepositoriesOstreeVersionsApi,
 )
+
+from pulp_ostree.tests.functional.constants import OSTREE_FIXTURE_URL
 
 # Api Bindings fixtures
 
