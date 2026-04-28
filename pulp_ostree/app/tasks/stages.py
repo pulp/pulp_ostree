@@ -22,7 +22,7 @@ from pulp_ostree.app.models import (
 from pulp_ostree.app.tasks.utils import compute_hash, get_checksum_filepath
 
 gi.require_version("OSTree", "1.0")
-from gi.repository import GLib, OSTree  # noqa: E402: module level not at top of file
+from gi.repository import GLib, OSTree  # noqa: E402
 
 
 class DeclarativeContentCreatorMixin:

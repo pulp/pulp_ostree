@@ -29,7 +29,7 @@ from pulp_ostree.app.tasks.stages import DeclarativeContentCreatorMixin, OstreeA
 from pulp_ostree.app.tasks.utils import copy_to_local_storage, get_checksum_filepath
 
 gi.require_version("OSTree", "1.0")
-from gi.repository import Gio, GLib, OSTree  # noqa: E402: module level not at top of file
+from gi.repository import Gio, GLib, OSTree  # noqa: E402
 
 
 def import_all_refs_and_commits(artifact_pk, repository_pk, repository_name):
