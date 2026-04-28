@@ -34,7 +34,7 @@ from pulp_ostree.app.tasks.stages import DeclarativeContentCreatorMixin, OstreeA
 from pulp_ostree.app.tasks.utils import bytes_to_checksum, get_checksum_filepath
 
 gi.require_version("OSTree", "1.0")
-from gi.repository import Gio, GLib, OSTree  # noqa: E402: module level not at top of file
+from gi.repository import Gio, GLib, OSTree  # noqa: E402
 
 log = logging.getLogger(__name__)
 
