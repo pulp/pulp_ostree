@@ -82,6 +82,7 @@ All content models carry a `_pulp_domain` FK for multi-domain support.
 The plugin uses **PyGObject** (`gi.repository`) to bind to the native OSTree GLib library. All task files include:
 ```python
 import gi
+
 gi.require_version("OSTree", "1.0")
 from gi.repository import Gio, GLib, OSTree
 ```
