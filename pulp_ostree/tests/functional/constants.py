@@ -2,13 +2,21 @@
 
 from urllib.parse import urljoin
 
-from pulp_smash.constants import PULP_FIXTURES_BASE_URL
-from pulp_smash.pulp3.constants import (
-    BASE_CONTENT_PATH,
-    BASE_DISTRIBUTION_PATH,
-    BASE_REMOTE_PATH,
-    BASE_REPO_PATH,
-)
+import django
+
+from pulpcore.plugin.find_url import find_api_root
+
+django.setup()
+
+_, BASE_PATH = find_api_root(set_domain=False)
+
+# start from-pulp-smash
+PULP_FIXTURES_BASE_URL = "https://fixtures.pulpproject.org/"
+BASE_CONTENT_PATH = urljoin(BASE_PATH, "content/")
+BASE_DISTRIBUTION_PATH = urljoin(BASE_PATH, "distributions/")
+BASE_REPO_PATH = urljoin(BASE_PATH, "repositories/")
+BASE_REMOTE_PATH = urljoin(BASE_PATH, "remotes/")
+# end from-pulp-smash
 
 OSTREE_COMMITS_NAME = "ostree.commit"
 OSTREE_OBJECTS_NAME = "ostree.object"

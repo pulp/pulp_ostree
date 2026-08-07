@@ -39,9 +39,6 @@ pytest pulp_ostree/tests/unit/test_models.py::TestNothing::test_nothing_at_all
 
 Install test dependencies: `pip install -r unittest_requirements.txt`
 
-### Functional Tests
-Functional tests (`pulp_ostree/tests/functional/`) require a running Pulp instance and use `pulp-smash`. They are typically run in CI via Ansible/Docker.
-
 ### Changelog
 Uses [towncrier](https://towncrier.readthedocs.io/). Add changelog fragments to `CHANGES/` with type subdirectories: `feature/`, `bugfix/`, `doc/`, `removal/`, `deprecation/`, `misc/`.
 
