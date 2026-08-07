@@ -209,7 +209,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
-    def sync(self, request, pk):
+    def sync(self, request, pk, **kwargs):
         """Dispatch a sync task."""
         repository = self.get_object()
         serializer = RepositorySyncURLSerializer(
@@ -237,7 +237,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=serializers.OstreeImportAllSerializer)
-    def import_all(self, request, pk):
+    def import_all(self, request, pk, **kwargs):
         """Import all refs and commits to a repository."""
         repository = self.get_object()
 
@@ -270,7 +270,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         methods=["post"],
         serializer_class=serializers.OstreeImportCommitsToRefSerializer,
     )
-    def import_commits(self, request, pk):
+    def import_commits(self, request, pk, **kwargs):
         """Append child commits to a repository."""
         repository = self.get_object()
 
@@ -305,7 +305,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         methods=["post"],
         serializer_class=RepositoryAddRemoveContentSerializer,
     )
-    def modify(self, request, pk):
+    def modify(self, request, pk, **kwargs):
         """Queues a task that adds and remove content units within a repository."""
         repository = self.get_object()
         serializer = self.get_serializer(data=request.data, context={"request": request})
@@ -328,7 +328,7 @@ class OstreeRepositoryViewSet(core.RepositoryViewSet, ModifyRepositoryActionMixi
         )
         return core.OperationPostponedResponse(task, request)
 
-    def verify_content_units(self, content_units, all_content_units):
+    def verify_content_units(self, content_units, all_content_units, **kwargs):
         """Verify referenced content units."""
         existing_content_units_pks = content_units.values_list("pk", flat=True)
         existing_content_units_pks = {str(pk) for pk in existing_content_units_pks}
