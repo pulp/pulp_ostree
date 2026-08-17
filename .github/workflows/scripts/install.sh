@@ -17,8 +17,8 @@ source .github/workflows/scripts/utils.sh
 
 PIP_REQUIREMENTS=("pulp-cli-ostree" "yq")
 
-# This must be the **only** call to "pip install" on the test runner.
-pip install ${PIP_REQUIREMENTS[*]}
+# This must be the **only** package install on the test runner.
+uv pip install ${PIP_REQUIREMENTS[*]}
 
 if [[ "$TEST" = "s3" ]]; then
 for i in {1..3}
